@@ -6,7 +6,7 @@ import { logger } from '@/lib/utils/logger';
 
 /**
  * GET /api/admin/logs
- * Get processing logs with pagination and filters
+ * Get processing logs showing opportunities created (published/rejected/draft)
  */
 export async function GET(request: NextRequest) {
   try {
@@ -17,12 +17,11 @@ export async function GET(request: NextRequest) {
 
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
 
     // Use admin client to check role
     const adminSupabase = createAdminClient();
-    }
-
-    const { data: profile } = await supabase
+    const { data: profile } = await adminSupabase
       .from('profiles')
       .select('role')
       .eq('id', user.id)
@@ -32,46 +31,82 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    // Get query parameters
+    // Get filter parameters
     const { searchParams } = new URL(request.url);
-    const page = parseInt(searchParams.get('page') || '1');
-    const limit = parseInt(searchParams.get('limit') || '50');
-    const level = searchParams.get('level');
+    const status = searchParams.get('status');
+    const provider = searchParams.get('provider');
     const feedId = searchParams.get('feed_id');
+    const search = searchParams.get('search');
 
-    const adminSupabase = createAdminClient();
+    // Build query from opportunities table
     let query = adminSupabase
-      .from('processing_logs')
-      .select('*', { count: 'exact' });
-
-    if (level) {
-      query = query.eq('level', level);
-    }
-
-    if (feedId) {
-      query = query.eq('feed_id', feedId);
-    }
-
-    const { data: logs, error, count } = await query
+      .from('opportunities')
+      .select(`
+        id,
+        title,
+        opportunity_type,
+        status,
+        ai_provider,
+        confidence_score,
+        source_url,
+        created_at,
+        ai_rejection_reason,
+        source_feed_id,
+        rss_feeds!source_feed_id (
+          id,
+          name
+        )
+      `)
       .order('created_at', { ascending: false })
-      .range((page - 1) * limit, page * limit - 1);
+      .limit(100);
+
+    // Apply filters
+    if (status && status !== 'all') {
+      query = query.eq('status', status);
+    }
+
+    if (provider && provider !== 'all') {
+      query = query.eq('ai_provider', provider);
+    }
+
+    if (feedId && feedId !== 'all') {
+      query = query.eq('source_feed_id', feedId);
+    }
+
+    if (search) {
+      query = query.ilike('title', `%${search}%`);
+    }
+
+    const { data: opportunities, error } = await query;
 
     if (error) {
-      throw error;
+      console.error('Error fetching logs:', error);
+      return NextResponse.json(
+        { error: 'Failed to fetch logs', details: error.message },
+        { status: 500 }
+      );
     }
 
-    return NextResponse.json(
-      {
-        logs: logs || [],
-        total: count || 0,
-        page,
-        limit,
-        totalPages: Math.ceil((count || 0) / limit),
-      },
-      { status: 200 }
-    );
+    // Transform data to match frontend interface
+    const logs = opportunities?.map((opp) => ({
+      id: opp.id,
+      date: opp.created_at,
+      feed_name: opp.rss_feeds?.name || 'Unknown Feed',
+      category: opp.opportunity_type,
+      provider: opp.ai_provider || 'default',
+      title: opp.title,
+      status: opp.status,
+      reason: opp.ai_rejection_reason ||
+             (opp.status === 'published' ? 'Published successfully' :
+              opp.status === 'draft' ? 'Awaiting review' : 'No reason provided'),
+      source_url: opp.source_url,
+      opportunity_id: opp.status === 'published' ? opp.id : null,
+      confidence_score: opp.confidence_score,
+    })) || [];
+
+    return NextResponse.json({ logs });
   } catch (error) {
-    await logger.error('Error fetching logs', {
+    await logger.error('Error fetching processing logs', {
       error: error instanceof Error ? error.message : 'Unknown error',
     });
 

@@ -7,6 +7,7 @@ import Dashboard from './Dashboard';
 import ManageFeeds from './ManageFeeds';
 import ManageAISettings from './ManageAISettings';
 import Analytics from './Analytics';
+import ProcessingLog from './ProcessingLog';
 
 type Section = 'dashboard' | 'feeds' | 'analytics' | 'settings' | 'logs';
 
@@ -124,14 +125,7 @@ export default function AdminLayout({ initialSection }: AdminLayoutProps) {
                         <ManageAISettings />
                     </div>
                 )}
-                {activeSection === 'logs' && (
-                    <div>
-                        <h1 className="text-3xl font-black text-[#1a1a1a] mb-6">Processing Log</h1>
-                        <div className="bg-white p-8 rounded-xl shadow-sm border border-slate-200 text-center text-slate-500">
-                            Processing log page coming soon...
-                        </div>
-                    </div>
-                )}
+                {activeSection === 'logs' && <ProcessingLog />}
             </main>
         </div>
     );
