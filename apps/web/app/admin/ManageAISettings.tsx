@@ -314,9 +314,9 @@ export default function ManageAISettings() {
                                 <label className="block text-sm font-bold text-slate-700">API Key</label>
                                 <div className="flex items-center gap-2">
                                     <input
-                                        type={showApiKeys[provider.id || ''] ? 'text' : 'password'}
+                                        type="text"
                                         className="border p-2 rounded flex-1 font-mono text-sm"
-                                        value={provider.api_key}
+                                        value={provider.api_key || ''}
                                         onChange={e => {
                                             const updated = providers.map(p =>
                                                 p.id === provider.id ? { ...p, api_key: e.target.value } : p
@@ -324,13 +324,6 @@ export default function ManageAISettings() {
                                             setProviders(updated);
                                         }}
                                     />
-                                    <button
-                                        type="button"
-                                        onClick={() => toggleApiKeyVisibility(provider.id || '')}
-                                        className="p-2 text-slate-500 hover:text-slate-700"
-                                    >
-                                        {showApiKeys[provider.id || ''] ? <EyeOff size={18} /> : <Eye size={18} />}
-                                    </button>
                                     <button
                                         onClick={() => handleUpdateProvider(provider)}
                                         disabled={saving}

@@ -116,6 +116,11 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (error) {
+      await logger.error('Supabase error in AI settings', {
+        error: JSON.stringify(error),
+        provider,
+        user_id: user.id,
+      });
       throw error;
     }
 
@@ -127,12 +132,19 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ setting }, { status: 200 });
   } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    const errorDetails = error instanceof Error ? error.stack : JSON.stringify(error);
+
     await logger.error('Error updating AI settings', {
-      error: error instanceof Error ? error.message : 'Unknown error',
+      error: errorMessage,
+      details: errorDetails,
+      provider: body?.provider,
     });
 
+    console.error('Full error:', error);
+
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: errorMessage },
       { status: 500 }
     );
   }
