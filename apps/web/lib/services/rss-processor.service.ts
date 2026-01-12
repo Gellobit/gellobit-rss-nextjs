@@ -7,6 +7,7 @@ import { scraperService } from './scraper.service';
 import { duplicateCheckerService } from './duplicate-checker.service';
 import { opportunityService } from './opportunity.service';
 import { analyticsService } from './analytics.service';
+import { settingsService } from './settings.service';
 import type { OpportunityType } from '../types/database.types';
 
 /**
@@ -166,8 +167,22 @@ export class RSSProcessorService {
         feed_id: feedId,
       });
 
+      // Load system settings
+      const maxPostsPerRun = await settingsService.get('general.max_posts_per_run');
+      const globalQualityThreshold = await settingsService.get('general.quality_threshold');
+      const globalAutoPublish = await settingsService.get('general.auto_publish');
+
+      // Limit items to process based on max_posts_per_run setting
+      const itemsToProcess = rssItems.slice(0, maxPostsPerRun);
+
+      if (itemsToProcess.length < rssItems.length) {
+        await logger.info(`Limiting processing to ${maxPostsPerRun} items (${rssItems.length} available)`, {
+          feed_id: feedId,
+        });
+      }
+
       // Process each RSS item
-      for (const item of rssItems) {
+      for (const item of itemsToProcess) {
         try {
           result.itemsProcessed++;
 
@@ -263,20 +278,24 @@ export class RSSProcessorService {
             continue;
           }
 
-          // Check quality threshold
+          // Check quality threshold (use global setting, fallback to feed setting)
+          const qualityThreshold = globalQualityThreshold || feed.quality_threshold || 0.7;
+
           if (
-            feed.quality_threshold &&
             aiContent.confidence_score &&
-            aiContent.confidence_score < feed.quality_threshold
+            aiContent.confidence_score < qualityThreshold
           ) {
             result.aiRejections++;
             await logger.info('Content below quality threshold', {
               feed_id: feedId,
               confidence_score: aiContent.confidence_score,
-              threshold: feed.quality_threshold,
+              threshold: qualityThreshold,
             });
             continue;
           }
+
+          // Determine auto-publish (global setting overrides feed setting)
+          const shouldAutoPublish = globalAutoPublish && feed.auto_publish;
 
           // Create opportunity
           const opportunityId = await opportunityService.createFromAI(
@@ -284,7 +303,7 @@ export class RSSProcessorService {
             feed.opportunity_type,
             normalized.link,
             feedId,
-            feed.auto_publish
+            shouldAutoPublish
           );
 
           if (!opportunityId) {

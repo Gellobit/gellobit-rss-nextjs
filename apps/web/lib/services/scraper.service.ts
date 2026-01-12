@@ -1,5 +1,6 @@
 import * as cheerio from 'cheerio';
 import { logger } from '../utils/logger';
+import { settingsService } from './settings.service';
 import type { ScrapedContent } from '../../prompts';
 
 /**
@@ -8,9 +9,6 @@ import type { ScrapedContent } from '../../prompts';
  */
 export class ScraperService {
   private static instance: ScraperService;
-  private readonly USER_AGENT =
-    'Mozilla/5.0 (compatible; GellobitRSS/1.0; +https://gellobit.com)';
-  private readonly TIMEOUT_MS = 15000; // 15 seconds
 
   private constructor() {}
 
@@ -35,18 +33,29 @@ export class ScraperService {
     const startTime = Date.now();
 
     try {
-      // Resolve Google FeedProxy redirects
-      const resolvedUrl = await this.resolveGoogleRedirect(url);
+      // Load scraping settings
+      const followGoogleFeedproxy = await settingsService.get('scraping.follow_google_feedproxy');
+
+      // Resolve Google FeedProxy redirects (if enabled)
+      const resolvedUrl = followGoogleFeedproxy
+        ? await this.resolveGoogleRedirect(url)
+        : url;
+
+      // Load settings for scraping
+      const timeout = await settingsService.get('scraping.request_timeout');
+      const userAgent = await settingsService.get('scraping.user_agent');
+      const minContentLength = await settingsService.get('scraping.min_content_length');
+      const maxContentLength = await settingsService.get('scraping.max_content_length');
 
       // Fetch content
-      const html = await this.fetchHtml(resolvedUrl);
+      const html = await this.fetchHtml(resolvedUrl, userAgent, timeout);
 
       if (!html) {
         throw new Error('Empty response from URL');
       }
 
       // Extract content with Cheerio
-      const scraped = this.extractContent(html, resolvedUrl);
+      const scraped = this.extractContent(html, resolvedUrl, minContentLength, maxContentLength);
 
       const executionTime = Date.now() - startTime;
 
@@ -124,18 +133,20 @@ export class ScraperService {
    * Fetch HTML content from URL
    *
    * @param url - URL to fetch
+   * @param userAgent - User agent string
+   * @param timeout - Request timeout in ms
    * @returns HTML content or null
    */
-  private async fetchHtml(url: string): Promise<string | null> {
+  private async fetchHtml(url: string, userAgent: string, timeout: number): Promise<string | null> {
     try {
       const response = await fetch(url, {
         headers: {
-          'User-Agent': this.USER_AGENT,
+          'User-Agent': userAgent,
           Accept:
             'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
           'Accept-Language': 'en-US,en;q=0.9',
         },
-        signal: AbortSignal.timeout(this.TIMEOUT_MS),
+        signal: AbortSignal.timeout(timeout),
       });
 
       if (!response.ok) {
@@ -163,9 +174,11 @@ export class ScraperService {
    *
    * @param html - HTML content
    * @param url - Source URL
+   * @param minLength - Minimum content length
+   * @param maxLength - Maximum content length
    * @returns Scraped content structure
    */
-  private extractContent(html: string, url: string): ScrapedContent {
+  private extractContent(html: string, url: string, minLength: number, maxLength: number): ScrapedContent {
     const $ = cheerio.load(html);
 
     // Remove unwanted elements
@@ -208,7 +221,7 @@ export class ScraperService {
     }
 
     // Fallback: extract all paragraph text
-    if (!content || content.trim().length < 100) {
+    if (!content || content.trim().length < minLength) {
       content = $('p')
         .map((_, el) => $(el).text())
         .get()
@@ -216,7 +229,7 @@ export class ScraperService {
     }
 
     // Final fallback: extract body text
-    if (!content || content.trim().length < 100) {
+    if (!content || content.trim().length < minLength) {
       content = $('body').text();
     }
 
@@ -224,14 +237,14 @@ export class ScraperService {
     content = this.cleanText(content);
 
     // Limit content length (AI providers have token limits)
-    const MAX_CONTENT_LENGTH = 50000; // ~12,500 tokens
-    if (content.length > MAX_CONTENT_LENGTH) {
-      content = content.substring(0, MAX_CONTENT_LENGTH) + '...';
+    if (content.length > maxLength) {
+      const originalLength = content.length;
+      content = content.substring(0, maxLength) + '...';
 
       logger.warning('Content truncated due to length', {
         url,
-        original_length: content.length,
-        truncated_length: MAX_CONTENT_LENGTH,
+        original_length: originalLength,
+        truncated_length: maxLength,
       });
     }
 

@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createRouteClient } from '@/lib/utils/supabase-route';
 import { createAdminClient } from '@/lib/utils/supabase-admin';
+import { settingsService } from '@/lib/services/settings.service';
 
 export async function GET(request: NextRequest) {
     try {
@@ -23,17 +24,10 @@ export async function GET(request: NextRequest) {
             return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
         }
 
-        // Default settings
-        const defaultSettings = {
-            request_timeout: 10000,
-            max_redirects: 5,
-            min_content_length: 100,
-            max_content_length: 50000,
-            user_agent: 'Gellobit RSS Bot/1.0',
-            follow_google_feedproxy: true,
-        };
+        // Fetch settings from database
+        const settings = await settingsService.getCategory('scraping');
 
-        return NextResponse.json({ settings: defaultSettings });
+        return NextResponse.json({ settings });
     } catch (error) {
         console.error('Error fetching scraping settings:', error);
         return NextResponse.json(
@@ -65,8 +59,20 @@ export async function POST(request: NextRequest) {
 
         const body = await request.json();
 
-        // TODO: Store settings in database
-        console.log('Scraping settings updated:', body);
+        // Save each setting to database
+        const settingsToSave: Record<string, any> = {};
+        for (const [key, value] of Object.entries(body)) {
+            settingsToSave[`scraping.${key}`] = value;
+        }
+
+        const success = await settingsService.setMany(settingsToSave);
+
+        if (!success) {
+            return NextResponse.json(
+                { error: 'Failed to save settings' },
+                { status: 500 }
+            );
+        }
 
         return NextResponse.json({ success: true, settings: body });
     } catch (error) {

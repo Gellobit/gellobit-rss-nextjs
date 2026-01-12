@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createRouteClient } from '@/lib/utils/supabase-route';
 import { createAdminClient } from '@/lib/utils/supabase-admin';
+import { settingsService } from '@/lib/services/settings.service';
 
 export async function GET(request: NextRequest) {
     try {
@@ -23,13 +24,10 @@ export async function GET(request: NextRequest) {
             return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
         }
 
-        // Default settings
-        const defaultSettings = {
-            log_retention_days: 30,
-            debug_mode: false,
-        };
+        // Fetch settings from database
+        const settings = await settingsService.getCategory('advanced');
 
-        return NextResponse.json({ settings: defaultSettings });
+        return NextResponse.json({ settings });
     } catch (error) {
         console.error('Error fetching advanced settings:', error);
         return NextResponse.json(
@@ -61,8 +59,20 @@ export async function POST(request: NextRequest) {
 
         const body = await request.json();
 
-        // TODO: Store settings in database
-        console.log('Advanced settings updated:', body);
+        // Save each setting to database
+        const settingsToSave: Record<string, any> = {};
+        for (const [key, value] of Object.entries(body)) {
+            settingsToSave[`advanced.${key}`] = value;
+        }
+
+        const success = await settingsService.setMany(settingsToSave);
+
+        if (!success) {
+            return NextResponse.json(
+                { error: 'Failed to save settings' },
+                { status: 500 }
+            );
+        }
 
         return NextResponse.json({ success: true, settings: body });
     } catch (error) {
