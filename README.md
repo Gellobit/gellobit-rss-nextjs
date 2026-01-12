@@ -4,11 +4,11 @@
 
 ## 📋 Versión
 
-**v1.0.0-alpha.3** - Backend completo + Admin UI conectado
+**v1.0.0-alpha.4** - Admin Dashboard completo (WordPress replicado)
 
-**✅ Backend Funcional:** Todos los servicios, API routes y admin UI están conectados y listos para usar.
+**✅ Admin Panel Completo:** Dashboard, Analytics con view tracking, y Processing Log implementados.
 
-**⚠️ NOTA:** Si ves error "infinite recursion detected" o "Access Denied", ya está RESUELTO. El script `004_nuclear_fix_rls.sql` elimina completamente la recursión en RLS policies.
+**⚠️ NOTA IMPORTANTE:** Para que Analytics funcione, ejecuta la migración: `migrations/004_add_view_tracking.sql` (ver [ANALYTICS_SETUP.md](ANALYTICS_SETUP.md))
 
 ## 🚀 Stack Tecnológico
 
@@ -84,8 +84,9 @@ npm install
 
 # Ejecutar migraciones SQL en Supabase (en orden)
 # 1. migrations/001_initial_schema.sql - Schema completo
-# 2. migrations/002_fix_rls_policies.sql - Corregir políticas RLS
+# 2. migrations/004_nuclear_fix_rls.sql - Corregir políticas RLS (IMPORTANTE)
 # 3. migrations/003_verify_admin_user.sql - Verificar usuario admin
+# 4. migrations/004_add_view_tracking.sql - Analytics con view tracking (NECESARIO para Analytics)
 
 # Configurar variables de entorno
 # Copiar .env.example a .env.local y completar
@@ -134,18 +135,22 @@ npm run dev
 - [x] `/api/admin/logs` - Processing logs
 - [x] `/api/admin/analytics` - Statistics
 
-### ✅ Fase 5: Admin UI
-- [x] ManageFeeds - Connected to API, with "Sync Now" button
-- [x] ManageAISettings - Connected to API, with "Test Connection"
-- [x] CreateOpportunityForm - Manual opportunity creation
-- [x] Vercel Cron configuration (vercel.json)
+### ✅ Fase 5: Admin UI - Completa (WordPress Replicado)
+- [x] **AdminLayout** - Tab navigation system (Dashboard, RSS Feeds, Analytics, Settings, Processing Log)
+- [x] **Dashboard** - System status, stats cards, quick actions, feed status, recent activity
+- [x] **Analytics** - Feed stats, post stats, processing stats, category performance, top 10 performers, time filters
+- [x] **Processing Log** - Status/provider/feed filters, rejection reasons, links to original sources, published posts verification
+- [x] **ManageFeeds** - Connected to API, with "Sync Now" button per feed
+- [x] **ManageAISettings** - Connected to API, with "Test Connection" for 4 providers
+- [x] **CreateOpportunityForm** - Manual opportunity creation
+- [x] **Vercel Cron configuration** (vercel.json)
 
 ### 🚧 Pendiente
+- [ ] Settings page con 5 tabs (General, AI, Prompts, Scraping, Advanced)
 - [ ] Migrar prompts personalizados desde WordPress
-- [ ] Dashboard de analytics visuales
-- [ ] Viewer de logs en UI
-- [ ] Testing E2E completo
-- [ ] Deploy a Vercel
+- [ ] View tracking endpoint (`POST /api/opportunities/[id]/view`)
+- [ ] Testing E2E completo del flujo RSS → AI → Opportunity
+- [ ] Deploy a Vercel y verificar cron automático
 
 ## 📝 Tipos de Oportunidades Soportados
 
@@ -239,6 +244,6 @@ Vercel Cron ejecutará automáticamente cada hora.
 
 ---
 
-**Estado**: 🟢 Beta - Backend completo, listo para testing end-to-end
+**Estado**: 🟢 Beta - Admin Dashboard completo, listo para testing end-to-end
 **Última actualización**: 2026-01-12
-**Versión**: v1.0.0-alpha.3
+**Versión**: v1.0.0-alpha.4
