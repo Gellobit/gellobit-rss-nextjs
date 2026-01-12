@@ -1,11 +1,13 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Save, RefreshCw, Info } from 'lucide-react';
+import { Save, RefreshCw, Info, Edit, CheckCircle, XCircle, Trash2 } from 'lucide-react';
 
-interface PromptTemplate {
+interface PromptConfig {
     opportunity_type: string;
-    content: string;
+    prompt: string;
+    source: 'custom' | 'default';
+    isEditing?: boolean;
 }
 
 const opportunityTypes = [
@@ -23,73 +25,147 @@ const opportunityTypes = [
 ];
 
 export default function PromptsSettings() {
-    const [selectedType, setSelectedType] = useState('giveaway');
-    const [prompt, setPrompt] = useState('');
-    const [loading, setLoading] = useState(false);
-    const [saving, setSaving] = useState(false);
-    const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+    const [prompts, setPrompts] = useState<PromptConfig[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [saving, setSaving] = useState<string | null>(null);
+    const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string; promptType?: string } | null>(null);
 
     useEffect(() => {
-        fetchPrompt(selectedType);
-    }, [selectedType]);
+        fetchAllPrompts();
+    }, []);
 
-    const fetchPrompt = async (type: string) => {
+    const fetchAllPrompts = async () => {
         setLoading(true);
         try {
-            const res = await fetch(`/api/admin/prompts/${type}`);
-            const data = await res.json();
-            if (res.ok) {
-                setPrompt(data.prompt || '');
-            }
+            const promptsData: PromptConfig[] = await Promise.all(
+                opportunityTypes.map(async (type) => {
+                    const res = await fetch(`/api/admin/prompts/${type.value}`);
+                    const data = await res.json();
+                    return {
+                        opportunity_type: type.value,
+                        prompt: data.prompt || '',
+                        source: data.source || 'default',
+                        isEditing: false,
+                    };
+                })
+            );
+            setPrompts(promptsData);
         } catch (error) {
-            console.error('Error fetching prompt:', error);
+            console.error('Error fetching prompts:', error);
         }
         setLoading(false);
     };
 
-    const handleSave = async () => {
-        setSaving(true);
+    const toggleEdit = (opportunityType: string) => {
+        setPrompts(prompts.map(p =>
+            p.opportunity_type === opportunityType
+                ? { ...p, isEditing: !p.isEditing }
+                : p
+        ));
         setMessage(null);
+    };
+
+    const handlePromptChange = (opportunityType: string, newPrompt: string) => {
+        setPrompts(prompts.map(p =>
+            p.opportunity_type === opportunityType
+                ? { ...p, prompt: newPrompt }
+                : p
+        ));
+    };
+
+    const handleSave = async (opportunityType: string) => {
+        setSaving(opportunityType);
+        setMessage(null);
+
+        const promptConfig = prompts.find(p => p.opportunity_type === opportunityType);
+        if (!promptConfig) return;
+
         try {
-            const res = await fetch(`/api/admin/prompts/${selectedType}`, {
+            const res = await fetch(`/api/admin/prompts/${opportunityType}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ prompt }),
+                body: JSON.stringify({ prompt: promptConfig.prompt }),
             });
 
             const data = await res.json();
 
             if (res.ok) {
-                setMessage({ type: 'success', text: 'Prompt saved successfully!' });
+                setMessage({
+                    type: 'success',
+                    text: 'Prompt saved successfully!',
+                    promptType: opportunityType
+                });
+                // Update source to custom
+                setPrompts(prompts.map(p =>
+                    p.opportunity_type === opportunityType
+                        ? { ...p, source: 'custom', isEditing: false }
+                        : p
+                ));
             } else {
-                setMessage({ type: 'error', text: data.error || 'Failed to save prompt' });
+                setMessage({
+                    type: 'error',
+                    text: data.error || 'Failed to save prompt',
+                    promptType: opportunityType
+                });
             }
         } catch (error) {
-            setMessage({ type: 'error', text: 'Failed to save prompt' });
+            console.error('Save error:', error);
+            setMessage({
+                type: 'error',
+                text: 'Failed to save prompt',
+                promptType: opportunityType
+            });
         }
-        setSaving(false);
+        setSaving(null);
     };
 
-    const handleReset = async () => {
-        if (!confirm('Reset to default prompt? This will discard your custom changes.')) return;
+    const handleReset = async (opportunityType: string) => {
+        const promptLabel = opportunityTypes.find(t => t.value === opportunityType)?.label;
+        if (!confirm(`Reset ${promptLabel} prompt to default? This will discard your custom changes.`)) return;
 
-        setSaving(true);
+        setSaving(opportunityType);
         setMessage(null);
+
         try {
-            const res = await fetch(`/api/admin/prompts/${selectedType}`, {
+            const res = await fetch(`/api/admin/prompts/${opportunityType}`, {
                 method: 'DELETE',
             });
 
             if (res.ok) {
-                await fetchPrompt(selectedType);
-                setMessage({ type: 'success', text: 'Prompt reset to default!' });
+                // Fetch the default prompt
+                const getRes = await fetch(`/api/admin/prompts/${opportunityType}`);
+                const data = await getRes.json();
+
+                setPrompts(prompts.map(p =>
+                    p.opportunity_type === opportunityType
+                        ? { ...p, prompt: data.prompt, source: 'default', isEditing: false }
+                        : p
+                ));
+
+                setMessage({
+                    type: 'success',
+                    text: 'Prompt reset to default!',
+                    promptType: opportunityType
+                });
             } else {
-                setMessage({ type: 'error', text: 'Failed to reset prompt' });
+                setMessage({
+                    type: 'error',
+                    text: 'Failed to reset prompt',
+                    promptType: opportunityType
+                });
             }
         } catch (error) {
-            setMessage({ type: 'error', text: 'Failed to reset prompt' });
+            setMessage({
+                type: 'error',
+                text: 'Failed to reset prompt',
+                promptType: opportunityType
+            });
         }
-        setSaving(false);
+        setSaving(null);
+    };
+
+    const getTypeLabel = (type: string) => {
+        return opportunityTypes.find(t => t.value === type)?.label || type;
     };
 
     return (
@@ -101,13 +177,14 @@ export default function PromptsSettings() {
                     <p className="font-bold mb-1">Customize AI Prompts</p>
                     <p className="text-blue-800">
                         Edit the prompts used by AI to generate content for each opportunity type.
-                        The AI returns a single JSON response with title, excerpt, content, and metadata.
+                        Each prompt is independent and only one custom prompt per type is allowed.
+                        Click "Edit" to modify a prompt, then "Save" to apply your changes.
                     </p>
                 </div>
             </div>
 
-            {/* Message */}
-            {message && (
+            {/* Global Message */}
+            {message && !message.promptType && (
                 <div
                     className={`p-4 rounded-lg ${
                         message.type === 'success'
@@ -119,85 +196,138 @@ export default function PromptsSettings() {
                 </div>
             )}
 
-            {/* Type Selector */}
-            <div className="space-y-2">
-                <label className="block text-sm font-bold text-slate-900">
-                    Select Opportunity Type
-                </label>
-                <select
-                    value={selectedType}
-                    onChange={(e) => setSelectedType(e.target.value)}
-                    className="w-full border border-slate-300 rounded-lg px-4 py-2 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                    {opportunityTypes.map((type) => (
-                        <option key={type.value} value={type.value}>
-                            {type.label}
-                        </option>
-                    ))}
-                </select>
-            </div>
-
-            {/* Available Variables */}
+            {/* Available Variables Info */}
             <div className="bg-slate-50 border border-slate-200 rounded-lg p-4">
-                <h3 className="text-sm font-bold text-slate-900 mb-2">Available Variables</h3>
+                <h3 className="text-sm font-bold text-slate-900 mb-2">Available Variables for Custom Prompts</h3>
                 <div className="text-xs text-slate-700 space-y-1">
-                    <p><code className="bg-slate-200 px-1 py-0.5 rounded">{'{{title}}'}</code> - Original RSS item title</p>
-                    <p><code className="bg-slate-200 px-1 py-0.5 rounded">{'{{description}}'}</code> - Original RSS description</p>
-                    <p><code className="bg-slate-200 px-1 py-0.5 rounded">{'{{content}}'}</code> - Full scraped content from URL</p>
-                    <p><code className="bg-slate-200 px-1 py-0.5 rounded">{'{{source_url}}'}</code> - Original article URL</p>
+                    <p><code className="bg-slate-200 px-1 py-0.5 rounded">[matched_content]</code> - Full scraped content (title + URL + content)</p>
+                    <p><code className="bg-slate-200 px-1 py-0.5 rounded">[original_title]</code> - Original RSS item title</p>
+                    <p className="text-slate-500 mt-2 italic">The AI must return valid JSON with: valid, title, excerpt, content, deadline, prize_value, requirements, location, confidence_score</p>
                 </div>
             </div>
 
-            {/* Prompt Editor */}
-            <div className="space-y-2">
-                <label className="block text-sm font-bold text-slate-900">
-                    Prompt Template
-                </label>
-                {loading ? (
-                    <div className="flex items-center justify-center py-12 border border-slate-300 rounded-lg">
-                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                    </div>
-                ) : (
-                    <textarea
-                        value={prompt}
-                        onChange={(e) => setPrompt(e.target.value)}
-                        rows={20}
-                        className="w-full border border-slate-300 rounded-lg px-4 py-3 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        placeholder="Enter your custom prompt here..."
-                    />
-                )}
-                <p className="text-xs text-slate-500">
-                    The AI must return valid JSON with fields: valid, title, excerpt, content, deadline, prize_value, requirements, location, confidence_score
-                </p>
-            </div>
+            {/* Prompts List */}
+            {loading ? (
+                <div className="flex items-center justify-center py-12">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                </div>
+            ) : (
+                <div className="space-y-4">
+                    {prompts.map((promptConfig) => (
+                        <div
+                            key={promptConfig.opportunity_type}
+                            className="border border-slate-200 rounded-lg p-4 space-y-3"
+                        >
+                            {/* Header */}
+                            <div className="flex items-start justify-between">
+                                <div className="flex-1">
+                                    <div className="flex items-center gap-2 mb-1">
+                                        <h4 className="font-bold text-slate-900">
+                                            {getTypeLabel(promptConfig.opportunity_type)}
+                                        </h4>
+                                        <span className={`px-2 py-0.5 rounded text-xs font-bold uppercase ${
+                                            promptConfig.source === 'custom'
+                                                ? 'bg-blue-100 text-blue-700'
+                                                : 'bg-slate-100 text-slate-600'
+                                        }`}>
+                                            {promptConfig.source === 'custom' ? 'Custom' : 'Default'}
+                                        </span>
+                                    </div>
+                                    <p className="text-xs text-slate-500">
+                                        {promptConfig.isEditing
+                                            ? 'Editing prompt - Make your changes and click Save'
+                                            : `${promptConfig.prompt.length} characters`}
+                                    </p>
+                                </div>
+                                <button
+                                    onClick={() => toggleEdit(promptConfig.opportunity_type)}
+                                    className={`px-3 py-1 rounded text-sm font-bold transition-colors ${
+                                        promptConfig.isEditing
+                                            ? 'bg-slate-200 text-slate-700 hover:bg-slate-300'
+                                            : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
+                                    }`}
+                                >
+                                    {promptConfig.isEditing ? 'Cancel' : 'Edit'}
+                                </button>
+                            </div>
 
-            {/* Action Buttons */}
-            <div className="flex gap-3 pt-4">
-                <button
-                    onClick={handleSave}
-                    disabled={saving || loading}
-                    className="bg-blue-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-blue-700 transition-colors flex items-center gap-2 disabled:opacity-50"
-                >
-                    {saving ? (
-                        <>
-                            <RefreshCw size={16} className="animate-spin" />
-                            Saving...
-                        </>
-                    ) : (
-                        <>
-                            <Save size={16} />
-                            Save Prompt
-                        </>
-                    )}
-                </button>
-                <button
-                    onClick={handleReset}
-                    disabled={saving || loading}
-                    className="bg-white text-slate-700 px-6 py-2 rounded-lg font-bold border-2 border-slate-200 hover:border-slate-300 transition-colors disabled:opacity-50"
-                >
-                    Reset to Default
-                </button>
-            </div>
+                            {/* Message for this specific prompt */}
+                            {message && message.promptType === promptConfig.opportunity_type && (
+                                <div
+                                    className={`p-3 rounded-lg flex items-start gap-2 ${
+                                        message.type === 'success'
+                                            ? 'bg-green-50 border border-green-200'
+                                            : 'bg-red-50 border border-red-200'
+                                    }`}
+                                >
+                                    {message.type === 'success' ? (
+                                        <CheckCircle size={20} className="text-green-600 flex-shrink-0 mt-0.5" />
+                                    ) : (
+                                        <XCircle size={20} className="text-red-600 flex-shrink-0 mt-0.5" />
+                                    )}
+                                    <p className={`text-sm ${
+                                        message.type === 'success' ? 'text-green-700' : 'text-red-700'
+                                    }`}>
+                                        {message.text}
+                                    </p>
+                                </div>
+                            )}
+
+                            {/* Prompt Editor */}
+                            {promptConfig.isEditing && (
+                                <div className="space-y-2">
+                                    <textarea
+                                        value={promptConfig.prompt}
+                                        onChange={(e) => handlePromptChange(promptConfig.opportunity_type, e.target.value)}
+                                        rows={15}
+                                        className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        placeholder="Enter your custom prompt here..."
+                                    />
+
+                                    {/* Action Buttons */}
+                                    <div className="flex gap-2">
+                                        <button
+                                            onClick={() => handleSave(promptConfig.opportunity_type)}
+                                            disabled={saving === promptConfig.opportunity_type}
+                                            className="bg-green-600 text-white px-4 py-2 rounded font-bold hover:bg-green-700 flex items-center gap-2 disabled:opacity-50"
+                                        >
+                                            {saving === promptConfig.opportunity_type ? (
+                                                <>
+                                                    <RefreshCw size={16} className="animate-spin" />
+                                                    Saving...
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <Save size={16} />
+                                                    Save Prompt
+                                                </>
+                                            )}
+                                        </button>
+                                        {promptConfig.source === 'custom' && (
+                                            <button
+                                                onClick={() => handleReset(promptConfig.opportunity_type)}
+                                                disabled={saving === promptConfig.opportunity_type}
+                                                className="bg-red-600 text-white px-4 py-2 rounded font-bold hover:bg-red-700 flex items-center gap-2 disabled:opacity-50"
+                                            >
+                                                <Trash2 size={16} />
+                                                Reset to Default
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Preview (when not editing) */}
+                            {!promptConfig.isEditing && (
+                                <div className="bg-slate-50 rounded p-3 text-xs font-mono text-slate-700 max-h-32 overflow-y-auto">
+                                    {promptConfig.prompt.substring(0, 300)}
+                                    {promptConfig.prompt.length > 300 && '...'}
+                                </div>
+                            )}
+                        </div>
+                    ))}
+                </div>
+            )}
         </div>
     );
 }

@@ -12,7 +12,7 @@ import type { OpportunityType } from '@/lib/types/database.types';
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { type: string } }
+  { params }: { params: Promise<{ type: string }> }
 ) {
   try {
     const supabase = await createRouteClient();
@@ -36,7 +36,9 @@ export async function GET(
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    const opportunityType = params.type as OpportunityType;
+    // Next.js 15: await params before accessing
+    const { type } = await params;
+    const opportunityType = type as OpportunityType;
 
     // Check if custom prompt exists in database
     const { data: customPrompt } = await adminSupabase
@@ -82,7 +84,7 @@ export async function GET(
  */
 export async function POST(
   request: NextRequest,
-  { params }: { params: { type: string } }
+  { params }: { params: Promise<{ type: string }> }
 ) {
   try {
     const supabase = await createRouteClient();
@@ -106,7 +108,9 @@ export async function POST(
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    const opportunityType = params.type as OpportunityType;
+    // Next.js 15: await params before accessing
+    const { type } = await params;
+    const opportunityType = type as OpportunityType;
     const body = await request.json();
     const { prompt } = body;
 
@@ -121,6 +125,7 @@ export async function POST(
     const result = await promptService.saveCustomPrompt(opportunityType, prompt);
 
     if (!result.success) {
+      console.error('Prompt save error:', result.error);
       return NextResponse.json(
         { error: result.error || 'Failed to save prompt' },
         { status: 500 }
@@ -146,7 +151,7 @@ export async function POST(
  */
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { type: string } }
+  { params }: { params: Promise<{ type: string }> }
 ) {
   try {
     const supabase = await createRouteClient();
@@ -170,7 +175,9 @@ export async function DELETE(
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    const opportunityType = params.type as OpportunityType;
+    // Next.js 15: await params before accessing
+    const { type } = await params;
+    const opportunityType = type as OpportunityType;
 
     // Delete custom prompt
     const result = await promptService.deleteCustomPrompt(opportunityType);
