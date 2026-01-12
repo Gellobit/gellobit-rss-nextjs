@@ -11,6 +11,7 @@
 **⚠️ NOTAS IMPORTANTES:**
 - Para Analytics: ejecuta `migrations/004_add_view_tracking.sql` (ver [ANALYTICS_SETUP.md](ANALYTICS_SETUP.md))
 - Para Processing Log: ejecuta `migrations/005_add_ai_provider_column.sql` (ver [PROCESSING_LOG_FIX.md](PROCESSING_LOG_FIX.md))
+- Para Settings Persistentes: ejecuta `migrations/006_create_system_settings.sql` (ver [SETTINGS_PERSISTENCE_SETUP.md](SETTINGS_PERSISTENCE_SETUP.md))
 
 ## 🚀 Stack Tecnológico
 
@@ -90,6 +91,7 @@ npm install
 # 3. migrations/003_verify_admin_user.sql - Verificar usuario admin
 # 4. migrations/004_add_view_tracking.sql - Analytics con view tracking (NECESARIO para Analytics)
 # 5. migrations/005_add_ai_provider_column.sql - AI provider tracking (NECESARIO para Processing Log)
+# 6. migrations/006_create_system_settings.sql - Settings persistentes (NECESARIO para que Settings funcionen)
 
 # Configurar variables de entorno
 # Copiar .env.example a .env.local y completar
@@ -105,6 +107,7 @@ npm run dev
 - Si no eres admin → Ejecuta `migrations/003_verify_admin_user.sql`
 - Si Analytics no funciona → Lee [ANALYTICS_SETUP.md](ANALYTICS_SETUP.md)
 - Si Processing Log falla → Lee [PROCESSING_LOG_FIX.md](PROCESSING_LOG_FIX.md)
+- Si Settings no se guardan → Lee [SETTINGS_PERSISTENCE_SETUP.md](SETTINGS_PERSISTENCE_SETUP.md)
 
 ## ✨ Características Implementadas
 
@@ -162,8 +165,8 @@ npm run dev
 - [x] **Vercel Cron configuration** (vercel.json)
 
 ### 🚧 Pendiente
-- [ ] Implementar tabla `system_settings` en BD para persistir configuraciones
 - [ ] View tracking endpoint (`POST /api/opportunities/[id]/view`)
+- [ ] Settings import/export functionality (advanced tab)
 - [ ] Testing E2E completo del flujo RSS → AI → Opportunity
 - [ ] Deploy a Vercel y verificar cron automático
 
