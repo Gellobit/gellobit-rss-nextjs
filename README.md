@@ -4,11 +4,11 @@
 
 ## 📋 Versión
 
-**v1.0.0-alpha.2** - Backend completo implementado
+**v1.0.0-alpha.3** - Backend completo + Admin UI conectado
 
-**🚨 URGENTE:** Si ves error "infinite recursion detected" o "Access Denied", lee: **[URGENT_FIX_NOW.md](URGENT_FIX_NOW.md)**
+**✅ Backend Funcional:** Todos los servicios, API routes y admin UI están conectados y listos para usar.
 
-Ejecuta el script `apps/web/migrations/004_nuclear_fix_rls.sql` en Supabase SQL Editor.
+**⚠️ NOTA:** Si ves error "infinite recursion detected" o "Access Denied", ya está RESUELTO. El script `004_nuclear_fix_rls.sql` elimina completamente la recursión en RLS policies.
 
 ## 🚀 Stack Tecnológico
 
@@ -100,10 +100,10 @@ npm run dev
 - Si ves error RLS → Ejecuta `migrations/002_fix_rls_policies.sql`
 - Si no eres admin → Ejecuta `migrations/003_verify_admin_user.sql`
 
-## ✨ Características Implementadas (v1.0.0-alpha.1)
+## ✨ Características Implementadas
 
 ### ✅ Fase 1: Fundación
-- [x] Schema SQL completo con RLS
+- [x] Schema SQL completo con RLS (FIXED - sin recursión)
 - [x] Tipos TypeScript para BD y API
 - [x] Utilidades: logger, crypto, validation, error-handler
 - [x] Parser RSS con normalización
@@ -115,16 +115,37 @@ npm run dev
 - [x] Generación de contenido en 1 llamada (JSON)
 - [x] Test de conexión para cada provider
 
-### 🚧 En Progreso
-- [ ] Prompt Service (gestión de prompts)
-- [ ] Scraper Service (extracción de contenido)
-- [ ] Duplicate Checker Service
-- [ ] Opportunity Service (CRUD)
-- [ ] Analytics Service
-- [ ] RSS Processor Service (orquestador principal)
-- [ ] API Routes (admin + cron)
-- [ ] Vercel Cron configuration
-- [ ] UI Components actualizados
+### ✅ Fase 3: Core Services
+- [x] Prompt Service (gestión de prompts con fallback a TypeScript)
+- [x] Scraper Service (extracción de contenido + Google FeedProxy resolver)
+- [x] Duplicate Checker Service (hash + similarity)
+- [x] Opportunity Service (CRUD completo)
+- [x] Analytics Service (métricas de procesamiento)
+- [x] RSS Processor Service (orquestador principal)
+
+### ✅ Fase 4: API Routes
+- [x] `/api/cron/process-feeds` - Vercel Cron endpoint
+- [x] `/api/admin/feeds` - CRUD feeds
+- [x] `/api/admin/feeds/[id]` - Individual feed operations
+- [x] `/api/admin/feeds/[id]/sync` - Manual sync trigger
+- [x] `/api/admin/ai-settings` - AI configuration
+- [x] `/api/admin/ai-settings/test` - Test AI connection
+- [x] `/api/admin/opportunities` - CRUD opportunities
+- [x] `/api/admin/logs` - Processing logs
+- [x] `/api/admin/analytics` - Statistics
+
+### ✅ Fase 5: Admin UI
+- [x] ManageFeeds - Connected to API, with "Sync Now" button
+- [x] ManageAISettings - Connected to API, with "Test Connection"
+- [x] CreateOpportunityForm - Manual opportunity creation
+- [x] Vercel Cron configuration (vercel.json)
+
+### 🚧 Pendiente
+- [ ] Migrar prompts personalizados desde WordPress
+- [ ] Dashboard de analytics visuales
+- [ ] Viewer de logs en UI
+- [ ] Testing E2E completo
+- [ ] Deploy a Vercel
 
 ## 📝 Tipos de Oportunidades Soportados
 
@@ -166,16 +187,58 @@ Este proyecto fue construido con **Claude Code** y replica la funcionalidad del 
 
 Privado - Proyecto Gellobit
 
-## 🎯 Próximos Pasos
+## 🎯 Próximos Pasos para Testing
 
-1. Implementar servicios restantes (Scraper, Duplicate Checker, etc.)
-2. Crear API routes para admin y cron
-3. Migrar prompts de WordPress a TypeScript
-4. Configurar Vercel Cron para procesamiento automático
-5. Actualizar componentes UI para conectar con backend
-6. Testing E2E completo
+### 1. Configurar AI Provider (5 min)
+1. Ve a http://localhost:3000/admin
+2. En "AI Configuration", elige un provider:
+   - **OpenAI**: Necesitas `OPENAI_API_KEY` (sk-...)
+   - **Anthropic**: Necesitas `ANTHROPIC_API_KEY` (sk-ant-...)
+   - **DeepSeek**: Necesitas `DEEPSEEK_API_KEY` (sk-...)
+   - **Gemini**: Necesitas `GEMINI_API_KEY` (AIza...)
+3. Click "Test Connection" para verificar
+4. Click "Save Settings"
+
+### 2. Agregar un RSS Feed de Prueba (2 min)
+1. Crea un Google Alert para algún tema (ej: "giveaways")
+2. Copia la URL del RSS feed
+3. En "Manage RSS Feeds":
+   - Nombre: "Test Giveaways"
+   - URL: [tu URL de Google Alerts]
+   - Tipo: "Giveaway"
+   - ✓ Enable Scraping
+   - ✓ Enable AI Processing
+   - ⬜ Auto Publish (déjalo sin marcar para revisar primero)
+4. Click "Add Feed"
+
+### 3. Probar Sync Manual (2 min)
+1. Click el botón ▶️ "Play" (Sync Now) en tu feed
+2. Espera a que termine (puede tardar 30-60 seg)
+3. Verás un resumen:
+   - Items procesados
+   - Oportunidades creadas
+   - Duplicados omitidos
+   - Rechazos de IA
+
+### 4. Ver Oportunidades Creadas
+1. Ve a http://localhost:3000
+2. Debes ver las nuevas oportunidades en la homepage
+3. Click en una para ver el contenido completo generado por IA
+
+### 5. Probar Cron Manualmente (Opcional)
+```bash
+curl -X POST http://localhost:3000/api/cron/process-feeds \
+  -H "Authorization: Bearer ${CRON_SECRET}"
+```
+
+### 6. Deploy a Vercel (Cuando esté listo)
+```bash
+vercel deploy
+```
+Vercel Cron ejecutará automáticamente cada hora.
 
 ---
 
-**Estado**: 🟡 Alpha - Fundación completada, servicios core en desarrollo
+**Estado**: 🟢 Beta - Backend completo, listo para testing end-to-end
 **Última actualización**: 2026-01-12
+**Versión**: v1.0.0-alpha.3
