@@ -4,7 +4,9 @@
 
 ## 📋 Versión
 
-**v1.0.0-alpha.1** - Fundación y AI Service completados
+**v1.0.0-alpha.2** - Backend completo implementado
+
+**⚠️ IMPORTANTE:** Si ves "Access Denied" o errores de RLS, lee: **[FIX_ACCESS_DENIED.md](FIX_ACCESS_DENIED.md)**
 
 ## 🚀 Stack Tecnológico
 
@@ -78,16 +80,23 @@ GEMINI_API_KEY=
 # Instalar dependencias
 npm install
 
-# Ejecutar migración SQL en Supabase
-# Copiar contenido de migrations/001_initial_schema.sql
+# Ejecutar migraciones SQL en Supabase (en orden)
+# 1. migrations/001_initial_schema.sql - Schema completo
+# 2. migrations/002_fix_rls_policies.sql - Corregir políticas RLS
+# 3. migrations/003_verify_admin_user.sql - Verificar usuario admin
 
-# Crear usuario admin en Supabase
-# Ver instrucciones en migrations/
+# Configurar variables de entorno
+# Copiar .env.example a .env.local y completar
 
 # Iniciar servidor de desarrollo
 cd apps/web
 npm run dev
 ```
+
+**⚠️ SOLUCIÓN DE PROBLEMAS:**
+- Si ves "Access Denied" → Lee [FIX_ACCESS_DENIED.md](FIX_ACCESS_DENIED.md)
+- Si ves error RLS → Ejecuta `migrations/002_fix_rls_policies.sql`
+- Si no eres admin → Ejecuta `migrations/003_verify_admin_user.sql`
 
 ## ✨ Características Implementadas (v1.0.0-alpha.1)
 

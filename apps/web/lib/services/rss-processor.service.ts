@@ -1,0 +1,450 @@
+import { createAdminClient } from '../utils/supabase-admin';
+import { parseRSS, normalizeRSSItem } from '../utils/rss-parser';
+import { logger } from '../utils/logger';
+import { aiService } from './ai.service';
+import { promptService } from './prompt.service';
+import { scraperService } from './scraper.service';
+import { duplicateCheckerService } from './duplicate-checker.service';
+import { opportunityService } from './opportunity.service';
+import { analyticsService } from './analytics.service';
+import type { OpportunityType } from '../types/database.types';
+
+/**
+ * Feed processing result
+ */
+interface FeedProcessingResult {
+  feedId: string;
+  feedName: string;
+  opportunityType: OpportunityType;
+  itemsProcessed: number;
+  opportunitiesCreated: number;
+  duplicatesSkipped: number;
+  aiRejections: number;
+  errors: number;
+  executionTimeMs: number;
+  success: boolean;
+  error?: string;
+}
+
+/**
+ * RSS Processor Service - Main orchestrator
+ * Coordinates RSS parsing, scraping, AI processing, and opportunity creation
+ */
+export class RSSProcessorService {
+  private static instance: RSSProcessorService;
+
+  private constructor() {}
+
+  static getInstance(): RSSProcessorService {
+    if (!RSSProcessorService.instance) {
+      RSSProcessorService.instance = new RSSProcessorService();
+    }
+    return RSSProcessorService.instance;
+  }
+
+  /**
+   * Process all active RSS feeds
+   *
+   * @returns Array of processing results
+   */
+  async processAllFeeds(): Promise<FeedProcessingResult[]> {
+    await logger.info('Starting RSS feed processing run');
+
+    const startTime = Date.now();
+    const results: FeedProcessingResult[] = [];
+
+    try {
+      const supabase = createAdminClient();
+
+      // Get all active feeds
+      const { data: feeds, error } = await supabase
+        .from('rss_feeds')
+        .select('*')
+        .eq('status', 'active');
+
+      if (error) {
+        throw new Error(`Failed to fetch feeds: ${error.message}`);
+      }
+
+      if (!feeds || feeds.length === 0) {
+        await logger.info('No active feeds to process');
+        return [];
+      }
+
+      await logger.info(`Processing ${feeds.length} active feeds`);
+
+      // Process feeds sequentially to avoid overwhelming AI providers
+      for (const feed of feeds) {
+        const result = await this.processFeed(feed.id);
+        results.push(result);
+
+        // Small delay between feeds
+        await this.delay(2000);
+      }
+
+      const totalTime = Date.now() - startTime;
+
+      await logger.info('RSS processing run completed', {
+        total_feeds: feeds.length,
+        successful_feeds: results.filter((r) => r.success).length,
+        total_opportunities_created: results.reduce(
+          (sum, r) => sum + r.opportunitiesCreated,
+          0
+        ),
+        total_time_ms: totalTime,
+      });
+
+      return results;
+    } catch (error) {
+      await logger.error('RSS processing run failed', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+
+      return results;
+    }
+  }
+
+  /**
+   * Process a single RSS feed
+   *
+   * @param feedId - Feed ID to process
+   * @returns Processing result
+   */
+  async processFeed(feedId: string): Promise<FeedProcessingResult> {
+    const startTime = Date.now();
+
+    const result: FeedProcessingResult = {
+      feedId,
+      feedName: '',
+      opportunityType: 'giveaway',
+      itemsProcessed: 0,
+      opportunitiesCreated: 0,
+      duplicatesSkipped: 0,
+      aiRejections: 0,
+      errors: 0,
+      executionTimeMs: 0,
+      success: false,
+    };
+
+    try {
+      const supabase = createAdminClient();
+
+      // Get feed configuration
+      const { data: feed, error: feedError } = await supabase
+        .from('rss_feeds')
+        .select('*')
+        .eq('id', feedId)
+        .single();
+
+      if (feedError || !feed) {
+        throw new Error(`Feed not found: ${feedId}`);
+      }
+
+      result.feedName = feed.name;
+      result.opportunityType = feed.opportunity_type;
+
+      await logger.info('Processing feed', {
+        feed_id: feedId,
+        feed_name: feed.name,
+        feed_url: feed.url,
+        opportunity_type: feed.opportunity_type,
+      });
+
+      // Parse RSS feed
+      const rssItems = await parseRSS(feed.url);
+
+      if (!rssItems || rssItems.length === 0) {
+        await logger.warning('No items found in RSS feed', {
+          feed_id: feedId,
+        });
+        result.executionTimeMs = Date.now() - startTime;
+        result.success = true;
+        return result;
+      }
+
+      await logger.info(`Found ${rssItems.length} items in feed`, {
+        feed_id: feedId,
+      });
+
+      // Process each RSS item
+      for (const item of rssItems) {
+        try {
+          result.itemsProcessed++;
+
+          // Normalize RSS item
+          const normalized = normalizeRSSItem(item);
+
+          if (!normalized.title || !normalized.link) {
+            await logger.warning('Skipping invalid RSS item', {
+              feed_id: feedId,
+              item_title: item.title,
+            });
+            continue;
+          }
+
+          // Check for duplicates BEFORE scraping
+          const preliminaryContent = {
+            title: normalized.title,
+            content: normalized.content || normalized.contentSnippet || '',
+            url: normalized.link,
+          };
+
+          const duplicateCheck = await duplicateCheckerService.isDuplicate(
+            preliminaryContent,
+            feedId
+          );
+
+          if (duplicateCheck.isDuplicate) {
+            result.duplicatesSkipped++;
+            await logger.debug('Skipping duplicate item', {
+              feed_id: feedId,
+              item_url: normalized.link,
+              reason: duplicateCheck.reason,
+            });
+            continue;
+          }
+
+          // Scrape full content (if enabled)
+          let scrapedContent = preliminaryContent;
+
+          if (feed.enable_scraping) {
+            const scraped = await scraperService.scrapeUrl(
+              normalized.link,
+              feedId
+            );
+
+            if (scraped) {
+              scrapedContent = scraped;
+            } else {
+              await logger.warning('Failed to scrape content, using RSS content', {
+                feed_id: feedId,
+                item_url: normalized.link,
+              });
+            }
+          }
+
+          // Generate AI content (if enabled)
+          if (!feed.enable_ai_processing) {
+            await logger.debug('AI processing disabled for feed', {
+              feed_id: feedId,
+            });
+            continue;
+          }
+
+          // Get appropriate prompt
+          const prompt = await promptService.getPrompt(
+            feed.opportunity_type,
+            scrapedContent
+          );
+
+          // Generate content with AI
+          const aiContent = await aiService.generateOpportunity(
+            scrapedContent,
+            feed.opportunity_type,
+            prompt
+          );
+
+          if (!aiContent) {
+            result.errors++;
+            await logger.error('AI generation failed', {
+              feed_id: feedId,
+              item_url: normalized.link,
+            });
+            continue;
+          }
+
+          if (!aiContent.valid) {
+            result.aiRejections++;
+            await logger.info('Content rejected by AI', {
+              feed_id: feedId,
+              item_url: normalized.link,
+              reason: aiContent.reason,
+            });
+            continue;
+          }
+
+          // Check quality threshold
+          if (
+            feed.quality_threshold &&
+            aiContent.confidence_score &&
+            aiContent.confidence_score < feed.quality_threshold
+          ) {
+            result.aiRejections++;
+            await logger.info('Content below quality threshold', {
+              feed_id: feedId,
+              confidence_score: aiContent.confidence_score,
+              threshold: feed.quality_threshold,
+            });
+            continue;
+          }
+
+          // Create opportunity
+          const opportunityId = await opportunityService.createFromAI(
+            aiContent,
+            feed.opportunity_type,
+            normalized.link,
+            feedId,
+            feed.auto_publish
+          );
+
+          if (!opportunityId) {
+            result.errors++;
+            continue;
+          }
+
+          result.opportunitiesCreated++;
+
+          // Record in duplicate tracking
+          await duplicateCheckerService.recordContent(
+            scrapedContent,
+            opportunityId,
+            feedId
+          );
+
+          await logger.info('Opportunity created successfully', {
+            feed_id: feedId,
+            opportunity_id: opportunityId,
+            opportunity_type: feed.opportunity_type,
+            auto_published: feed.auto_publish,
+          });
+        } catch (itemError) {
+          result.errors++;
+          await logger.error('Error processing RSS item', {
+            feed_id: feedId,
+            item_title: item.title,
+            error:
+              itemError instanceof Error
+                ? itemError.message
+                : 'Unknown error',
+          });
+        }
+      }
+
+      // Update feed statistics
+      await this.updateFeedStats(feedId, result);
+
+      result.executionTimeMs = Date.now() - startTime;
+      result.success = true;
+
+      // Record analytics
+      await analyticsService.recordProcessing(result);
+
+      await logger.info('Feed processing completed', {
+        feed_id: feedId,
+        items_processed: result.itemsProcessed,
+        opportunities_created: result.opportunitiesCreated,
+        duplicates_skipped: result.duplicatesSkipped,
+        ai_rejections: result.aiRejections,
+        errors: result.errors,
+        execution_time_ms: result.executionTimeMs,
+      });
+
+      return result;
+    } catch (error) {
+      result.executionTimeMs = Date.now() - startTime;
+      result.error =
+        error instanceof Error ? error.message : 'Unknown error';
+
+      await logger.error('Feed processing failed', {
+        feed_id: feedId,
+        error: result.error,
+        execution_time_ms: result.executionTimeMs,
+      });
+
+      return result;
+    }
+  }
+
+  /**
+   * Update feed statistics
+   *
+   * @param feedId - Feed ID
+   * @param result - Processing result
+   */
+  private async updateFeedStats(
+    feedId: string,
+    result: FeedProcessingResult
+  ) {
+    try {
+      const supabase = createAdminClient();
+
+      const { data: feed } = await supabase
+        .from('rss_feeds')
+        .select('stats_total_processed, stats_opportunities_created')
+        .eq('id', feedId)
+        .single();
+
+      if (!feed) return;
+
+      await supabase
+        .from('rss_feeds')
+        .update({
+          stats_total_processed:
+            (feed.stats_total_processed || 0) + result.itemsProcessed,
+          stats_opportunities_created:
+            (feed.stats_opportunities_created || 0) +
+            result.opportunitiesCreated,
+          last_processed_at: new Date().toISOString(),
+        })
+        .eq('id', feedId);
+
+      await logger.debug('Feed statistics updated', {
+        feed_id: feedId,
+      });
+    } catch (error) {
+      await logger.error('Error updating feed statistics', {
+        feed_id: feedId,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+    }
+  }
+
+  /**
+   * Utility delay function
+   *
+   * @param ms - Milliseconds to delay
+   */
+  private delay(ms: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+
+  /**
+   * Get processing statistics
+   *
+   * @returns Overall processing stats
+   */
+  async getStats() {
+    const supabase = createAdminClient();
+
+    const { data: feeds } = await supabase
+      .from('rss_feeds')
+      .select('id, name, stats_total_processed, stats_opportunities_created');
+
+    const { data: recentLogs } = await supabase
+      .from('processing_logs')
+      .select('level')
+      .gte(
+        'created_at',
+        new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+      );
+
+    const errors =
+      recentLogs?.filter((l) => l.level === 'error').length || 0;
+
+    return {
+      total_feeds: feeds?.length || 0,
+      total_items_processed:
+        feeds?.reduce((sum, f) => sum + (f.stats_total_processed || 0), 0) ||
+        0,
+      total_opportunities_created:
+        feeds?.reduce(
+          (sum, f) => sum + (f.stats_opportunities_created || 0),
+          0
+        ) || 0,
+      errors_last_24h: errors,
+    };
+  }
+}
+
+// Export singleton instance
+export const rssProcessorService = RSSProcessorService.getInstance();

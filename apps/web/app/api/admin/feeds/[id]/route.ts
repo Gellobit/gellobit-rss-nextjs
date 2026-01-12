@@ -1,0 +1,191 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { createServerClient } from '@/lib/utils/supabase-server';
+import { createAdminClient } from '@/lib/utils/supabase-admin';
+import { logger } from '@/lib/utils/logger';
+import { validateRequestBody } from '@/lib/utils/validation';
+import { updateFeedSchema } from '@/lib/utils/validation';
+
+/**
+ * GET /api/admin/feeds/[id]
+ * Get single RSS feed
+ */
+export async function GET(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const supabase = createServerClient();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single();
+
+    if (profile?.role !== 'admin') {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
+    const adminSupabase = createAdminClient();
+    const { data: feed, error } = await adminSupabase
+      .from('rss_feeds')
+      .select('*')
+      .eq('id', params.id)
+      .single();
+
+    if (error || !feed) {
+      return NextResponse.json({ error: 'Feed not found' }, { status: 404 });
+    }
+
+    return NextResponse.json({ feed }, { status: 200 });
+  } catch (error) {
+    await logger.error('Error fetching feed', {
+      feed_id: params.id,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
+
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
+  }
+}
+
+/**
+ * PATCH /api/admin/feeds/[id]
+ * Update RSS feed
+ */
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const supabase = createServerClient();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single();
+
+    if (profile?.role !== 'admin') {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
+    const body = await request.json();
+    const validation = validateRequestBody(body, updateFeedSchema);
+
+    if (!validation.success) {
+      return NextResponse.json(
+        { error: 'Validation failed', details: validation.errors },
+        { status: 400 }
+      );
+    }
+
+    const adminSupabase = createAdminClient();
+    const { data: feed, error } = await adminSupabase
+      .from('rss_feeds')
+      .update(validation.data)
+      .eq('id', params.id)
+      .select()
+      .single();
+
+    if (error) {
+      throw error;
+    }
+
+    await logger.info('RSS feed updated', {
+      feed_id: params.id,
+      user_id: user.id,
+    });
+
+    return NextResponse.json({ feed }, { status: 200 });
+  } catch (error) {
+    await logger.error('Error updating feed', {
+      feed_id: params.id,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
+
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
+  }
+}
+
+/**
+ * DELETE /api/admin/feeds/[id]
+ * Delete RSS feed
+ */
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const supabase = createServerClient();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single();
+
+    if (profile?.role !== 'admin') {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
+    const adminSupabase = createAdminClient();
+    const { error } = await adminSupabase
+      .from('rss_feeds')
+      .delete()
+      .eq('id', params.id);
+
+    if (error) {
+      throw error;
+    }
+
+    await logger.info('RSS feed deleted', {
+      feed_id: params.id,
+      user_id: user.id,
+    });
+
+    return NextResponse.json(
+      { message: 'Feed deleted successfully' },
+      { status: 200 }
+    );
+  } catch (error) {
+    await logger.error('Error deleting feed', {
+      feed_id: params.id,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
+
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
+  }
+}

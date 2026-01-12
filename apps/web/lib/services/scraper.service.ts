@@ -1,0 +1,339 @@
+import * as cheerio from 'cheerio';
+import { logger } from '../utils/logger';
+import type { ScrapedContent } from '../../prompts';
+
+/**
+ * Scraper Service - Enhanced web scraping with Google redirect handling
+ * Extracts clean content from URLs for AI processing
+ */
+export class ScraperService {
+  private static instance: ScraperService;
+  private readonly USER_AGENT =
+    'Mozilla/5.0 (compatible; GellobitRSS/1.0; +https://gellobit.com)';
+  private readonly TIMEOUT_MS = 15000; // 15 seconds
+
+  private constructor() {}
+
+  static getInstance(): ScraperService {
+    if (!ScraperService.instance) {
+      ScraperService.instance = new ScraperService();
+    }
+    return ScraperService.instance;
+  }
+
+  /**
+   * Scrape content from a URL
+   *
+   * @param url - URL to scrape
+   * @param feedId - Optional feed ID for logging
+   * @returns Scraped content or null if failed
+   */
+  async scrapeUrl(
+    url: string,
+    feedId?: string
+  ): Promise<ScrapedContent | null> {
+    const startTime = Date.now();
+
+    try {
+      // Resolve Google FeedProxy redirects
+      const resolvedUrl = await this.resolveGoogleRedirect(url);
+
+      // Fetch content
+      const html = await this.fetchHtml(resolvedUrl);
+
+      if (!html) {
+        throw new Error('Empty response from URL');
+      }
+
+      // Extract content with Cheerio
+      const scraped = this.extractContent(html, resolvedUrl);
+
+      const executionTime = Date.now() - startTime;
+
+      await logger.info('Content scraped successfully', {
+        url: resolvedUrl,
+        feed_id: feedId,
+        content_length: scraped.content.length,
+        execution_time_ms: executionTime,
+      });
+
+      return scraped;
+    } catch (error) {
+      const executionTime = Date.now() - startTime;
+
+      await logger.error('Scraping failed', {
+        url,
+        feed_id: feedId,
+        error: error instanceof Error ? error.message : 'Unknown error',
+        execution_time_ms: executionTime,
+      });
+
+      return null;
+    }
+  }
+
+  /**
+   * Resolve Google FeedProxy redirects to final destination URL
+   *
+   * @param url - Original URL (may be feedproxy)
+   * @returns Resolved final URL
+   */
+  private async resolveGoogleRedirect(url: string): Promise<string> {
+    // Check if URL is a Google FeedProxy URL
+    if (!url.includes('feedproxy.google.com')) {
+      return url;
+    }
+
+    try {
+      await logger.debug('Resolving Google FeedProxy redirect', { url });
+
+      const response = await fetch(url, {
+        method: 'HEAD',
+        redirect: 'manual', // Don't auto-follow redirects
+        headers: {
+          'User-Agent': this.USER_AGENT,
+        },
+        signal: AbortSignal.timeout(this.TIMEOUT_MS),
+      });
+
+      // Get Location header for redirect
+      const location = response.headers.get('Location');
+
+      if (location && response.status >= 300 && response.status < 400) {
+        await logger.debug('FeedProxy redirect resolved', {
+          original: url,
+          resolved: location,
+        });
+        return location;
+      }
+
+      // No redirect found, return original URL
+      return url;
+    } catch (error) {
+      await logger.warning('Failed to resolve FeedProxy redirect, using original URL', {
+        url,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+
+      // Fall back to original URL on error
+      return url;
+    }
+  }
+
+  /**
+   * Fetch HTML content from URL
+   *
+   * @param url - URL to fetch
+   * @returns HTML content or null
+   */
+  private async fetchHtml(url: string): Promise<string | null> {
+    try {
+      const response = await fetch(url, {
+        headers: {
+          'User-Agent': this.USER_AGENT,
+          Accept:
+            'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+          'Accept-Language': 'en-US,en;q=0.9',
+        },
+        signal: AbortSignal.timeout(this.TIMEOUT_MS),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const contentType = response.headers.get('Content-Type') || '';
+
+      // Check if response is HTML
+      if (!contentType.includes('text/html') && !contentType.includes('application/xhtml')) {
+        throw new Error(`Invalid content type: ${contentType}`);
+      }
+
+      return await response.text();
+    } catch (error) {
+      if (error instanceof Error && error.name === 'AbortError') {
+        throw new Error('Request timeout');
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Extract clean content from HTML using Cheerio
+   *
+   * @param html - HTML content
+   * @param url - Source URL
+   * @returns Scraped content structure
+   */
+  private extractContent(html: string, url: string): ScrapedContent {
+    const $ = cheerio.load(html);
+
+    // Remove unwanted elements
+    $('script, style, nav, header, footer, aside, iframe, noscript').remove();
+    $('.advertisement, .ads, .social-share, .comments').remove();
+
+    // Extract title
+    let title =
+      $('meta[property="og:title"]').attr('content') ||
+      $('meta[name="twitter:title"]').attr('content') ||
+      $('title').text() ||
+      $('h1').first().text() ||
+      '';
+
+    title = this.cleanText(title);
+
+    // Extract main content
+    // Try to find article content using common selectors
+    let content = '';
+
+    const contentSelectors = [
+      'article',
+      '[role="main"]',
+      '.post-content',
+      '.entry-content',
+      '.article-content',
+      '.content',
+      'main',
+      '#content',
+      '.post',
+      '.article',
+    ];
+
+    for (const selector of contentSelectors) {
+      const element = $(selector);
+      if (element.length > 0) {
+        content = element.text();
+        break;
+      }
+    }
+
+    // Fallback: extract all paragraph text
+    if (!content || content.trim().length < 100) {
+      content = $('p')
+        .map((_, el) => $(el).text())
+        .get()
+        .join('\n');
+    }
+
+    // Final fallback: extract body text
+    if (!content || content.trim().length < 100) {
+      content = $('body').text();
+    }
+
+    // Clean content
+    content = this.cleanText(content);
+
+    // Limit content length (AI providers have token limits)
+    const MAX_CONTENT_LENGTH = 50000; // ~12,500 tokens
+    if (content.length > MAX_CONTENT_LENGTH) {
+      content = content.substring(0, MAX_CONTENT_LENGTH) + '...';
+
+      logger.warning('Content truncated due to length', {
+        url,
+        original_length: content.length,
+        truncated_length: MAX_CONTENT_LENGTH,
+      });
+    }
+
+    return {
+      title,
+      content,
+      url,
+    };
+  }
+
+  /**
+   * Clean and normalize text
+   *
+   * @param text - Raw text
+   * @returns Cleaned text
+   */
+  private cleanText(text: string): string {
+    return (
+      text
+        // Decode HTML entities
+        .replace(/&nbsp;/g, ' ')
+        .replace(/&amp;/g, '&')
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+        .replace(/&quot;/g, '"')
+        .replace(/&#39;/g, "'")
+        // Remove extra whitespace
+        .replace(/\s+/g, ' ')
+        // Remove leading/trailing whitespace
+        .trim()
+    );
+  }
+
+  /**
+   * Batch scrape multiple URLs
+   *
+   * @param urls - Array of URLs to scrape
+   * @param feedId - Optional feed ID for logging
+   * @param concurrency - Number of concurrent requests (default 3)
+   * @returns Array of scraped content (null for failed scrapes)
+   */
+  async scrapeUrls(
+    urls: string[],
+    feedId?: string,
+    concurrency: number = 3
+  ): Promise<(ScrapedContent | null)[]> {
+    const results: (ScrapedContent | null)[] = [];
+
+    // Process URLs in batches
+    for (let i = 0; i < urls.length; i += concurrency) {
+      const batch = urls.slice(i, i + concurrency);
+
+      const batchResults = await Promise.all(
+        batch.map((url) => this.scrapeUrl(url, feedId))
+      );
+
+      results.push(...batchResults);
+
+      // Small delay between batches to avoid overwhelming servers
+      if (i + concurrency < urls.length) {
+        await this.delay(1000); // 1 second delay
+      }
+    }
+
+    return results;
+  }
+
+  /**
+   * Utility delay function
+   *
+   * @param ms - Milliseconds to delay
+   */
+  private delay(ms: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+
+  /**
+   * Get scraping statistics
+   *
+   * @returns Statistics about recent scraping activity
+   */
+  async getScrapingStats() {
+    const supabase = (await import('../utils/supabase-admin')).createAdminClient();
+
+    const { data: logs } = await supabase
+      .from('processing_logs')
+      .select('*')
+      .or('message.ilike.%scrape%,message.ilike.%fetch%')
+      .gte('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
+      .order('created_at', { ascending: false });
+
+    const successful = logs?.filter((l) => l.level === 'info').length || 0;
+    const failed = logs?.filter((l) => l.level === 'error').length || 0;
+
+    return {
+      scrapes_last_24h: logs?.length || 0,
+      successful_scrapes: successful,
+      failed_scrapes: failed,
+      success_rate: logs?.length ? (successful / logs.length) * 100 : 0,
+    };
+  }
+}
+
+// Export singleton instance
+export const scraperService = ScraperService.getInstance();
