@@ -87,6 +87,7 @@ npm install
 # 2. migrations/004_nuclear_fix_rls.sql - Corregir políticas RLS (IMPORTANTE)
 # 3. migrations/003_verify_admin_user.sql - Verificar usuario admin
 # 4. migrations/004_add_view_tracking.sql - Analytics con view tracking (NECESARIO para Analytics)
+# 5. migrations/005_add_ai_provider_column.sql - AI provider tracking (NECESARIO para Processing Log)
 
 # Configurar variables de entorno
 # Copiar .env.example a .env.local y completar
@@ -98,8 +99,10 @@ npm run dev
 
 **⚠️ SOLUCIÓN DE PROBLEMAS:**
 - Si ves "Access Denied" → Lee [FIX_ACCESS_DENIED.md](FIX_ACCESS_DENIED.md)
-- Si ves error RLS → Ejecuta `migrations/002_fix_rls_policies.sql`
+- Si ves error RLS → Ejecuta `migrations/004_nuclear_fix_rls.sql`
 - Si no eres admin → Ejecuta `migrations/003_verify_admin_user.sql`
+- Si Analytics no funciona → Lee [ANALYTICS_SETUP.md](ANALYTICS_SETUP.md)
+- Si Processing Log falla → Lee [PROCESSING_LOG_FIX.md](PROCESSING_LOG_FIX.md)
 
 ## ✨ Características Implementadas
 
