@@ -192,9 +192,9 @@ export default function ManageFeeds() {
                                 const provider = e.target.value;
                                 const defaultModels: Record<string, string> = {
                                     'openai': 'gpt-4o-mini',
-                                    'anthropic': 'claude-3-5-sonnet-20241022',
+                                    'anthropic': 'claude-3-7-sonnet-20250219',
                                     'deepseek': 'deepseek-chat',
-                                    'gemini': 'gemini-1.5-flash'
+                                    'gemini': 'gemini-2.0-flash-exp'
                                 };
                                 setNewFeed({
                                     ...newFeed,
@@ -205,9 +205,9 @@ export default function ManageFeeds() {
                         >
                             <option value="">Use Global AI Provider</option>
                             <option value="openai">OpenAI (GPT-4o-mini)</option>
-                            <option value="anthropic">Anthropic (Claude 3.5 Sonnet)</option>
+                            <option value="anthropic">Anthropic (Claude 3.7 Sonnet)</option>
                             <option value="deepseek">DeepSeek (DeepSeek-Chat)</option>
-                            <option value="gemini">Google (Gemini 1.5 Flash)</option>
+                            <option value="gemini">Google (Gemini 2.0 Flash)</option>
                         </select>
                         <input
                             type="text"

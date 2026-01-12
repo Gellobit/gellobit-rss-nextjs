@@ -3,7 +3,7 @@ import { BaseAIProvider } from './base.provider';
 import { AIResponse } from '../types/ai.types';
 
 /**
- * Google Gemini Provider (Gemini 1.5 Flash, Pro, etc.)
+ * Google Gemini Provider (Gemini 2.0 Flash, Pro, 1.5 Flash, etc.)
  */
 export class GeminiProvider extends BaseAIProvider {
     private client: GoogleGenerativeAI;

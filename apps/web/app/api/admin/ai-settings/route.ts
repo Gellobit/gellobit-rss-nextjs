@@ -18,9 +18,6 @@ export async function GET(request: NextRequest) {
 
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
-    // Use admin client to check role
-    const adminSupabase = createAdminClient();
     }
 
     // Use admin client to check role (avoids type issues with route client)
@@ -36,7 +33,7 @@ export async function GET(request: NextRequest) {
     }
     const { data: settings, error } = await adminSupabase
       .from('ai_settings')
-      .select('id, provider, model, is_active, max_tokens, temperature, rate_limit_per_hour, created_at, updated_at')
+      .select('id, provider, model, api_key, is_active, max_tokens, temperature, rate_limit_per_hour, created_at, updated_at')
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -69,9 +66,6 @@ export async function POST(request: NextRequest) {
 
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
-    // Use admin client to check role
-    const adminSupabase = createAdminClient();
     }
 
     // Use admin client to check role (avoids type issues with route client)
@@ -118,7 +112,7 @@ export async function POST(request: NextRequest) {
       }, {
         onConflict: 'provider',
       })
-      .select('id, provider, model, is_active, max_tokens, temperature, rate_limit_per_hour')
+      .select('id, provider, model, api_key, is_active, max_tokens, temperature, rate_limit_per_hour')
       .single();
 
     if (error) {
