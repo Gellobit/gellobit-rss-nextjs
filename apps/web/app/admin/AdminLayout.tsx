@@ -6,6 +6,7 @@ import { LayoutDashboard, Rss, BarChart3, Settings, ScrollText, LogOut } from 'l
 import Dashboard from './Dashboard';
 import ManageFeeds from './ManageFeeds';
 import ManageAISettings from './ManageAISettings';
+import Analytics from './Analytics';
 
 type Section = 'dashboard' | 'feeds' | 'analytics' | 'settings' | 'logs';
 
@@ -116,14 +117,7 @@ export default function AdminLayout({ initialSection }: AdminLayoutProps) {
                         <ManageFeeds />
                     </div>
                 )}
-                {activeSection === 'analytics' && (
-                    <div>
-                        <h1 className="text-3xl font-black text-[#1a1a1a] mb-6">Analytics</h1>
-                        <div className="bg-white p-8 rounded-xl shadow-sm border border-slate-200 text-center text-slate-500">
-                            Analytics page coming soon...
-                        </div>
-                    </div>
-                )}
+                {activeSection === 'analytics' && <Analytics />}
                 {activeSection === 'settings' && (
                     <div>
                         <h1 className="text-3xl font-black text-[#1a1a1a] mb-6">Settings</h1>
