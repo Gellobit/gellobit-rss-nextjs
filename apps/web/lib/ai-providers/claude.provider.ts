@@ -70,9 +70,20 @@ export class ClaudeProvider extends BaseAIProvider {
             });
 
             return message.content.length > 0;
-        } catch (error) {
+        } catch (error: any) {
             console.error('Claude connection test failed:', error);
-            return false;
+
+            // Extract meaningful error message
+            let errorMessage = 'Connection failed';
+            if (error?.error?.message) {
+                errorMessage = error.error.message;
+            } else if (error?.message) {
+                errorMessage = error.message;
+            } else if (error?.error?.type) {
+                errorMessage = `Error type: ${error.error.type}`;
+            }
+
+            throw new Error(errorMessage);
         }
     }
 }

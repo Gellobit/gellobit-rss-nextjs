@@ -144,11 +144,21 @@ export default function ManageAISettings() {
                     }
                 });
             } else {
+                // Extract meaningful error message
+                let errorMsg = 'Unknown error';
+                if (data.result?.error) {
+                    errorMsg = data.result.error;
+                } else if (data.error) {
+                    errorMsg = data.error;
+                } else if (data.result?.message) {
+                    errorMsg = data.result.message;
+                }
+
                 setTestResults({
                     ...testResults,
                     [provider.provider]: {
                         success: false,
-                        message: `✗ Connection failed: ${data.result.error || data.error || 'Unknown error'}`
+                        message: `✗ ${errorMsg}`
                     }
                 });
             }

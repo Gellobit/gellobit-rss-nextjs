@@ -65,9 +65,20 @@ export class OpenAIProvider extends BaseAIProvider {
             });
 
             return !!completion.choices[0]?.message?.content;
-        } catch (error) {
+        } catch (error: any) {
             console.error('OpenAI connection test failed:', error);
-            return false;
+
+            // Extract meaningful error message
+            let errorMessage = 'Connection failed';
+            if (error?.error?.message) {
+                errorMessage = error.error.message;
+            } else if (error?.message) {
+                errorMessage = error.message;
+            } else if (error?.error?.type) {
+                errorMessage = `Error type: ${error.error.type}`;
+            }
+
+            throw new Error(errorMessage);
         }
     }
 }

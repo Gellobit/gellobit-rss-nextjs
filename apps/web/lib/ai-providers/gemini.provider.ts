@@ -68,9 +68,18 @@ export class GeminiProvider extends BaseAIProvider {
             const response = result.response;
 
             return !!response.text();
-        } catch (error) {
+        } catch (error: any) {
             console.error('Gemini connection test failed:', error);
-            return false;
+
+            // Extract meaningful error message
+            let errorMessage = 'Connection failed';
+            if (error?.message) {
+                errorMessage = error.message;
+            } else if (error?.errorDetails) {
+                errorMessage = JSON.stringify(error.errorDetails);
+            }
+
+            throw new Error(errorMessage);
         }
     }
 }
