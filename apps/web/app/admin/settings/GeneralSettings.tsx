@@ -1,0 +1,221 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import { Save, RefreshCw } from 'lucide-react';
+
+interface GeneralConfig {
+    automatic_processing: boolean;
+    processing_interval: number;
+    auto_publish: boolean;
+    quality_threshold: number;
+    max_posts_per_run: number;
+}
+
+export default function GeneralSettings() {
+    const [config, setConfig] = useState<GeneralConfig>({
+        automatic_processing: true,
+        processing_interval: 60,
+        auto_publish: false,
+        quality_threshold: 0.7,
+        max_posts_per_run: 10,
+    });
+    const [loading, setLoading] = useState(false);
+    const [saving, setSaving] = useState(false);
+    const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+    useEffect(() => {
+        fetchSettings();
+    }, []);
+
+    const fetchSettings = async () => {
+        setLoading(true);
+        try {
+            const res = await fetch('/api/admin/settings/general');
+            const data = await res.json();
+            if (res.ok && data.settings) {
+                setConfig(data.settings);
+            }
+        } catch (error) {
+            console.error('Error fetching general settings:', error);
+        }
+        setLoading(false);
+    };
+
+    const handleSave = async () => {
+        setSaving(true);
+        setMessage(null);
+        try {
+            const res = await fetch('/api/admin/settings/general', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(config),
+            });
+
+            const data = await res.json();
+
+            if (res.ok) {
+                setMessage({ type: 'success', text: 'Settings saved successfully!' });
+            } else {
+                setMessage({ type: 'error', text: data.error || 'Failed to save settings' });
+            }
+        } catch (error) {
+            setMessage({ type: 'error', text: 'Failed to save settings' });
+        }
+        setSaving(false);
+    };
+
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center py-12">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            </div>
+        );
+    }
+
+    return (
+        <div className="space-y-6">
+            {/* Message */}
+            {message && (
+                <div
+                    className={`p-4 rounded-lg ${
+                        message.type === 'success'
+                            ? 'bg-green-50 text-green-800 border border-green-200'
+                            : 'bg-red-50 text-red-800 border border-red-200'
+                    }`}
+                >
+                    {message.text}
+                </div>
+            )}
+
+            {/* Automatic Processing */}
+            <div className="space-y-2">
+                <label className="flex items-center gap-3 cursor-pointer">
+                    <input
+                        type="checkbox"
+                        checked={config.automatic_processing}
+                        onChange={(e) => setConfig({ ...config, automatic_processing: e.target.checked })}
+                        className="w-5 h-5 rounded border-slate-300 text-blue-600 focus:ring-2 focus:ring-blue-500"
+                    />
+                    <div>
+                        <div className="text-sm font-bold text-slate-900">Enable Automatic Processing</div>
+                        <div className="text-xs text-slate-500">
+                            Process RSS feeds automatically using Vercel Cron
+                        </div>
+                    </div>
+                </label>
+            </div>
+
+            {/* Processing Interval */}
+            <div className="space-y-2">
+                <label className="block text-sm font-bold text-slate-900">
+                    Processing Interval (minutes)
+                </label>
+                <select
+                    value={config.processing_interval}
+                    onChange={(e) => setConfig({ ...config, processing_interval: Number(e.target.value) })}
+                    className="w-full border border-slate-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    disabled={!config.automatic_processing}
+                >
+                    <option value={15}>Every 15 minutes</option>
+                    <option value={30}>Every 30 minutes</option>
+                    <option value={60}>Every hour (recommended)</option>
+                    <option value={120}>Every 2 hours</option>
+                    <option value={180}>Every 3 hours</option>
+                    <option value={360}>Every 6 hours</option>
+                    <option value={720}>Every 12 hours</option>
+                    <option value={1440}>Once per day</option>
+                </select>
+                <p className="text-xs text-slate-500">
+                    Configure this in vercel.json cron schedule. This setting is informational only.
+                </p>
+            </div>
+
+            {/* Auto Publish */}
+            <div className="space-y-2">
+                <label className="flex items-center gap-3 cursor-pointer">
+                    <input
+                        type="checkbox"
+                        checked={config.auto_publish}
+                        onChange={(e) => setConfig({ ...config, auto_publish: e.target.checked })}
+                        className="w-5 h-5 rounded border-slate-300 text-blue-600 focus:ring-2 focus:ring-blue-500"
+                    />
+                    <div>
+                        <div className="text-sm font-bold text-slate-900">Auto-Publish Opportunities</div>
+                        <div className="text-xs text-slate-500">
+                            Automatically publish opportunities that pass quality threshold (otherwise saved as draft)
+                        </div>
+                    </div>
+                </label>
+            </div>
+
+            {/* Quality Threshold */}
+            <div className="space-y-2">
+                <label className="block text-sm font-bold text-slate-900">
+                    Quality Threshold: {(config.quality_threshold * 100).toFixed(0)}%
+                </label>
+                <input
+                    type="range"
+                    min="0"
+                    max="1"
+                    step="0.05"
+                    value={config.quality_threshold}
+                    onChange={(e) => setConfig({ ...config, quality_threshold: Number(e.target.value) })}
+                    className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
+                />
+                <div className="flex justify-between text-xs text-slate-500">
+                    <span>0% (Accept all)</span>
+                    <span>50%</span>
+                    <span>100% (Very strict)</span>
+                </div>
+                <p className="text-xs text-slate-500">
+                    Opportunities with AI confidence score below this threshold will be rejected
+                </p>
+            </div>
+
+            {/* Max Posts Per Run */}
+            <div className="space-y-2">
+                <label className="block text-sm font-bold text-slate-900">
+                    Maximum Posts Per Processing Run
+                </label>
+                <input
+                    type="number"
+                    min="1"
+                    max="100"
+                    value={config.max_posts_per_run}
+                    onChange={(e) => setConfig({ ...config, max_posts_per_run: Number(e.target.value) })}
+                    className="w-full border border-slate-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <p className="text-xs text-slate-500">
+                    Limit how many posts can be processed in a single run (prevents API rate limits)
+                </p>
+            </div>
+
+            {/* Save Button */}
+            <div className="flex gap-3 pt-4">
+                <button
+                    onClick={handleSave}
+                    disabled={saving}
+                    className="bg-blue-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-blue-700 transition-colors flex items-center gap-2 disabled:opacity-50"
+                >
+                    {saving ? (
+                        <>
+                            <RefreshCw size={16} className="animate-spin" />
+                            Saving...
+                        </>
+                    ) : (
+                        <>
+                            <Save size={16} />
+                            Save Settings
+                        </>
+                    )}
+                </button>
+                <button
+                    onClick={fetchSettings}
+                    className="bg-white text-slate-700 px-6 py-2 rounded-lg font-bold border-2 border-slate-200 hover:border-slate-300 transition-colors"
+                >
+                    Reset
+                </button>
+            </div>
+        </div>
+    );
+}

@@ -2,10 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { LayoutDashboard, Rss, BarChart3, Settings, ScrollText, LogOut } from 'lucide-react';
+import { LayoutDashboard, Rss, BarChart3, Settings as SettingsIcon, ScrollText, LogOut } from 'lucide-react';
 import Dashboard from './Dashboard';
 import ManageFeeds from './ManageFeeds';
-import ManageAISettings from './ManageAISettings';
+import Settings from './Settings';
 import Analytics from './Analytics';
 import ProcessingLog from './ProcessingLog';
 
@@ -41,7 +41,7 @@ export default function AdminLayout({ initialSection }: AdminLayoutProps) {
         { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
         { id: 'feeds', label: 'RSS Feeds', icon: Rss },
         { id: 'analytics', label: 'Analytics', icon: BarChart3 },
-        { id: 'settings', label: 'Settings', icon: Settings },
+        { id: 'settings', label: 'Settings', icon: SettingsIcon },
         { id: 'logs', label: 'Processing Log', icon: ScrollText },
     ] as const;
 
@@ -119,12 +119,7 @@ export default function AdminLayout({ initialSection }: AdminLayoutProps) {
                     </div>
                 )}
                 {activeSection === 'analytics' && <Analytics />}
-                {activeSection === 'settings' && (
-                    <div>
-                        <h1 className="text-3xl font-black text-[#1a1a1a] mb-6">Settings</h1>
-                        <ManageAISettings />
-                    </div>
-                )}
+                {activeSection === 'settings' && <Settings />}
                 {activeSection === 'logs' && <ProcessingLog />}
             </main>
         </div>
