@@ -6,7 +6,9 @@
 
 **v1.0.0-alpha.2** - Backend completo implementado
 
-**⚠️ IMPORTANTE:** Si ves "Access Denied" o errores de RLS, lee: **[FIX_ACCESS_DENIED.md](FIX_ACCESS_DENIED.md)**
+**🚨 URGENTE:** Si ves error "infinite recursion detected" o "Access Denied", lee: **[URGENT_FIX_NOW.md](URGENT_FIX_NOW.md)**
+
+Ejecuta el script `apps/web/migrations/004_nuclear_fix_rls.sql` en Supabase SQL Editor.
 
 ## 🚀 Stack Tecnológico
 

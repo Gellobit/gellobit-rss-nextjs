@@ -19,22 +19,28 @@ Hay **2 errores** causando el problema de "Access Denied":
 
 ---
 
-### **Paso 2: Ejecuta el Script de Corrección de RLS**
+### **Paso 2: Ejecuta el Script de Corrección de RLS (NUEVA VERSIÓN)**
+
+**⚠️ IMPORTANTE: Usa el nuevo script `004_nuclear_fix_rls.sql` que arregla el problema completamente**
 
 1. En SQL Editor, copia y pega todo el contenido del archivo:
    ```
-   apps/web/migrations/002_fix_rls_policies.sql
+   apps/web/migrations/004_nuclear_fix_rls.sql
    ```
 
 2. Haz clic en **Run** o presiona `Ctrl+Enter`
 
-3. Deberías ver el mensaje: **"Success. No rows returned"**
+3. Al final del script verás una tabla mostrando tus usuarios y sus roles
 
 **¿Qué hace este script?**
-- Elimina todas las políticas RLS existentes (que tienen recursión)
-- Crea nuevas políticas simplificadas sin recursión
-- Permite acceso público a opportunities publicadas
-- Requiere rol 'admin' para acceso admin
+- Desactiva RLS temporalmente en todas las tablas
+- Elimina TODAS las políticas existentes (sin importar su nombre)
+- Crea políticas super simples que NO causan recursión:
+  - Acceso público para lectura de opportunities publicadas
+  - Service role (API routes) tiene acceso completo
+  - No verifica rol admin dentro de políticas (evita recursión)
+- Reactiva RLS
+- Muestra tus usuarios para verificar el perfil admin
 
 ---
 

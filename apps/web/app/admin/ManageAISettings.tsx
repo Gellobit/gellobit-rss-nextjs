@@ -1,14 +1,27 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
-import { Bot, Save, Key } from 'lucide-react';
+import { Bot, Save, Key, CheckCircle, XCircle } from 'lucide-react';
+
+interface AIConfig {
+    id?: string;
+    provider: 'openai' | 'anthropic' | 'deepseek' | 'gemini';
+    model: string;
+    api_key: string;
+    is_active: boolean;
+}
 
 export default function ManageAISettings() {
-    const supabase = createClientComponentClient();
-    const [config, setConfig] = useState({ id: '', provider: 'openai', model: 'gpt-4o-mini', api_key: '', is_active: true });
+    const [config, setConfig] = useState<AIConfig>({
+        provider: 'openai',
+        model: 'gpt-4o-mini',
+        api_key: '',
+        is_active: true
+    });
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
+    const [testing, setTesting] = useState(false);
+    const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
 
     useEffect(() => {
         fetchConfig();
@@ -16,14 +29,14 @@ export default function ManageAISettings() {
 
     const fetchConfig = async () => {
         setLoading(true);
-        const { data, error } = await supabase
-            .from('ai_settings')
-            .select('*')
-            .single();
+        try {
+            const res = await fetch('/api/admin/ai-settings');
+            const data = await res.json();
 
-        if (data) {
-            setConfig(data);
-        } else if (error && error.code !== 'PGRST116') { // PGRST116 is "no rows returned"
+            if (res.ok && data.settings) {
+                setConfig(data.settings);
+            }
+        } catch (error) {
             console.error('Error fetching AI config:', error);
         }
         setLoading(false);
@@ -32,35 +45,84 @@ export default function ManageAISettings() {
     const handleSave = async (e: React.FormEvent) => {
         e.preventDefault();
         setSaving(true);
+        setTestResult(null);
 
-        const payload = {
-            provider: config.provider,
-            model: config.model,
-            api_key: config.api_key,
-            is_active: config.is_active
-        };
+        try {
+            const res = await fetch('/api/admin/ai-settings', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(config),
+            });
 
-        let error;
-        if (config.id) {
-            const { error: updateError } = await supabase
-                .from('ai_settings')
-                .update(payload)
-                .eq('id', config.id);
-            error = updateError;
-        } else {
-            const { error: insertError } = await supabase
-                .from('ai_settings')
-                .insert([payload]);
-            error = insertError;
-        }
+            const data = await res.json();
 
-        if (error) {
-            alert('Error saving settings: ' + error.message);
-        } else {
-            alert('AI Settings saved successfully!');
-            fetchConfig(); // Refresh to get ID if it was an insert
+            if (res.ok) {
+                alert('AI Settings saved successfully!');
+                fetchConfig(); // Refresh to get ID if it was an insert
+            } else {
+                alert('Error saving settings: ' + data.error);
+            }
+        } catch (error) {
+            alert('Error saving settings: ' + error);
         }
         setSaving(false);
+    };
+
+    const handleTest = async () => {
+        if (!config.api_key) {
+            setTestResult({ success: false, message: 'Please enter an API key first' });
+            return;
+        }
+
+        setTesting(true);
+        setTestResult(null);
+
+        try {
+            const res = await fetch('/api/admin/ai-settings/test', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    provider: config.provider,
+                    api_key: config.api_key,
+                    model: config.model,
+                }),
+            });
+
+            const data = await res.json();
+
+            if (res.ok && data.result.success) {
+                setTestResult({
+                    success: true,
+                    message: `✓ Connection successful! Response: "${data.result.message}"`
+                });
+            } else {
+                setTestResult({
+                    success: false,
+                    message: `✗ Connection failed: ${data.result.error || data.error || 'Unknown error'}`
+                });
+            }
+        } catch (error) {
+            setTestResult({
+                success: false,
+                message: `✗ Connection failed: ${error}`
+            });
+        }
+        setTesting(false);
+    };
+
+    const handleProviderChange = (provider: AIConfig['provider']) => {
+        const defaultModels = {
+            openai: 'gpt-4o-mini',
+            anthropic: 'claude-3-5-sonnet-20241022',
+            deepseek: 'deepseek-chat',
+            gemini: 'gemini-1.5-flash'
+        };
+
+        setConfig({
+            ...config,
+            provider,
+            model: defaultModels[provider]
+        });
     };
 
     return (
@@ -79,11 +141,12 @@ export default function ManageAISettings() {
                             <select
                                 className="border p-2 rounded w-full"
                                 value={config.provider}
-                                onChange={e => setConfig({ ...config, provider: e.target.value })}
+                                onChange={e => handleProviderChange(e.target.value as AIConfig['provider'])}
                             >
-                                <option value="openai">OpenAI</option>
-                                <option value="anthropic">Anthropic (Claude)</option>
-                                <option value="deepseek">DeepSeek</option>
+                                <option value="openai">OpenAI (GPT-4o-mini)</option>
+                                <option value="anthropic">Anthropic (Claude 3.5 Sonnet)</option>
+                                <option value="deepseek">DeepSeek (DeepSeek-Chat)</option>
+                                <option value="gemini">Google (Gemini 1.5 Flash)</option>
                             </select>
                         </div>
                         <div>
@@ -114,6 +177,22 @@ export default function ManageAISettings() {
                         </p>
                     </div>
 
+                    {/* Test Connection Result */}
+                    {testResult && (
+                        <div className={`p-3 rounded-lg flex items-start gap-2 ${
+                            testResult.success ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'
+                        }`}>
+                            {testResult.success ? (
+                                <CheckCircle size={20} className="text-green-600 flex-shrink-0 mt-0.5" />
+                            ) : (
+                                <XCircle size={20} className="text-red-600 flex-shrink-0 mt-0.5" />
+                            )}
+                            <p className={`text-sm ${testResult.success ? 'text-green-700' : 'text-red-700'}`}>
+                                {testResult.message}
+                            </p>
+                        </div>
+                    )}
+
                     <div className="flex items-center gap-2">
                         <input
                             type="checkbox"
@@ -125,13 +204,29 @@ export default function ManageAISettings() {
                         <label htmlFor="is_active" className="text-sm text-slate-700">Enable AI Processing</label>
                     </div>
 
-                    <button
-                        type="submit"
-                        disabled={saving}
-                        className="bg-slate-900 text-white px-4 py-2 rounded font-bold hover:bg-slate-800 flex items-center gap-2"
-                    >
-                        <Save size={16} /> {saving ? 'Saving...' : 'Save Settings'}
-                    </button>
+                    <div className="flex gap-3">
+                        <button
+                            type="button"
+                            onClick={handleTest}
+                            disabled={testing || !config.api_key}
+                            className="bg-blue-600 text-white px-4 py-2 rounded font-bold hover:bg-blue-700 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            {testing ? (
+                                <>Testing...</>
+                            ) : (
+                                <>
+                                    <CheckCircle size={16} /> Test Connection
+                                </>
+                            )}
+                        </button>
+                        <button
+                            type="submit"
+                            disabled={saving}
+                            className="bg-slate-900 text-white px-4 py-2 rounded font-bold hover:bg-slate-800 flex items-center gap-2 disabled:opacity-50"
+                        >
+                            <Save size={16} /> {saving ? 'Saving...' : 'Save Settings'}
+                        </button>
+                    </div>
                 </form>
             )}
         </div>
