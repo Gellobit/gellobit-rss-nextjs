@@ -90,12 +90,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // If setting as active, deactivate all others
+    // If setting as active, deactivate ALL others first
     if (is_active) {
       await adminSupabase
         .from('ai_settings')
         .update({ is_active: false })
-        .neq('id', id || 'none');
+        .eq('is_active', true);
     }
 
     let setting, error;
@@ -162,7 +162,6 @@ export async function POST(request: NextRequest) {
     await logger.error('Error updating AI settings', {
       error: errorMessage,
       details: errorDetails,
-      provider: body?.provider,
     });
 
     console.error('Full error:', error);
