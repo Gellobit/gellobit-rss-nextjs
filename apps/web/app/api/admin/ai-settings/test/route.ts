@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerClient } from '@/lib/utils/supabase-server';
+import { createRouteClient } from '@/lib/utils/supabase-route';
 import { aiService } from '@/lib/services/ai.service';
 import { logger } from '@/lib/utils/logger';
 import type { AIProvider } from '@/lib/types/database.types';
@@ -10,7 +10,7 @@ import type { AIProvider } from '@/lib/types/database.types';
  */
 export async function POST(request: NextRequest) {
   try {
-    const supabase = createServerClient();
+    const supabase = await createRouteClient();
     const {
       data: { user },
     } = await supabase.auth.getUser();
@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
     const { data: profile } = await supabase
       .from('profiles')
       .select('role')
-      .eq('id', user.id)
+      .eq('id', user.id as string)
       .single();
 
     if (profile?.role !== 'admin') {

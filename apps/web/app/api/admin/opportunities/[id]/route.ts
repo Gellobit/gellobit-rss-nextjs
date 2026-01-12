@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerClient } from '@/lib/utils/supabase-server';
+import { createRouteClient } from '@/lib/utils/supabase-route';
 import { opportunityService } from '@/lib/services/opportunity.service';
 import { logger } from '@/lib/utils/logger';
 
@@ -9,10 +9,11 @@ import { logger } from '@/lib/utils/logger';
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const supabase = createServerClient();
+    const resolvedParams = await params;
+    const supabase = await createRouteClient();
     const {
       data: { user },
     } = await supabase.auth.getUser();
@@ -21,7 +22,7 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const opportunity = await opportunityService.getById(params.id);
+    const opportunity = await opportunityService.getById(resolvedParams.id);
 
     if (!opportunity) {
       return NextResponse.json(
@@ -33,7 +34,7 @@ export async function GET(
     return NextResponse.json({ opportunity }, { status: 200 });
   } catch (error) {
     await logger.error('Error fetching opportunity', {
-      opportunity_id: params.id,
+      opportunity_id: resolvedParams.id,
       error: error instanceof Error ? error.message : 'Unknown error',
     });
 
@@ -50,10 +51,11 @@ export async function GET(
  */
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const supabase = createServerClient();
+    const resolvedParams = await params;
+    const supabase = await createRouteClient();
     const {
       data: { user },
     } = await supabase.auth.getUser();
@@ -65,7 +67,7 @@ export async function PATCH(
     const { data: profile } = await supabase
       .from('profiles')
       .select('role')
-      .eq('id', user.id)
+      .eq('id', user.id as string)
       .single();
 
     if (profile?.role !== 'admin') {
@@ -82,7 +84,7 @@ export async function PATCH(
       );
     }
 
-    const result = await opportunityService.updateStatus(params.id, status);
+    const result = await opportunityService.updateStatus(resolvedParams.id, status);
 
     if (!result.success) {
       throw new Error(result.error);
@@ -94,7 +96,7 @@ export async function PATCH(
     );
   } catch (error) {
     await logger.error('Error updating opportunity', {
-      opportunity_id: params.id,
+      opportunity_id: resolvedParams.id,
       error: error instanceof Error ? error.message : 'Unknown error',
     });
 
@@ -111,10 +113,11 @@ export async function PATCH(
  */
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const supabase = createServerClient();
+    const resolvedParams = await params;
+    const supabase = await createRouteClient();
     const {
       data: { user },
     } = await supabase.auth.getUser();
@@ -126,14 +129,14 @@ export async function DELETE(
     const { data: profile } = await supabase
       .from('profiles')
       .select('role')
-      .eq('id', user.id)
+      .eq('id', user.id as string)
       .single();
 
     if (profile?.role !== 'admin') {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    const result = await opportunityService.delete(params.id);
+    const result = await opportunityService.delete(resolvedParams.id);
 
     if (!result.success) {
       throw new Error(result.error);
@@ -145,7 +148,7 @@ export async function DELETE(
     );
   } catch (error) {
     await logger.error('Error deleting opportunity', {
-      opportunity_id: params.id,
+      opportunity_id: resolvedParams.id,
       error: error instanceof Error ? error.message : 'Unknown error',
     });
 

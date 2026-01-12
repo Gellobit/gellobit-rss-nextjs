@@ -1,5 +1,5 @@
 import { createAdminClient } from '../utils/supabase-admin';
-import { parseRSS, normalizeRSSItem } from '../utils/rss-parser';
+import { parseRSSFeed, normalizeRSSItem } from '../utils/rss-parser';
 import { logger } from '../utils/logger';
 import { aiService } from './ai.service';
 import { promptService } from './prompt.service';
@@ -151,7 +151,7 @@ export class RSSProcessorService {
       });
 
       // Parse RSS feed
-      const rssItems = await parseRSS(feed.url);
+      const rssItems = await parseRSSFeed(feed.url);
 
       if (!rssItems || rssItems.length === 0) {
         await logger.warning('No items found in RSS feed', {

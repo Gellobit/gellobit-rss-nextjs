@@ -9,7 +9,9 @@ import {
     Globe
 } from 'lucide-react';
 
-export default function ArticlePage({ params }: { params: { slug: string } }) {
+export default async function ArticlePage({ params }: { params: Promise<{ slug: string }> }) {
+    const { slug } = await params;
+
     // Mock data - in real app this would fetch from Supabase based on slug
     const article = {
         title: "Pima County Career Fair: Hiring Event in Tucson, AZ",
