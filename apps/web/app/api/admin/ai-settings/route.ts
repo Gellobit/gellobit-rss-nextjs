@@ -81,7 +81,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { provider, api_key, model, is_active, max_tokens, temperature, rate_limit_per_hour } = body;
+    const { id, provider, api_key, model, is_active, max_tokens, temperature, rate_limit_per_hour } = body;
 
     if (!provider || !api_key || !model) {
       return NextResponse.json(
@@ -95,25 +95,49 @@ export async function POST(request: NextRequest) {
       await adminSupabase
         .from('ai_settings')
         .update({ is_active: false })
-        .neq('provider', provider);
+        .neq('id', id || 'none');
     }
 
-    // Upsert setting
-    const { data: setting, error } = await adminSupabase
-      .from('ai_settings')
-      .upsert({
-        provider,
-        api_key, // Will be encrypted by database trigger
-        model,
-        is_active: is_active || false,
-        max_tokens: max_tokens || 4000,
-        temperature: temperature || 0.7,
-        rate_limit_per_hour: rate_limit_per_hour || 100,
-      }, {
-        onConflict: 'provider',
-      })
-      .select('id, provider, model, api_key, is_active, max_tokens, temperature, rate_limit_per_hour')
-      .single();
+    let setting, error;
+
+    if (id) {
+      // Update existing provider
+      const result = await adminSupabase
+        .from('ai_settings')
+        .update({
+          provider,
+          api_key,
+          model,
+          is_active: is_active || false,
+          max_tokens: max_tokens || 1500,
+          temperature: temperature || 0.1,
+          rate_limit_per_hour: rate_limit_per_hour || 100,
+        })
+        .eq('id', id)
+        .select('id, provider, model, api_key, is_active, max_tokens, temperature, rate_limit_per_hour')
+        .single();
+
+      setting = result.data;
+      error = result.error;
+    } else {
+      // Insert new provider
+      const result = await adminSupabase
+        .from('ai_settings')
+        .insert({
+          provider,
+          api_key,
+          model,
+          is_active: is_active || false,
+          max_tokens: max_tokens || 1500,
+          temperature: temperature || 0.1,
+          rate_limit_per_hour: rate_limit_per_hour || 100,
+        })
+        .select('id, provider, model, api_key, is_active, max_tokens, temperature, rate_limit_per_hour')
+        .single();
+
+      setting = result.data;
+      error = result.error;
+    }
 
     if (error) {
       await logger.error('Supabase error in AI settings', {
