@@ -71,6 +71,12 @@ SELECT * FROM system_settings ORDER BY category, key;
 
 Debes ver 13 registros con las configuraciones por defecto.
 
+### ⚠️ Troubleshooting
+
+**Si ves error "column category does not exist":**
+
+Esto significa que la tabla se creó parcialmente. La migración actualizada hace `DROP TABLE` primero para limpiar cualquier tabla existente. Solo ejecuta la migración completa de nuevo y funcionará correctamente.
+
 ### 4. Refresca el Admin Dashboard
 
 1. Ve a: http://localhost:3000/admin?section=settings
