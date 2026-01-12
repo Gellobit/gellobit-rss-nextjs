@@ -1,0 +1,247 @@
+import { createAdminClient } from '../utils/supabase-admin';
+import { createAIProvider } from '../ai-providers';
+import { logger } from '../utils/logger';
+import { AIGeneratedContent, ScrapedContent, AITestResult } from '../types/ai.types';
+import { AIProvider } from '../types/database.types';
+
+/**
+ * AI Service - Unified interface for all AI providers
+ * Handles content generation with automatic provider selection
+ */
+export class AIService {
+    private static instance: AIService;
+
+    private constructor() {}
+
+    static getInstance(): AIService {
+        if (!AIService.instance) {
+            AIService.instance = new AIService();
+        }
+        return AIService.instance;
+    }
+
+    /**
+     * Get active AI provider configuration from database
+     */
+    private async getActiveProviderConfig() {
+        const supabase = createAdminClient();
+
+        const { data, error } = await supabase
+            .from('ai_settings')
+            .select('*')
+            .eq('is_active', true)
+            .single();
+
+        if (error || !data) {
+            throw new Error('No active AI provider configured');
+        }
+
+        return data;
+    }
+
+    /**
+     * Generate opportunity content from scraped data
+     * Single unified call that returns all fields
+     */
+    async generateOpportunity(
+        scrapedContent: ScrapedContent,
+        opportunityType: string,
+        prompt: string
+    ): Promise<AIGeneratedContent | null> {
+        const startTime = Date.now();
+
+        try {
+            // Get active provider
+            const config = await this.getActiveProviderConfig();
+            const provider = createAIProvider(config);
+
+            // Build system message
+            const systemMessage = `You are a professional content specialist for Gellobit.com.
+You analyze opportunities and generate complete, factual content.
+Return ONLY valid JSON in the exact format specified.
+Never invent details not present in the source material.`;
+
+            // Generate content
+            const response = await provider.generateContent(
+                prompt,
+                systemMessage,
+                {
+                    max_tokens: config.max_tokens,
+                    temperature: config.temperature,
+                    response_format: 'json'
+                }
+            );
+
+            if (!response.content) {
+                throw new Error('Empty response from AI provider');
+            }
+
+            // Parse and validate response
+            const parsed = this.parseResponse(response.content);
+
+            if (!parsed) {
+                await logger.error('Failed to parse AI response', {
+                    provider: config.provider,
+                    model: config.model,
+                    response_length: response.content.length
+                });
+                return null;
+            }
+
+            // Log success
+            const executionTime = Date.now() - startTime;
+            await logger.info('AI content generated successfully', {
+                provider: config.provider,
+                model: config.model,
+                opportunity_type: opportunityType,
+                valid: parsed.valid,
+                execution_time_ms: executionTime,
+                tokens_used: response.usage?.total_tokens || 0
+            });
+
+            return parsed;
+
+        } catch (error) {
+            const executionTime = Date.now() - startTime;
+            await logger.error('AI generation failed', {
+                error: error instanceof Error ? error.message : 'Unknown error',
+                opportunity_type: opportunityType,
+                execution_time_ms: executionTime
+            });
+            return null;
+        }
+    }
+
+    /**
+     * Parse AI response into structured format
+     */
+    private parseResponse(content: string): AIGeneratedContent | null {
+        try {
+            // Remove markdown code blocks if present
+            let cleaned = content.trim();
+            if (cleaned.startsWith('```json')) {
+                cleaned = cleaned.replace(/```json\n?/g, '').replace(/```\n?$/g, '');
+            } else if (cleaned.startsWith('```')) {
+                cleaned = cleaned.replace(/```\n?/g, '');
+            }
+
+            const parsed = JSON.parse(cleaned);
+
+            // Validate structure
+            if (typeof parsed.valid !== 'boolean') {
+                return null;
+            }
+
+            // If invalid, return with reason
+            if (!parsed.valid) {
+                return {
+                    valid: false,
+                    reason: parsed.reason || 'Content rejected by AI'
+                };
+            }
+
+            // Validate required fields for valid content
+            if (!parsed.title || !parsed.excerpt || !parsed.content) {
+                return null;
+            }
+
+            // Return structured content
+            return {
+                valid: true,
+                title: this.cleanText(parsed.title, 150),
+                excerpt: this.cleanText(parsed.excerpt, 300),
+                content: parsed.content, // Keep HTML as is
+                deadline: parsed.deadline || null,
+                prize_value: parsed.prize_value || null,
+                requirements: parsed.requirements || null,
+                location: parsed.location || null,
+                confidence_score: parsed.confidence_score || null
+            };
+
+        } catch (error) {
+            console.error('Error parsing AI response:', error);
+            return null;
+        }
+    }
+
+    /**
+     * Clean and truncate text
+     */
+    private cleanText(text: string, maxLength: number): string {
+        return text
+            .trim()
+            .replace(/\s+/g, ' ')
+            .substring(0, maxLength);
+    }
+
+    /**
+     * Test connection to a specific AI provider
+     */
+    async testProvider(
+        provider: AIProvider,
+        apiKey: string,
+        model: string
+    ): Promise<AITestResult> {
+        const startTime = Date.now();
+
+        try {
+            const providerInstance = createAIProvider({
+                provider,
+                api_key: apiKey,
+                model,
+                is_active: false,
+                max_tokens: 100,
+                temperature: 0.1,
+                rate_limit_per_hour: 100
+            });
+
+            const success = await providerInstance.testConnection();
+            const latency = Date.now() - startTime;
+
+            return {
+                success,
+                provider,
+                model,
+                message: success ? 'Connection successful' : 'Connection failed',
+                latency_ms: latency
+            };
+
+        } catch (error) {
+            const latency = Date.now() - startTime;
+            return {
+                success: false,
+                provider,
+                model,
+                message: 'Connection failed',
+                error: error instanceof Error ? error.message : 'Unknown error',
+                latency_ms: latency
+            };
+        }
+    }
+
+    /**
+     * Get AI provider statistics
+     */
+    async getProviderStats() {
+        const supabase = createAdminClient();
+
+        const { data: settings } = await supabase
+            .from('ai_settings')
+            .select('*');
+
+        const { data: logs } = await supabase
+            .from('processing_logs')
+            .select('context')
+            .ilike('message', '%AI%')
+            .gte('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString());
+
+        return {
+            configured_providers: settings?.length || 0,
+            active_provider: settings?.find(s => s.is_active)?.provider || null,
+            calls_last_24h: logs?.length || 0
+        };
+    }
+}
+
+// Export singleton instance
+export const aiService = AIService.getInstance();

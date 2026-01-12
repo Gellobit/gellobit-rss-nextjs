@@ -1,0 +1,17 @@
+{
+    "name": "@gellobit/ui",
+    "version": "0.0.0",
+    "main": "./index.tsx",
+    "types": "./index.tsx",
+    "dependencies": {
+        "react": "^18.0.0",
+        "react-native": "*"
+    },
+    "devDependencies": {
+        "@types/react": "^18.0.0",
+        "typescript": "^5.0.0"
+    },
+    "exports": {
+        ".": "./index.tsx"
+    }
+}

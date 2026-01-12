@@ -1,0 +1,422 @@
+/* Admin CSS for Gellobit RSS Processor Plugin */
+
+/* Dashboard Styles */
+.gellobit-dashboard {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.dashboard-section {
+    margin-bottom: 30px;
+}
+
+.dashboard-section h2 {
+    margin-bottom: 15px;
+    color: #23282d;
+    font-size: 1.3em;
+    font-weight: 600;
+}
+
+/* Cards and Grids */
+.dashboard-cards,
+.feed-status-grid {
+    display: grid;
+    gap: 20px;
+}
+
+.dashboard-cards {
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    margin-bottom: 30px;
+}
+
+.feed-status-grid {
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+}
+
+.dashboard-card,
+.feed-status-card {
+    background: #fff;
+    border: 1px solid #c3c4c7;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    transition: box-shadow 0.3s ease;
+}
+
+.dashboard-card:hover,
+.feed-status-card:hover {
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+
+.dashboard-card h3,
+.feed-status-card h4 {
+    margin-top: 0;
+    color: #1d2327;
+    font-weight: 600;
+}
+
+.dashboard-card {
+    text-align: center;
+}
+
+.system-status {
+    text-align: left;
+}
+
+/* Numbers and Indicators */
+.big-number {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: #2271b1;
+    margin: 10px 0;
+    line-height: 1;
+}
+
+.status-indicator {
+    display: flex;
+    align-items: center;
+    font-weight: 600;
+    margin: 15px 0;
+    font-size: 16px;
+}
+
+.status-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    margin-right: 10px;
+    display: inline-block;
+}
+
+.status-healthy .status-dot { background-color: #00a32a; }
+.status-warning .status-dot { background-color: #dba617; }
+.status-error .status-dot { background-color: #d63638; }
+
+.status-details p {
+    margin: 8px 0;
+    font-size: 14px;
+    color: #50575e;
+}
+
+/* Feed Status */
+.feed-status-indicator {
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+    letter-spacing: 0.5px;
+}
+
+.feed-status-indicator.status-active {
+    background-color: #d7f6e3;
+    color: #00a32a;
+}
+
+.feed-status-indicator.status-inactive {
+    background-color: #fcf2cd;
+    color: #996800;
+}
+
+.feed-status-indicator.status-error {
+    background-color: #f7d4d6;
+    color: #b32d2e;
+}
+
+.feed-meta p {
+    margin: 5px 0;
+    font-size: 13px;
+    color: #50575e;
+}
+
+.feed-error {
+    margin-top: 10px;
+    padding: 8px;
+    background-color: #fcf2cd;
+    border-left: 4px solid #dba617;
+    font-size: 12px;
+    color: #996800;
+    border-radius: 0 4px 4px 0;
+}
+
+/* Quick Actions */
+.quick-actions {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+}
+
+.quick-actions .button {
+    font-weight: 500;
+}
+
+/* Activity Feed */
+.activity-list {
+    background: #fff;
+    border: 1px solid #c3c4c7;
+    border-radius: 8px;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.activity-item {
+    display: flex;
+    align-items: flex-start;
+    padding: 16px;
+    border-bottom: 1px solid #f0f0f1;
+    transition: background-color 0.2s ease;
+}
+
+.activity-item:hover {
+    background-color: #f6f7f7;
+}
+
+.activity-item:last-child {
+    border-bottom: none;
+}
+
+.activity-icon {
+    margin-right: 12px;
+    font-size: 18px;
+    min-width: 20px;
+    text-align: center;
+}
+
+.activity-content {
+    flex: 1;
+}
+
+.activity-content p {
+    margin: 0 0 4px 0;
+    font-size: 14px;
+    color: #1d2327;
+}
+
+.activity-content small {
+    color: #646970;
+    font-size: 12px;
+}
+
+.level-info .activity-icon { color: #2271b1; }
+.level-warning .activity-icon { color: #dba617; }
+.level-error .activity-icon { color: #d63638; }
+
+/* No Content Messages */
+.no-feeds-message {
+    text-align: center;
+    padding: 60px 20px;
+    background: #fff;
+    border: 1px solid #c3c4c7;
+    border-radius: 8px;
+}
+
+.no-feeds-message p {
+    font-size: 16px;
+    color: #646970;
+    margin-bottom: 20px;
+}
+
+/* Process Result */
+#process-result {
+    margin-top: 15px;
+    padding: 12px 16px;
+    border-radius: 6px;
+    display: none;
+    font-weight: 500;
+}
+
+#process-result.success {
+    background-color: #d7f6e3;
+    color: #00a32a;
+    border: 1px solid #68c480;
+}
+
+#process-result.error {
+    background-color: #f7d4d6;
+    color: #b32d2e;
+    border: 1px solid #e65054;
+}
+
+/* View All Links */
+.view-all-logs,
+.view-all-feeds {
+    margin-top: 15px;
+    text-align: center;
+}
+
+.view-all-logs .button,
+.view-all-feeds .button {
+    font-size: 13px;
+}
+
+/* Settings Page Styles */
+.gellobit-settings {
+    max-width: 1000px;
+}
+
+.nav-tab-wrapper {
+    border-bottom: 1px solid #c3c4c7;
+    margin-bottom: 20px;
+}
+
+.nav-tab {
+    font-weight: 500;
+}
+
+.nav-tab-active {
+    background-color: #fff;
+    border-bottom: 1px solid #fff;
+}
+
+/* Feeds Page Styles */
+.gellobit-feeds-container {
+    max-width: 1200px;
+}
+
+.feed-form-section,
+.feeds-list-section {
+    background: #fff;
+    border: 1px solid #c3c4c7;
+    border-radius: 8px;
+    padding: 24px;
+    margin-bottom: 24px;
+}
+
+.feed-form-section h2,
+.feeds-list-section h2 {
+    margin-top: 0;
+    color: #1d2327;
+    font-size: 1.2em;
+    font-weight: 600;
+}
+
+/* Button Styles */
+.button-small {
+    font-size: 11px;
+    height: auto;
+    line-height: 18px;
+    padding: 4px 8px;
+    font-weight: 500;
+}
+
+/* Analytics Page Styles */
+.gellobit-analytics-dashboard {
+    max-width: 1200px;
+}
+
+.analytics-section {
+    margin-bottom: 30px;
+}
+
+.analytics-cards {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+
+.analytics-card {
+    background: #fff;
+    border: 1px solid #c3c4c7;
+    border-radius: 8px;
+    padding: 24px;
+    text-align: center;
+    flex: 1;
+    min-width: 150px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.analytics-card h3 {
+    font-size: 2rem;
+    margin: 0 0 10px 0;
+    color: #2271b1;
+    font-weight: 700;
+}
+
+.analytics-card p {
+    margin: 0;
+    color: #646970;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .dashboard-cards {
+        grid-template-columns: 1fr;
+    }
+    
+    .feed-status-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .analytics-cards {
+        flex-direction: column;
+    }
+    
+    .quick-actions {
+        flex-direction: column;
+    }
+    
+    .quick-actions .button {
+        width: 100%;
+        text-align: center;
+    }
+}
+
+/* Loading States */
+.loading {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+.loading::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 20px;
+    height: 20px;
+    margin: -10px 0 0 -10px;
+    border: 2px solid #f3f3f3;
+    border-top: 2px solid #2271b1;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Form Improvements */
+.form-table th {
+    font-weight: 600;
+    color: #1d2327;
+}
+
+.form-table td p.description {
+    color: #646970;
+    font-size: 13px;
+}
+
+/* Status Colors */
+.status-active { color: #00a32a; font-weight: 600; }
+.status-inactive { color: #dba617; font-weight: 600; }
+.status-error { color: #d63638; font-weight: 600; }
+
+/* Utility Classes */
+.text-center { text-align: center; }
+.text-left { text-align: left; }
+.text-right { text-align: right; }
+
+.mb-0 { margin-bottom: 0 !important; }
+.mb-1 { margin-bottom: 10px !important; }
+.mb-2 { margin-bottom: 20px !important; }
+.mb-3 { margin-bottom: 30px !important; }
+
+.p-0 { padding: 0 !important; }
+.p-1 { padding: 10px !important; }
+.p-2 { padding: 20px !important; }
+.p-3 { padding: 30px !important; }

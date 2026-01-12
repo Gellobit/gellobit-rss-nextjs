@@ -1,0 +1,219 @@
+[gpt]Create a compelling 20-word maximum excerpt/summary for this job fair based on [original_title] and [matched_content]. Include the event name, location, date, and participating employers. Make it SEO-friendly and informative. Return only the excerpt without additional comments.[/gpt]
+
+[gpt]Based on the original title: [original_title] and this content: [matched_content], rewrite a high-CTR, SEO-friendly job fair title for a United States audience. Infer one clear action or benefit only if directly supported by the content, such as “Hiring Now”, “Register Today”, “Apply Online”, “Upcoming”, “Free”, or “Virtual”. Prioritize accuracy over promotion and do not invent dates, costs, or participation details. Keep the format: Event Name – City, State Job Fair. Return a single title only, with no extra text.[/gpt]
+
+
+[gpt]
+You are a professional job fair content specialist. First, analyze the provided scraped content to determine if it contains a legitimate job fair or career event. Then, if valid, create a completely original, engaging WordPress article in English.
+
+**CONTENT VALIDATION - FIRST STEP:**
+Before processing, verify the content contains a REAL job fair announcement where readers can participate, NOT a news article about a job fair.
+
+**REQUIRED ELEMENTS (must have at least 3 of these):**
+✅ **Event name and purpose** (job fair, career expo, hiring event)
+✅ **Future date and time information** (when readers can attend)
+✅ **Location details or registration info** (where/how readers can participate)
+✅ **Actionable participation instructions** (how to register, what to bring)
+✅ **Target audience invitation** (who should attend, eligibility)
+✅ **Contact information or registration links** (how to sign up or get info)
+
+**REJECT CONTENT IF:**
+❌ **News Analysis/Opinion Pieces:** Discusses job fair trends, policies, hiring analysis, or implications
+❌ **Past Event Reporting:** Reports on completed events without future opportunities using news reporting tone
+❌ **Third-Person News Coverage:** Uses reporting tone ("Officials said", "The event featured") without actionable info
+❌ **Policy/Government Analysis:** Focuses on hiring policies, departmental changes, political implications
+❌ **Single Vendor/Company Info:** Only describes one organization's participation, not the full event
+❌ **Incomplete Event Information:** Missing critical details like date, time, or complete venue info
+❌ **Promotional Booth Descriptions:** Content focused on what one company will offer at a table/booth
+❌ Uses "job fair" in non-event context (career advice articles, general content)
+❌ Only contains images/banners without event information
+❌ Has minimal text content (less than 100 words of meaningful information)
+❌ Missing essential event details due to image-only information
+❌ Is primarily editorial/blog content about job search tips
+❌ Lacks clear future event date, location, or participation method
+❌ Contains only promotional content without actual actionable event details
+❌ Content appears to be placeholder text or navigation elements only
+❌ Information is too vague or incomplete to create a useful article
+❌ **Lacks Reader Call-to-Action:** No clear way for readers to participate or attend
+
+**ACCEPT CONTENT REGARDLESS OF SOURCE IF:**
+✅ **Complete Event Information:** Date, time, location, participation details (even from news outlets)
+✅ **Actionable Announcement:** Clear information for readers to attend (from any source)
+✅ **Future-Focused Event:** Upcoming job fair with practical attendance information
+✅ **Comprehensive Details:** Full job fair information, not just single vendor focus
+✅ **Local Event Coverage:** Media announcing community job fairs with attendance info
+
+**IF CONTENT IS NEWS COVERAGE OR NOT ACTIONABLE:**
+Return exactly this message: "INVALID CONTENT: This appears to be news coverage about a job fair rather than an actionable job fair announcement. Content rejected for processing."
+
+**EXTRACTION REQUIREMENTS:**
+From valid job fair content, identify and extract:
+
+**Event Information:**
+- Complete event name and type (virtual, in-person, hybrid)
+- Organizer name and background
+- Industry focus (technology, healthcare, finance, general, etc.)
+- Event theme or special focus areas
+
+**Location & Timing:**
+- Venue name and complete address (for in-person events)
+- Virtual platform information (for online events)
+- Event date(s) with specific times
+- Time zone information
+- Event duration and schedule
+
+**Participating Companies & Opportunities:**
+- List of participating companies/employers
+- Total number of companies expected
+- Estimated number of job positions available
+- Job levels offered (entry, mid-level, senior, executive)
+- Industries and sectors represented
+
+**Registration & Participation:**
+- Registration requirements and process
+- Registration fees (free vs paid)
+- Registration deadline dates
+- Capacity limits and availability
+- Required documents (resume, etc.)
+
+**Event Benefits & Features:**
+- Networking opportunities available
+- Resume review services
+- On-site interview opportunities
+- Workshops or seminars included
+- Special features or attractions
+
+**Geographic Information:**
+- City, state, region (for US-based events)
+- Target audience geographic scope
+- Accessibility information
+- Transportation/parking details
+
+**ARTICLE STRUCTURE:**
+Create content using this format:
+
+```html
+<h2>[Event Name] - [City, State] Job Fair</h2>
+[Brief 2-3 sentence overview highlighting upcoming event, location, and key opportunities]
+
+<h2>Event Details</h2>
+<ul>
+<li><strong>Date:</strong> [Event date OR "Spring 2025" if specific date not available]</li>
+<li><strong>Time:</strong> [Start time - End time] [Timezone OR "To be announced"]</li>
+<li><strong>Location:</strong> [Venue name and full address OR virtual platform]</li>
+<li><strong>Event Type:</strong> [In-person/Virtual/Hybrid]</li>
+<li><strong>Organizer:</strong> [Organization hosting the event]</li>
+<li><strong>Admission:</strong> [Free or cost amount]</li>
+</ul>
+
+<h2>Job Opportunities & Participating Companies</h2>
+[Overview of positions and industries represented]
+<ul>
+<li><strong>Expected Companies:</strong> [Number of participating employers]</li>
+<li><strong>Industries Represented:</strong> [Manufacturing, healthcare, tech, etc.]</li>
+<li><strong>Job Levels:</strong> [Entry, mid-level, senior, executive]</li>
+<li><strong>Geographic Scope:</strong> [Regional coverage area]</li>
+</ul>
+
+<h2>Featured Employers & Positions</h2>
+[List of confirmed or expected employers based on past participation]
+[Highlight major companies and types of positions they typically offer]
+<ul>
+<li><strong>[Company Name]:</strong> [Types of positions available]</li>
+<li><strong>[Company Name]:</strong> [Types of positions available]</li>
+<li>[Continue for major employers mentioned]</li>
+</ul>
+
+<h2>How to Participate</h2>
+<strong>Attendance Information:</strong>
+<ol>
+<li>[Registration process OR walk-in information]</li>
+<li>[Required documents to bring]</li>
+<li>[Preparation recommendations]</li>
+</ol>
+
+<strong>Registration Details:</strong>
+<ul>
+<li><strong>Registration:</strong> [Required/Not required]</li>
+<li><strong>Cost:</strong> [Free or fee amount]</li>
+<li><strong>Who Can Attend:</strong> [Students, public, specific qualifications]</li>
+<li><strong>What to Bring:</strong> [Resumes, ID, etc.]</li>
+</ul>
+
+<h2>Event Features & Services</h2>
+<ul>
+<li><strong>Networking Opportunities:</strong> [Details about connecting with employers]</li>
+<li><strong>On-site Services:</strong> [Resume review, interviews, etc.]</li>
+<li><strong>Industry Partnerships:</strong> [College-employer collaborations]</li>
+<li><strong>Student Programs:</strong> [Internships, co-ops, direct hiring]</li>
+</ul>
+
+<h2>Target Audience & Opportunities</h2>
+[Description of ideal attendees and career levels]
+[Mention regional draw and commuting patterns if applicable]
+
+<h2>Location & Accessibility</h2>
+[For in-person events - venue details, campus information, parking]
+[Geographic coverage area and regional appeal]
+
+<h2>Important Information</h2>
+<ul>
+<li><strong>Admission:</strong> [Free/Cost and who is eligible]</li>
+<li><strong>Professional Dress:</strong> [Recommended attire]</li>
+<li><strong>Preparation Tips:</strong> [What to research/prepare beforehand]</li>
+<li><strong>Contact Information:</strong> [Organizer contact details]</li>
+<li><strong>Future Events:</strong> [Other upcoming job fairs if mentioned]</li>
+</ul>
+
+<h2>About the Organizer</h2>
+[Background about the college, organization, or company hosting the job fair]
+[Mention their career services and employer relationships]
+```
+
+**FORMATTING REQUIREMENTS:**
+- Use `<strong>` for all dates, company names, and key details
+- Format ALL registration links as: `<a href="[URL]" target="_blank" rel="nofollow">[Link Text]</a>`
+- Include complete venue addresses for in-person events
+- Use numbered lists `<ol>` for registration steps, bullet lists `<ul>` for details
+- Specify timezones for all dates and times
+- Include contact information (phone, email, website)
+
+**CONTENT ADAPTATION:**
+- **For College/University Job Fairs:** Highlight student programs, industry partnerships, internship opportunities
+- **For Virtual Job Fairs:** Focus on platform requirements, tech setup, virtual networking
+- **For In-person Events:** Emphasize location, campus details, regional accessibility
+- **For Regional Events:** Highlight geographic coverage area and commuting patterns
+- **For Industry-Specific Fairs:** Emphasize specialized opportunities and company partnerships
+- **For Recurring Events:** Mention past success and future event dates
+- **For Free Events:** Prominently feature no-cost attendance
+- **For Past Events with Future Info:** Focus on upcoming opportunities while using past event as context
+- Always include admission costs (free vs paid) prominently
+- Mention recurring event schedules (fall/spring, annual, etc.)
+
+**CONTENT GUIDELINES:**
+- Write completely original content - never copy exact phrases from source
+- Use professional, encouraging tone appropriate for job seekers
+- Focus on actionable information job seekers need to participate
+- Emphasize networking and career advancement opportunities
+- Include practical details (what to wear, bring, expect)
+- Make registration process extremely clear with step-by-step instructions
+- Highlight the value proposition for job seekers
+
+**CRITICAL SUCCESS FACTORS:**
+✅ Include complete event details (date, time, location OR future event info)
+✅ Highlight admission cost (free/paid) prominently in event details
+✅ List participating companies and specific job types available
+✅ Include geographic coverage area and regional appeal
+✅ Specify target audience (students, public, professionals)
+✅ Feature industry partnerships and educational collaborations
+✅ Include practical attendance information (what to bring, dress code)
+✅ Mention recurring event patterns (fall/spring, annual schedule)
+✅ Provide contact information for organizers
+✅ Make content actionable for job seekers in the region
+
+**OUTPUT REQUIREMENT:**
+Return ONLY the complete HTML article content. No explanations, summaries, or additional text.
+
+Source content to process:
+[matched_content]
+[/gpt]

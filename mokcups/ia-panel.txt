@@ -1,0 +1,208 @@
+import React, { useState } from 'react';
+import { 
+  Sparkles, 
+  Settings, 
+  ShieldCheck, 
+  Save, 
+  Database, 
+  Code, 
+  Smartphone,
+  Info,
+  RefreshCw,
+  Terminal,
+  Eye,
+  Layers,
+  Key,
+  MessageSquareQuote,
+  Cpu
+} from 'lucide-react';
+
+const AdminConfig = () => {
+  const [activeTab, setActiveTab] = useState('ai_models');
+  const [isSaving, setIsSaving] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState('Giveaways');
+
+  return (
+    <div className="min-h-screen bg-slate-50 flex font-sans text-slate-900">
+      {/* SIDEBAR */}
+      <aside className="w-72 bg-white border-r border-slate-200 p-6 flex flex-col gap-2">
+        <div className="flex items-center gap-3 mb-8 px-2">
+          <div className="bg-yellow-400 p-2 rounded-lg font-bold">GB</div>
+          <span className="font-black text-xl tracking-tight">Gellobit Admin</span>
+        </div>
+        
+        <label className="px-4 text-[10px] font-black uppercase text-slate-400 tracking-widest mb-2">Motor de IA</label>
+        <TabButton active={activeTab === 'ai_models'} onClick={() => setActiveTab('ai_models')} icon={<Cpu size={18}/>} label="Modelos & API Keys" />
+        <TabButton active={activeTab === 'prompts'} onClick={() => setActiveTab('prompts')} icon={<MessageSquareQuote size={18}/>} label="Prompts por Categoría" />
+        
+        <label className="px-4 text-[10px] font-black uppercase text-slate-400 tracking-widest mb-2 mt-6">Infraestructura</label>
+        <TabButton active={activeTab === 'scraping'} onClick={() => setActiveTab('scraping')} icon={<Terminal size={18}/>} label="Lógica de Scraping" />
+        <TabButton active={activeTab === 'ads'} onClick={() => setActiveTab('ads')} icon={<Code size={18}/>} label="Monetización & Ads" />
+        
+        <div className="mt-auto pt-6 border-t border-slate-100">
+           <button className="flex items-center gap-2 text-slate-400 font-bold hover:text-slate-900 px-4 py-2 transition-colors w-full">
+             <RefreshCw size={18}/> Limpiar Caché API
+           </button>
+        </div>
+      </aside>
+
+      {/* CONTENT AREA */}
+      <main className="flex-1 p-8 lg:p-12 overflow-y-auto">
+        <div className="max-w-5xl mx-auto">
+          <header className="flex justify-between items-end mb-10">
+            <div>
+              <h1 className="text-3xl font-black italic">Configuración Global</h1>
+              <p className="text-slate-500 mt-1">Gestión avanzada de Multi-IA y monetización híbrida.</p>
+            </div>
+            <button 
+              onClick={() => setIsSaving(true)}
+              className="bg-slate-900 text-white px-8 py-3 rounded-2xl font-bold flex items-center gap-2 hover:bg-slate-800 transition-all shadow-xl shadow-slate-200"
+            >
+              {isSaving ? <RefreshCw className="animate-spin" size={18}/> : <Save size={18}/>}
+              Sincronizar Cambios
+            </button>
+          </header>
+
+          {/* TAB: AI MODELS & KEYS */}
+          {activeTab === 'ai_models' && (
+            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <ProviderCard name="OpenRouter" description="Claude 3.5, DeepSeek, Llama" isActive={true} />
+                <ProviderCard name="OpenAI" description="GPT-4o, GPT-4o-mini" isActive={true} />
+                <ProviderCard name="Google Gemini" description="Gemini 1.5 Pro & Flash" isActive={false} />
+                <ProviderCard name="DeepSeek Direct" description="V3 & R1 Models" isActive={true} />
+              </div>
+
+              <section className="bg-white p-8 rounded-[40px] border border-slate-200 shadow-sm">
+                <h3 className="font-bold text-lg mb-6 flex items-center gap-2"><Key size={20} className="text-yellow-500" /> Configuración de Credenciales</h3>
+                <div className="space-y-4">
+                  <InputField label="OpenRouter API Key" placeholder="sk-or-v1-..." type="password" />
+                  <InputField label="OpenAI API Key" placeholder="sk-..." type="password" />
+                </div>
+              </section>
+            </div>
+          )}
+
+          {/* TAB: PROMPTS PER CATEGORY */}
+          {activeTab === 'prompts' && (
+            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4">
+              <div className="bg-white p-6 rounded-[32px] border border-slate-200 flex flex-wrap gap-2">
+                {['Giveaways', 'Job Fairs', 'Scholarships', 'Cheap & Near'].map(cat => (
+                  <button 
+                    key={cat}
+                    onClick={() => setSelectedCategory(cat)}
+                    className={`px-5 py-2 rounded-xl text-sm font-bold transition-all ${selectedCategory === cat ? 'bg-yellow-400 text-slate-900' : 'bg-slate-50 text-slate-400 hover:bg-slate-100'}`}
+                  >
+                    {cat}
+                  </button>
+                ))}
+              </div>
+
+              <section className="bg-white p-8 rounded-[40px] border border-slate-200 shadow-sm">
+                <div className="flex items-center justify-between mb-8">
+                  <div className="flex items-center gap-3">
+                    <div className="p-3 bg-yellow-100 text-yellow-600 rounded-2xl"><Sparkles size={24}/></div>
+                    <div>
+                      <h3 className="font-bold text-lg leading-none">AI Prompt: {selectedCategory}</h3>
+                      <p className="text-xs text-slate-400 mt-1">Configura cómo la IA redacta esta categoría.</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                     <span className="text-xs font-bold text-slate-400 uppercase">Modelo:</span>
+                     <select className="bg-slate-50 border-none rounded-lg text-xs font-bold p-2 outline-none">
+                        <option>Claude 3.5 Sonnet</option>
+                        <option>GPT-4o</option>
+                        <option>DeepSeek V3</option>
+                     </select>
+                  </div>
+                </div>
+                
+                <div className="space-y-6">
+                  <div>
+                    <label className="text-xs font-black uppercase text-slate-400 mb-2 block tracking-widest italic">System Instruction (El Rol de la IA)</label>
+                    <textarea 
+                      className="w-full p-6 bg-slate-50 border border-slate-100 rounded-3xl outline-none focus:ring-2 focus:ring-yellow-400 font-mono text-sm leading-relaxed min-h-[180px]"
+                      defaultValue={`Actúa como un experto en {category} de USA. Tu objetivo es transformar el contenido escrapeado en un post de alta calidad, enfocado en el E-E-A-T. No inventes datos, si no están claros, indica que están pendientes de confirmación.`}
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="text-xs font-black uppercase text-slate-400 mb-2 block tracking-widest italic">Template de Usuario (Inyección de Datos)</label>
+                    <textarea 
+                      className="w-full p-6 bg-slate-50 border border-slate-100 rounded-3xl outline-none focus:ring-2 focus:ring-yellow-400 font-mono text-sm leading-relaxed min-h-[120px]"
+                      defaultValue={`Analiza el siguiente contenido y extrae: Título, Empresa/Organizador, Ubicación y Fecha Límite.
+                      
+Contenido Crudo: {content}`}
+                    />
+                  </div>
+                </div>
+              </section>
+            </div>
+          )}
+
+          {activeTab === 'ads' && (
+            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4">
+              <section className="bg-white p-8 rounded-[40px] border border-slate-200 shadow-sm">
+                 <div className="flex items-center gap-3 mb-6">
+                   <div className="p-3 bg-blue-100 text-blue-600 rounded-2xl"><Code size={24}/></div>
+                   <h3 className="font-bold text-lg">IDs de Monetización</h3>
+                 </div>
+                 <div className="space-y-4">
+                    <InputField label="Google AdSense Client ID" placeholder="ca-pub-XXXXXXXXXXXX" />
+                    <InputField label="Google Analytics Tracking ID" placeholder="G-XXXXXXXXXXXX" />
+                    <InputField label="AdMob App ID (Android)" placeholder="ca-app-pub-XXXXXXXXXXXX" />
+                 </div>
+              </section>
+              
+              <div className="p-6 bg-slate-900 rounded-[32px] text-white flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="p-3 bg-yellow-400 text-black rounded-2xl font-bold italic">PRO</div>
+                  <div>
+                    <p className="font-bold">Lógica de Suscripción Activa</p>
+                    <p className="text-xs text-slate-400 italic leading-none">Los anuncios se ocultan automáticamente para usuarios con 'subscription_type: pro'</p>
+                  </div>
+                </div>
+                <ShieldCheck className="text-yellow-400" />
+              </div>
+            </div>
+          )}
+
+        </div>
+      </main>
+    </div>
+  );
+};
+
+const ProviderCard = ({ name, description, isActive }) => (
+  <div className={`p-6 rounded-[32px] border transition-all ${isActive ? 'bg-white border-slate-200 shadow-sm' : 'bg-slate-100 border-transparent opacity-60'}`}>
+    <div className="flex justify-between items-center mb-2">
+      <h4 className="font-bold text-slate-900">{name}</h4>
+      <div className={`w-3 h-3 rounded-full ${isActive ? 'bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.5)]' : 'bg-slate-300'}`}></div>
+    </div>
+    <p className="text-xs text-slate-500 font-medium">{description}</p>
+  </div>
+);
+
+const TabButton = ({ active, onClick, icon, label }) => (
+  <button 
+    onClick={onClick}
+    className={`flex items-center gap-3 px-4 py-3 rounded-2xl font-bold transition-all ${
+      active ? 'bg-yellow-400 text-slate-900 shadow-lg shadow-yellow-100' : 'text-slate-400 hover:bg-slate-50'
+    }`}
+  >
+    {icon} <span>{label}</span>
+  </button>
+);
+
+const InputField = ({ label, placeholder, type = "text" }) => (
+  <div>
+    <label className="text-xs font-black uppercase text-slate-400 mb-2 block tracking-widest">{label}</label>
+    <input 
+      type={type}
+      placeholder={placeholder}
+      className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:ring-2 focus:ring-yellow-400 font-mono text-sm"
+    />
+  </div>
+);
+
+export default AdminConfig;
