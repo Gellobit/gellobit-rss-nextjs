@@ -1,12 +1,11 @@
 import { createServerSupabaseClient } from '../../utils/supabase-server';
 import { redirect } from 'next/navigation';
-import CreateOpportunityForm from './CreateOpportunityForm';
-import ManageFeeds from './ManageFeeds';
-import ManageAISettings from './ManageAISettings';
+import AdminLayout from './AdminLayout';
 
 export const dynamic = 'force-dynamic';
 
-export default async function AdminPage() {
+export default async function AdminPage({ searchParams }: { searchParams: Promise<{ section?: string }> }) {
+    const params = await searchParams;
     const supabase = await createServerSupabaseClient();
 
     // Check Authentication
@@ -34,28 +33,5 @@ export default async function AdminPage() {
         );
     }
 
-    return (
-        <div className="min-h-screen bg-slate-50 p-8">
-            <div className="max-w-4xl mx-auto">
-                <div className="flex justify-between items-center mb-8">
-                    <h1 className="text-3xl font-black text-slate-900">Admin Dashboard</h1>
-                    <span className="bg-yellow-400 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-widest">
-                        Admin Mode
-                    </span>
-                </div>
-
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-                    <div>
-                        <h2 className="text-xl font-bold mb-4">Manual Entry</h2>
-                        <CreateOpportunityForm />
-                    </div>
-                    <div>
-                        <h2 className="text-xl font-bold mb-4">Automation</h2>
-                        <ManageFeeds />
-                        <ManageAISettings />
-                    </div>
-                </div>
-            </div>
-        </div>
-    );
+    return <AdminLayout initialSection={params.section || 'dashboard'} />;
 }
