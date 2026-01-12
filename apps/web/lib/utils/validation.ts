@@ -24,9 +24,10 @@ export const createFeedSchema = z.object({
         'free_training',
         'promo'
     ]),
+    status: z.enum(['active', 'inactive', 'error']).optional().default('active'),
     enable_scraping: z.boolean().optional().default(true),
     enable_ai_processing: z.boolean().optional().default(true),
-    auto_publish: z.boolean().optional().default(true),
+    auto_publish: z.boolean().optional().default(false),
     ai_provider: z.string().optional().default('default'),
     keywords: z.array(z.string()).optional().default([]),
     exclude_keywords: z.array(z.string()).optional().default([]),

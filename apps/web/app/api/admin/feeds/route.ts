@@ -3,8 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createRouteClient } from '@/lib/utils/supabase-route';
 import { createAdminClient } from '@/lib/utils/supabase-admin';
 import { logger } from '@/lib/utils/logger';
-import { validateRequestBody } from '@/lib/utils/validation';
-import { createFeedSchema } from '@/lib/utils/validation';
+import { safeParse, createFeedSchema } from '@/lib/utils/validation';
 
 /**
  * GET /api/admin/feeds
@@ -87,11 +86,11 @@ export async function POST(request: NextRequest) {
 
     // Validate request body
     const body = await request.json();
-    const validation = validateRequestBody(body, createFeedSchema);
+    const validation = safeParse(body, createFeedSchema);
 
     if (!validation.success) {
       return NextResponse.json(
-        { error: 'Validation failed', details: validation.errors },
+        { error: 'Validation failed', details: validation.error },
         { status: 400 }
       );
     }

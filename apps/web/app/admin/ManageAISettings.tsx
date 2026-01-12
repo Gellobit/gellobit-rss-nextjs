@@ -34,7 +34,10 @@ export default function ManageAISettings() {
             const data = await res.json();
 
             if (res.ok && data.settings) {
-                setConfig(data.settings);
+                setConfig({
+                    ...data.settings,
+                    api_key: data.settings.api_key || '', // Ensure string, not undefined
+                });
             }
         } catch (error) {
             console.error('Error fetching AI config:', error);
