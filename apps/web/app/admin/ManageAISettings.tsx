@@ -34,9 +34,13 @@ export default function ManageAISettings() {
             const data = await res.json();
 
             if (res.ok && data.settings) {
+                // Ensure all fields have default values to avoid controlled/uncontrolled input errors
                 setConfig({
-                    ...data.settings,
-                    api_key: data.settings.api_key || '', // Ensure string, not undefined
+                    id: data.settings.id,
+                    provider: data.settings.provider || 'openai',
+                    model: data.settings.model || 'gpt-4o-mini',
+                    api_key: data.settings.api_key || '',
+                    is_active: data.settings.is_active !== undefined ? data.settings.is_active : true,
                 });
             }
         } catch (error) {
