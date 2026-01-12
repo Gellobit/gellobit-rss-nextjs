@@ -12,6 +12,9 @@ interface Feed {
     enable_scraping: boolean;
     enable_ai_processing: boolean;
     auto_publish: boolean;
+    ai_provider?: string | null;
+    ai_model?: string | null;
+    ai_api_key?: string | null;
     last_fetched?: string;
     total_items_processed?: number;
     opportunities_created?: number;
@@ -28,7 +31,10 @@ export default function ManageFeeds() {
         enable_scraping: true,
         enable_ai_processing: true,
         auto_publish: false,
-        status: 'active'
+        status: 'active',
+        ai_provider: '',
+        ai_model: '',
+        ai_api_key: ''
     });
     const [adding, setAdding] = useState(false);
 
@@ -74,7 +80,10 @@ export default function ManageFeeds() {
                     enable_scraping: true,
                     enable_ai_processing: true,
                     auto_publish: false,
-                    status: 'active'
+                    status: 'active',
+                    ai_provider: '',
+                    ai_model: '',
+                    ai_api_key: ''
                 });
                 fetchFeeds();
             } else {
@@ -172,6 +181,54 @@ export default function ManageFeeds() {
                     required
                 />
 
+                {/* AI Configuration (Optional) */}
+                <div className="border-t pt-4 space-y-3">
+                    <p className="text-sm font-bold text-slate-700">AI Configuration (Optional - Leave empty to use global settings)</p>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        <select
+                            className="border p-2 rounded text-sm"
+                            value={newFeed.ai_provider}
+                            onChange={e => {
+                                const provider = e.target.value;
+                                const defaultModels: Record<string, string> = {
+                                    'openai': 'gpt-4o-mini',
+                                    'anthropic': 'claude-3-5-sonnet-20241022',
+                                    'deepseek': 'deepseek-chat',
+                                    'gemini': 'gemini-1.5-flash'
+                                };
+                                setNewFeed({
+                                    ...newFeed,
+                                    ai_provider: provider,
+                                    ai_model: provider ? defaultModels[provider] || '' : ''
+                                });
+                            }}
+                        >
+                            <option value="">Use Global AI Provider</option>
+                            <option value="openai">OpenAI (GPT-4o-mini)</option>
+                            <option value="anthropic">Anthropic (Claude 3.5 Sonnet)</option>
+                            <option value="deepseek">DeepSeek (DeepSeek-Chat)</option>
+                            <option value="gemini">Google (Gemini 1.5 Flash)</option>
+                        </select>
+                        <input
+                            type="text"
+                            placeholder="AI Model (auto-filled)"
+                            className="border p-2 rounded text-sm"
+                            value={newFeed.ai_model}
+                            onChange={e => setNewFeed({ ...newFeed, ai_model: e.target.value })}
+                        />
+                        <input
+                            type="password"
+                            placeholder="API Key (optional)"
+                            className="border p-2 rounded text-sm"
+                            value={newFeed.ai_api_key}
+                            onChange={e => setNewFeed({ ...newFeed, ai_api_key: e.target.value })}
+                        />
+                    </div>
+                    <p className="text-xs text-slate-400">
+                        Configure a specific AI provider for this feed. If not set, the global AI settings will be used.
+                    </p>
+                </div>
+
                 <div className="flex flex-wrap gap-4">
                     <label className="flex items-center gap-2 text-sm">
                         <input
@@ -234,6 +291,11 @@ export default function ManageFeeds() {
                                         <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-blue-100 text-blue-700">
                                             {feed.opportunity_type}
                                         </span>
+                                        {feed.ai_provider && (
+                                            <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-purple-100 text-purple-700" title={`Using ${feed.ai_provider} (${feed.ai_model})`}>
+                                                AI: {feed.ai_provider}
+                                            </span>
+                                        )}
                                     </div>
                                     <a href={feed.url} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-500 hover:underline flex items-center gap-1 mb-2">
                                         {feed.url.substring(0, 60)}... <ExternalLink size={10} />

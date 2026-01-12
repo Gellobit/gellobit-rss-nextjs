@@ -22,8 +22,26 @@ export class AIService {
 
     /**
      * Get active AI provider configuration from database
+     * @param feedOverride - Optional feed-specific AI config
      */
-    private async getActiveProviderConfig() {
+    private async getActiveProviderConfig(feedOverride?: {
+        provider?: string;
+        model?: string;
+        api_key?: string;
+    }) {
+        // If feed has specific AI config, use it
+        if (feedOverride?.provider && feedOverride?.model && feedOverride?.api_key) {
+            return {
+                provider: feedOverride.provider as AIProvider,
+                model: feedOverride.model,
+                api_key: feedOverride.api_key,
+                max_tokens: 1500, // Use defaults for feed-specific config
+                temperature: 0.1,
+                is_active: true,
+            };
+        }
+
+        // Otherwise use global config
         const supabase = createAdminClient();
 
         const { data, error } = await supabase
@@ -42,17 +60,27 @@ export class AIService {
     /**
      * Generate opportunity content from scraped data
      * Single unified call that returns all fields
+     *
+     * @param scrapedContent - Content scraped from source URL
+     * @param opportunityType - Type of opportunity
+     * @param prompt - AI prompt to use
+     * @param feedAIConfig - Optional feed-specific AI configuration (provider, model, api_key)
      */
     async generateOpportunity(
         scrapedContent: ScrapedContent,
         opportunityType: string,
-        prompt: string
+        prompt: string,
+        feedAIConfig?: {
+            provider?: string;
+            model?: string;
+            api_key?: string;
+        }
     ): Promise<AIGeneratedContent | null> {
         const startTime = Date.now();
 
         try {
-            // Get active provider
-            const config = await this.getActiveProviderConfig();
+            // Get provider config (feed-specific or global)
+            const config = await this.getActiveProviderConfig(feedAIConfig);
             const provider = createAIProvider(config);
 
             // Build system message

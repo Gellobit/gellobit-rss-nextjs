@@ -28,7 +28,10 @@ export const createFeedSchema = z.object({
     enable_scraping: z.boolean().optional().default(true),
     enable_ai_processing: z.boolean().optional().default(true),
     auto_publish: z.boolean().optional().default(false),
-    ai_provider: z.string().optional().default('default'),
+    // Feed-specific AI configuration (optional - uses global settings if not provided)
+    ai_provider: z.enum(['openai', 'anthropic', 'deepseek', 'gemini']).nullable().optional(),
+    ai_model: z.string().nullable().optional(),
+    ai_api_key: z.string().nullable().optional(),
     keywords: z.array(z.string()).optional().default([]),
     exclude_keywords: z.array(z.string()).optional().default([]),
     quality_threshold: z.number().min(0).max(1).optional().default(0.6),

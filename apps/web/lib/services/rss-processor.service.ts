@@ -252,11 +252,16 @@ export class RSSProcessorService {
             scrapedContent
           );
 
-          // Generate content with AI
+          // Generate content with AI (use feed-specific AI config if available)
           const aiContent = await aiService.generateOpportunity(
             scrapedContent,
             feed.opportunity_type,
-            prompt
+            prompt,
+            {
+              provider: feed.ai_provider,
+              model: feed.ai_model,
+              api_key: feed.ai_api_key,
+            }
           );
 
           if (!aiContent) {

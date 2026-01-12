@@ -95,11 +95,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Convert empty strings to null for AI fields
+    const feedData = {
+      ...validation.data,
+      ai_provider: validation.data.ai_provider || null,
+      ai_model: validation.data.ai_model || null,
+      ai_api_key: validation.data.ai_api_key || null,
+    };
+
     // Create feed
     const adminSupabase = createAdminClient();
     const { data: feed, error } = await adminSupabase
       .from('rss_feeds')
-      .insert(validation.data)
+      .insert(feedData)
       .select()
       .single();
 
