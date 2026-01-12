@@ -50,7 +50,7 @@ export async function GET(request: NextRequest) {
         confidence_score,
         source_url,
         created_at,
-        ai_rejection_reason,
+        rejection_reason,
         source_feed_id,
         rss_feeds!source_feed_id (
           id,
@@ -96,7 +96,7 @@ export async function GET(request: NextRequest) {
       provider: opp.ai_provider || 'default',
       title: opp.title,
       status: opp.status,
-      reason: opp.ai_rejection_reason ||
+      reason: opp.rejection_reason ||
              (opp.status === 'published' ? 'Published successfully' :
               opp.status === 'draft' ? 'Awaiting review' : 'No reason provided'),
       source_url: opp.source_url,
