@@ -58,6 +58,14 @@ export default function ManageAISettings() {
 
     const handleAddProvider = async (e: React.FormEvent) => {
         e.preventDefault();
+
+        // Check if provider already exists
+        const existingProvider = providers.find(p => p.provider === newProvider.provider);
+        if (existingProvider) {
+            alert(`${newProvider.provider.toUpperCase()} already exists! You can only have one configuration per provider. Please edit the existing one or delete it first.`);
+            return;
+        }
+
         setSaving(true);
 
         try {
@@ -196,6 +204,28 @@ export default function ManageAISettings() {
         });
     };
 
+    const handleDeleteProvider = async (provider: AIConfig) => {
+        if (!confirm(`Are you sure you want to delete ${provider.provider.toUpperCase()}? This action cannot be undone.`)) {
+            return;
+        }
+
+        try {
+            const res = await fetch(`/api/admin/ai-settings?id=${provider.id}`, {
+                method: 'DELETE',
+            });
+
+            const data = await res.json();
+
+            if (res.ok) {
+                fetchProviders();
+            } else {
+                alert('Error deleting provider: ' + data.error);
+            }
+        } catch (error) {
+            alert('Error deleting provider: ' + error);
+        }
+    };
+
     return (
         <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 mt-8">
             <div className="flex items-center justify-between mb-6">
@@ -223,11 +253,22 @@ export default function ManageAISettings() {
                                 value={newProvider.provider}
                                 onChange={e => handleProviderChange(e.target.value as AIConfig['provider'])}
                             >
-                                <option value="openai">OpenAI (GPT-4o-mini)</option>
-                                <option value="anthropic">Anthropic (Claude 3.7 Sonnet)</option>
-                                <option value="deepseek">DeepSeek (DeepSeek-Chat)</option>
-                                <option value="gemini">Google (Gemini 2.0 Flash)</option>
+                                <option value="openai" disabled={providers.some(p => p.provider === 'openai')}>
+                                    OpenAI (GPT-4o-mini) {providers.some(p => p.provider === 'openai') ? '✓ Added' : ''}
+                                </option>
+                                <option value="anthropic" disabled={providers.some(p => p.provider === 'anthropic')}>
+                                    Anthropic (Claude 3.7 Sonnet) {providers.some(p => p.provider === 'anthropic') ? '✓ Added' : ''}
+                                </option>
+                                <option value="deepseek" disabled={providers.some(p => p.provider === 'deepseek')}>
+                                    DeepSeek (DeepSeek-Chat) {providers.some(p => p.provider === 'deepseek') ? '✓ Added' : ''}
+                                </option>
+                                <option value="gemini" disabled={providers.some(p => p.provider === 'gemini')}>
+                                    Google (Gemini 2.0 Flash) {providers.some(p => p.provider === 'gemini') ? '✓ Added' : ''}
+                                </option>
                             </select>
+                            <p className="text-xs text-slate-400 mt-1">
+                                Only one configuration per provider allowed
+                            </p>
                         </div>
                         <div>
                             <label className="block text-sm font-bold text-slate-700 mb-1">Model</label>
@@ -377,6 +418,12 @@ export default function ManageAISettings() {
                                             <CheckCircle size={16} /> Test Connection
                                         </>
                                     )}
+                                </button>
+                                <button
+                                    onClick={() => handleDeleteProvider(provider)}
+                                    className="bg-red-600 text-white px-4 py-2 rounded font-bold hover:bg-red-700 flex items-center gap-2"
+                                >
+                                    <Trash2 size={16} /> Delete
                                 </button>
                             </div>
                         </div>

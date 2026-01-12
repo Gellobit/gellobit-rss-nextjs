@@ -120,6 +120,20 @@ export async function POST(request: NextRequest) {
       setting = result.data;
       error = result.error;
     } else {
+      // Check if provider already exists
+      const { data: existingProvider } = await adminSupabase
+        .from('ai_settings')
+        .select('id')
+        .eq('provider', provider)
+        .single();
+
+      if (existingProvider) {
+        return NextResponse.json(
+          { error: `Provider '${provider}' already exists. Please update the existing configuration instead.` },
+          { status: 409 }
+        );
+      }
+
       // Insert new provider
       const result = await adminSupabase
         .from('ai_settings')
@@ -172,3 +186,71 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+
+/**
+ * DELETE /api/admin/ai-settings
+ * Delete an AI provider configuration
+ */
+export async function DELETE(request: NextRequest) {
+  try {
+    const supabase = await createRouteClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Use admin client to check role
+    const adminSupabase = createAdminClient();
+    const { data: profile } = await adminSupabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single();
+
+    if (profile?.role !== 'admin') {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get('id');
+
+    if (!id) {
+      return NextResponse.json(
+        { error: 'Missing provider ID' },
+        { status: 400 }
+      );
+    }
+
+    // Delete provider
+    const { error } = await adminSupabase
+      .from('ai_settings')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      throw error;
+    }
+
+    await logger.info('AI provider deleted', {
+      provider_id: id,
+      user_id: user.id,
+    });
+
+    return NextResponse.json({ success: true }, { status: 200 });
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+
+    await logger.error('Error deleting AI provider', {
+      error: errorMessage,
+    });
+
+    return NextResponse.json(
+      { error: errorMessage },
+      { status: 500 }
+    );
+  }
+}
+
