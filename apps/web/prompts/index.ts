@@ -24,6 +24,7 @@ export interface ScrapedContent {
   title: string;
   content: string;
   url: string;
+  featuredImage?: string | null;
 }
 
 /**

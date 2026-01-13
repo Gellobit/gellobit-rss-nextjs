@@ -248,11 +248,109 @@ export class ScraperService {
       });
     }
 
+    // Extract featured image
+    const featuredImage = this.extractFeaturedImage($, url);
+
     return {
       title,
       content,
       url,
+      featuredImage,
     };
+  }
+
+  /**
+   * Extract featured image from HTML
+   * Tries multiple strategies: OG image, Twitter card, first content image
+   */
+  private extractFeaturedImage($: cheerio.CheerioAPI, baseUrl: string): string | null {
+    // 1. Try Open Graph image
+    let imageUrl = $('meta[property="og:image"]').attr('content');
+
+    // 2. Try Twitter card image
+    if (!imageUrl) {
+      imageUrl = $('meta[name="twitter:image"]').attr('content');
+    }
+
+    // 3. Try schema.org image
+    if (!imageUrl) {
+      imageUrl = $('meta[itemprop="image"]').attr('content');
+    }
+
+    // 4. Try first image in article/content area
+    if (!imageUrl) {
+      const contentSelectors = [
+        'article img',
+        '.post-content img',
+        '.entry-content img',
+        '.article-content img',
+        'main img',
+        '.content img'
+      ];
+
+      for (const selector of contentSelectors) {
+        const img = $(selector).first();
+        if (img.length > 0) {
+          imageUrl = img.attr('src') || img.attr('data-src') || img.attr('data-lazy-src');
+          if (imageUrl) break;
+        }
+      }
+    }
+
+    // 5. Try first reasonably sized image
+    if (!imageUrl) {
+      $('img').each((_, el) => {
+        const img = $(el);
+        const src = img.attr('src');
+        const width = parseInt(img.attr('width') || '0');
+        const height = parseInt(img.attr('height') || '0');
+
+        // Skip small images (icons, avatars, etc.)
+        if (src && (width >= 200 || height >= 200 || (!width && !height))) {
+          // Skip common icon/avatar patterns
+          if (!src.match(/avatar|icon|logo|button|sprite|badge/i)) {
+            imageUrl = src;
+            return false; // break
+          }
+        }
+      });
+    }
+
+    if (!imageUrl) {
+      return null;
+    }
+
+    // Resolve relative URLs
+    return this.resolveImageUrl(imageUrl, baseUrl);
+  }
+
+  /**
+   * Resolve relative image URL to absolute URL
+   */
+  private resolveImageUrl(imageUrl: string, baseUrl: string): string {
+    // Already absolute URL
+    if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
+      return imageUrl;
+    }
+
+    // Protocol-relative URL
+    if (imageUrl.startsWith('//')) {
+      return 'https:' + imageUrl;
+    }
+
+    try {
+      const base = new URL(baseUrl);
+
+      // Absolute path
+      if (imageUrl.startsWith('/')) {
+        return `${base.protocol}//${base.host}${imageUrl}`;
+      }
+
+      // Relative path
+      return new URL(imageUrl, baseUrl).href;
+    } catch {
+      return imageUrl;
+    }
   }
 
   /**

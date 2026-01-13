@@ -302,13 +302,17 @@ export class RSSProcessorService {
           // Determine auto-publish (global setting overrides feed setting)
           const shouldAutoPublish = globalAutoPublish && feed.auto_publish;
 
+          // Determine featured image (scraped image or feed fallback)
+          const featuredImageUrl = scrapedContent.featuredImage || feed.fallback_featured_image_url || null;
+
           // Create opportunity
           const opportunityId = await opportunityService.createFromAI(
             aiContent,
             feed.opportunity_type,
             normalized.link,
             feedId,
-            shouldAutoPublish
+            shouldAutoPublish,
+            featuredImageUrl
           );
 
           if (!opportunityId) {

@@ -2,8 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createRouteClient } from '@/lib/utils/supabase-route';
 import { createAdminClient } from '@/lib/utils/supabase-admin';
 import { logger } from '@/lib/utils/logger';
-import { validateRequestBody } from '@/lib/utils/validation';
-import { updateFeedSchema } from '@/lib/utils/validation';
+import { safeParse, updateFeedSchema } from '@/lib/utils/validation';
 
 /**
  * GET /api/admin/feeds/[id]
@@ -91,19 +90,22 @@ export async function PATCH(
     }
 
     const body = await request.json();
-    const validation = validateRequestBody(body, updateFeedSchema);
+    const validation = safeParse(body, updateFeedSchema);
 
     if (!validation.success) {
       return NextResponse.json(
-        { error: 'Validation failed', details: validation.errors },
+        { error: 'Validation failed', details: validation.error },
         { status: 400 }
       );
     }
 
+    // Remove ai_api_key - this column doesn't exist in the database
+    const { ai_api_key, ...updateData } = validation.data;
+
     const adminSupabase = createAdminClient();
     const { data: feed, error } = await adminSupabase
       .from('rss_feeds')
-      .update(validation.data)
+      .update(updateData)
       .eq('id', resolvedParams.id)
       .select()
       .single();

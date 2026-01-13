@@ -29,13 +29,43 @@ export const createFeedSchema = z.object({
     enable_ai_processing: z.boolean().optional().default(true),
     auto_publish: z.boolean().optional().default(false),
     // Feed-specific AI configuration (optional - uses global settings if not provided)
-    ai_provider: z.enum(['openai', 'anthropic', 'deepseek', 'gemini']).nullable().optional(),
-    ai_model: z.string().nullable().optional(),
-    ai_api_key: z.string().nullable().optional(),
+    ai_provider: z.union([
+        z.enum(['openai', 'anthropic', 'deepseek', 'gemini']),
+        z.literal('').transform(() => null),
+        z.null()
+    ]).optional(),
+    ai_model: z.union([
+        z.string().min(1),
+        z.literal('').transform(() => null),
+        z.null()
+    ]).optional(),
+    ai_api_key: z.union([
+        z.string().min(1),
+        z.literal('').transform(() => null),
+        z.null()
+    ]).optional(),
+    // Content filtering
     keywords: z.array(z.string()).optional().default([]),
     exclude_keywords: z.array(z.string()).optional().default([]),
+    // New fields
     quality_threshold: z.number().min(0).max(1).optional().default(0.6),
-    feed_interval: z.string().optional().default('hourly')
+    priority: z.number().min(1).max(10).optional().default(5),
+    cron_interval: z.enum([
+        'every_5_minutes',
+        'every_15_minutes',
+        'every_30_minutes',
+        'hourly',
+        'every_2_hours',
+        'every_6_hours',
+        'every_12_hours',
+        'daily'
+    ]).optional().default('hourly'),
+    fallback_featured_image_url: z.union([
+        z.string().url(),
+        z.literal('').transform(() => null),
+        z.null()
+    ]).optional(),
+    allow_republishing: z.boolean().optional().default(false)
 });
 
 export const updateFeedSchema = createFeedSchema.partial();

@@ -95,13 +95,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Convert empty strings to null for AI fields
-    const feedData = {
-      ...validation.data,
-      ai_provider: validation.data.ai_provider || null,
-      ai_model: validation.data.ai_model || null,
-      ai_api_key: validation.data.ai_api_key || null,
-    };
+    // Remove ai_api_key - this column doesn't exist in the database
+    // ai_provider and ai_model are stored per-feed for optional override
+    const { ai_api_key, ...feedData } = validation.data;
 
     // Create feed
     const adminSupabase = createAdminClient();
@@ -123,12 +119,19 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ feed }, { status: 201 });
   } catch (error) {
+    console.error('Feed creation error:', error);
+
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    const errorDetails = error && typeof error === 'object' ? JSON.stringify(error) : undefined;
+
     await logger.error('Error creating feed', {
-      error: error instanceof Error ? error.message : 'Unknown error',
+      error: errorMessage,
+      details: errorDetails,
+      stack: error instanceof Error ? error.stack : undefined,
     });
 
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: errorMessage || 'Internal server error' },
       { status: 500 }
     );
   }

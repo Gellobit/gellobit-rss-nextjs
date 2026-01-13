@@ -19,6 +19,7 @@ export interface CreateOpportunityData {
   requirements?: string | null;
   location?: string | null;
   confidence_score?: number | null;
+  featured_image_url?: string | null;
   status?: OpportunityStatus;
   auto_publish?: boolean;
 }
@@ -46,6 +47,7 @@ export class OpportunityService {
    * @param sourceUrl - Source URL
    * @param sourceFeedId - Source feed ID
    * @param autoPublish - Auto-publish based on feed settings
+   * @param featuredImageUrl - Featured image URL (from scraper or fallback)
    * @returns Created opportunity ID or null
    */
   async createFromAI(
@@ -53,7 +55,8 @@ export class OpportunityService {
     opportunityType: OpportunityType,
     sourceUrl: string,
     sourceFeedId: string,
-    autoPublish: boolean = false
+    autoPublish: boolean = false,
+    featuredImageUrl?: string | null
   ): Promise<string | null> {
     if (!aiContent.valid || !aiContent.title || !aiContent.excerpt || !aiContent.content) {
       await logger.warning('Cannot create opportunity from invalid AI content', {
@@ -80,6 +83,7 @@ export class OpportunityService {
         requirements: aiContent.requirements || null,
         location: aiContent.location || null,
         confidence_score: aiContent.confidence_score || null,
+        featured_image_url: featuredImageUrl || null,
         status: autoPublish ? 'published' : 'draft',
       };
 
