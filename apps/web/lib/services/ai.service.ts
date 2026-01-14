@@ -29,21 +29,39 @@ export class AIService {
         model?: string;
         api_key?: string;
     }) {
-        // If feed has specific AI config, use it
-        if (feedOverride?.provider && feedOverride?.model && feedOverride?.api_key) {
-            return {
-                provider: feedOverride.provider as AIProvider,
-                model: feedOverride.model,
-                api_key: feedOverride.api_key,
-                max_tokens: 1500, // Use defaults for feed-specific config
-                temperature: 0.1,
-                is_active: true,
-            };
-        }
-
-        // Otherwise use global config
         const supabase = createAdminClient();
 
+        // If feed has specific AI provider and model, use those with the API key from settings
+        if (feedOverride?.provider && feedOverride?.model) {
+            // Get the API key from ai_settings for this provider
+            const { data: providerSettings, error: providerError } = await supabase
+                .from('ai_settings')
+                .select('*')
+                .eq('provider', feedOverride.provider)
+                .single();
+
+            if (providerError || !providerSettings) {
+                await logger.warning('Feed AI provider not configured in settings, falling back to global', {
+                    requested_provider: feedOverride.provider,
+                });
+                // Fall through to use global active provider
+            } else {
+                await logger.debug('Using feed-specific AI provider', {
+                    provider: feedOverride.provider,
+                    model: feedOverride.model,
+                });
+                return {
+                    provider: feedOverride.provider as AIProvider,
+                    model: feedOverride.model,
+                    api_key: providerSettings.api_key,
+                    max_tokens: providerSettings.max_tokens || 1500,
+                    temperature: providerSettings.temperature || 0.1,
+                    is_active: true,
+                };
+            }
+        }
+
+        // Use global active config
         const { data, error } = await supabase
             .from('ai_settings')
             .select('*')

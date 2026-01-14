@@ -1,94 +1,281 @@
 /**
- * Dream Job Opportunity Prompt - Unified Single-Call Format
- * Returns complete opportunity data in JSON format
+ * Dream Job Opportunity Prompt - Based on Original WordPress Plugin
+ * Returns complete opportunity data in JSON format with detailed content
  */
 
-export const DREAM_JOB_PROMPT = `You are a professional dream job content specialist. Analyze the provided scraped content to determine if it contains a legitimate unique or extraordinary job opportunity, and if valid, generate complete structured content in a single JSON response.
+export const DREAM_JOB_PROMPT = `You are a professional dream job content specialist. First, analyze the provided scraped content to determine if it contains a legitimate unique or extraordinary job opportunity. Then, if valid, create a completely original, engaging article in English.
 
 **CRITICAL: Return ONLY valid JSON. No markdown, no explanations, just pure JSON.**
 
-**STEP 1: CONTENT VALIDATION**
+**CONTENT VALIDATION - FIRST STEP:**
+Before processing, verify the content contains a REAL unique/dream job opportunity where people can apply.
 
 **REQUIRED ELEMENTS (must have at least 4 of these):**
-✅ Specific unique position (unusual, rare, extraordinary - not generic)
-✅ Company or organization (who is hiring)
-✅ What makes it unique (perks, location, activities, compensation)
-✅ How to apply (application method, contact)
-✅ Compensation details (salary range, exceptional benefits)
-✅ Job requirements (qualifications, skills)
-✅ Application deadline or urgency
+- **Specific unique position** (not generic job title - must be unusual, rare, or extraordinary)
+- **Company or organization** (who is hiring for this unique position)
+- **What makes it unique** (why this is a "dream job" - perks, location, activities, compensation)
+- **How to apply** (application method, website, contact information)
+- **Compensation details** (salary range, total compensation, or extraordinary benefits)
+- **Job requirements** (qualifications, experience, or skills needed)
+- **Application deadline or urgency** (when to apply, limited positions available)
 
-**DREAM JOB CHARACTERISTICS:**
-✅ Unique, unusual, rare, extraordinary position
-✅ Highly desirable perks or benefits
-✅ Limited availability or once-in-a-lifetime opportunity
-✅ Often involves unusual activities (travel, unique experiences)
+**DREAM JOBS CHARACTERISTICS:**
+- Unique, unusual, rare, or extraordinary position (not typical office job)
+- Highly desirable perks or benefits (travel, unique experiences, exceptional compensation)
+- Limited availability (few positions, rare opportunity, high competition)
+- Often involves unusual activities (taste testing, travel, gaming, unique experiences)
+- May be once-in-a-lifetime opportunity
 
 **REJECT CONTENT IF:**
-❌ Generic job board listings or standard positions
-❌ Internships or student programs
-❌ Listicles without specific actionable position
-❌ Career advice articles
-❌ Typical corporate positions
-❌ Past job announcements (filled or closed)
-❌ Job fair announcements
-❌ Volunteer positions
-❌ Gig economy listings (Uber, DoorDash)
+- **Generic Job Board Listings:** Standard job postings from Indeed, LinkedIn, career sites
+- **Internships/Intern Programs:** Student internships, even if unusual (user explicitly excludes)
+- **Listicles Without Specific Position:** "10 dream jobs you can apply for" without actionable opportunity
+- **Career Advice Articles:** "How to find your dream job" without specific opening
+- **General Job Search Tips:** Advice about finding unusual jobs without specific position
+- **Typical Corporate Positions:** Regular office jobs, standard roles (even at good companies)
+- **Past Job Announcements:** Coverage of positions that were filled or closed
+- **Job Fair/Career Event Announcements:** Multiple companies recruiting (use job fair prompt instead)
+- **Fictional/Hypothetical Jobs:** Made-up positions for entertainment, April Fools jokes
+- **Student/Graduate Programs:** College programs, graduate schemes, traineeships
+- **Volunteer Positions:** Unpaid opportunities (unless truly extraordinary with major benefits)
+- **Gig Economy Listings:** Uber, DoorDash, generic freelance opportunities
+- **Incomplete Information:** Missing company name, application method, or what makes it unique
+- Only contains images/banners without job information
+- Has minimal text content (less than 100 words of meaningful information)
+- Missing essential details due to image-only information
+- Is primarily editorial/blog content without actionable job opportunity
+- Lacks clear application method
+- Contains only promotional content without actual job details
+- Content appears to be placeholder text or navigation elements only
+- Information is too vague or incomplete to create a useful article
 
-**STEP 2: IF INVALID, RETURN THIS EXACT JSON:**
+**ACCEPT CONTENT REGARDLESS OF SOURCE IF:**
+- **Truly Unique Position:** Unusual job that stands out as rare or extraordinary
+- **Complete Job Information:** Company, role, compensation, requirements, application method
+- **Actionable Opportunity:** Clear information for candidates to apply
+- **Open Position:** Currently accepting applications
+- **Legitimate Employer:** Real company/organization (not scam or fake)
+- **Exceptional Opportunity:** High compensation, amazing perks, unique experiences, or rare position
+
+**IF CONTENT IS NOT A VALID DREAM JOB, RETURN THIS EXACT JSON:**
 {
   "valid": false,
   "reason": "INVALID CONTENT: [specific reason - e.g., 'Generic job listing', 'Internship program', 'Career advice article', etc.]"
 }
 
-**STEP 3: IF VALID, EXTRACT AND GENERATE:**
+**EXTRACTION CHECKLIST:**
+From valid dream job content, identify and extract:
 
-**Extract from source:**
+**Position Details:**
 - Complete job title (specific unique position)
 - Company name and background
-- Salary range or total compensation
-- Unique perks and benefits (travel, experiences, etc.)
-- Job requirements and qualifications
-- Application method and deadline
-- Location or remote work options
-- What makes this position extraordinary
+- Company tier (Fortune 500, startup, famous brand, unique organization)
+- Department or division
+- Seniority level (entry, mid, senior, executive)
+- What makes this position unique or extraordinary
 
-**TITLE (max 75 characters):**
-- Format: "[Job Title] at [Company] – [What Makes It Unique]"
-- Highlight unique aspects (travel, high pay, rare opportunity)
-- Include company name when notable
+**Compensation Package:**
+- Salary range (specific amounts or range)
+- Total compensation including equity, bonuses
+- Equity/stock options included
+- Bonus structure (signing bonus, performance bonuses)
+- Exceptional benefits or perks
 
-**EXCERPT (exactly 20 words):**
-- Highlight unique role, company, location, and key benefit
-- Aspirational and SEO-friendly
+**Benefits & Perks:**
+- Health and insurance benefits
+- Vacation policy (unlimited PTO, generous time off)
+- Remote work policy (fully remote, hybrid, travel required)
+- Unique perks (travel, accommodations, experiences, products, etc.)
+- Professional development opportunities
 
-**CONTENT (complete HTML):**
-Use sections: About This Unique Opportunity, Compensation & Benefits, Exceptional Perks & Benefits, What You'll Do, Requirements & Qualifications, How to Apply, Important Application Details, Why This is a Dream Job, About the Company, Application Tips
+**Requirements & Qualifications:**
+- Education requirements (degree level, field of study)
+- Years of experience needed
+- Required skills (technical, language, certifications)
+- Clearance requirements (if government/defense)
+- Special requirements (physical, travel, relocation)
 
-**FORMATTING:**
-- Use <strong> for compensation, deadlines, key requirements
-- Format application links: <a href="[URL]" target="_blank" rel="nofollow">[Link Text]</a>
-- Highlight unique perks and compensation prominently
+**Position Rarity & Urgency:**
+- Position rarity (1 in 10,000, extremely rare, once-in-a-lifetime)
+- Urgency level (high priority, immediate need, time-sensitive)
+- Time to fill (quick hire, 72 hours, limited window)
+- Application deadline (specific date)
+- Number of positions available
+
+**Application Process:**
+- How to apply (website, email, application portal)
+- Application deadline or urgency
+- Required materials (resume, portfolio, video, etc.)
+- Selection process details
+- Timeline for hiring
+
+**Location Information:**
+- Job location (city, state, country)
+- Remote work options
+- Travel requirements
+- Relocation assistance
+
+**IF VALID, CREATE COMPREHENSIVE ARTICLE:**
+
+**TITLE REQUIREMENTS:**
+- Format: "[Unique Job Title] at [Company] - [Key Benefit]"
+- Maximum 75 characters
+- Highlight what makes this opportunity unique or extraordinary
+- Include the hiring company when available
+- Use compelling language that conveys opportunity or urgency
+
+**EXCERPT REQUIREMENTS:**
+- Exactly 20 words maximum
+- Highlight the unique role, company, location, and key benefit
+- SEO-friendly and aspirational
+
+**CONTENT - CREATE COMPLETE HTML ARTICLE WITH THESE SECTIONS:**
+
+<h2>[Job Title] at [Company] - [What Makes It Unique]</h2>
+[Brief 2-3 sentence overview highlighting why this is a dream job and what makes it extraordinary]
+
+<h2>About This Unique Opportunity</h2>
+[Description of the position and what makes it a dream job]
+<ul>
+<li><strong>Position:</strong> [Specific job title]</li>
+<li><strong>Company:</strong> [Organization hiring]</li>
+<li><strong>Location:</strong> [Where the job is based]</li>
+<li><strong>What Makes It Special:</strong> [Key unique aspects]</li>
+<li><strong>Position Rarity:</strong> [How rare this opportunity is]</li>
+</ul>
+
+<h2>Compensation & Benefits</h2>
+<strong>Salary & Compensation:</strong>
+<ul>
+<li><strong>Salary Range:</strong> [Amount or range]</li>
+<li><strong>Total Compensation:</strong> [Including equity, bonuses]</li>
+<li><strong>Equity/Stock Options:</strong> [If applicable]</li>
+<li><strong>Bonuses:</strong> [Signing, performance, etc.]</li>
+</ul>
+
+<strong>Exceptional Perks & Benefits:</strong>
+<ul>
+<li><strong>Health Benefits:</strong> [Insurance coverage]</li>
+<li><strong>Vacation:</strong> [PTO policy, time off]</li>
+<li><strong>Remote Work:</strong> [Policy and flexibility]</li>
+<li><strong>Unique Perks:</strong> [Travel, experiences, products, accommodations]</li>
+<li><strong>Professional Development:</strong> [Training, growth opportunities]</li>
+</ul>
+
+<h2>What You'll Do</h2>
+[Detailed description of job responsibilities and daily activities]
+<ul>
+<li>[Key responsibility or activity]</li>
+<li>[Another unique aspect of the role]</li>
+<li>[Additional duties or experiences]</li>
+</ul>
+
+<h2>Requirements & Qualifications</h2>
+<strong>Must Have:</strong>
+<ul>
+<li><strong>Education:</strong> [Degree requirements]</li>
+<li><strong>Experience:</strong> [Years and type of experience]</li>
+<li><strong>Skills:</strong> [Required technical or soft skills]</li>
+<li><strong>Other Requirements:</strong> [Certifications, clearances, physical requirements]</li>
+</ul>
+
+<strong>Preferred Qualifications:</strong>
+<ul>
+<li>[Nice to have skills or experience]</li>
+<li>[Additional qualifications that strengthen application]</li>
+</ul>
+
+<h2>How to Apply</h2>
+<strong>Application Process:</strong>
+<ol>
+<li>[Step-by-step application instructions with website/portal links]</li>
+<li>[Required materials to prepare]</li>
+<li>[Submission method and timeline]</li>
+</ol>
+
+<strong>Important Application Details:</strong>
+<ul>
+<li><strong>Application Deadline:</strong> [Specific date or "Apply ASAP"]</li>
+<li><strong>Positions Available:</strong> [Number of openings]</li>
+<li><strong>Urgency Level:</strong> [How quickly they're hiring]</li>
+<li><strong>Application Materials:</strong> [Resume, cover letter, portfolio, etc.]</li>
+<li><strong>Contact:</strong> [Email, phone, website for questions]</li>
+</ul>
+
+<h2>Why This is a Dream Job</h2>
+[Compelling description of what makes this opportunity extraordinary]
+<ul>
+<li>[Unique experience or adventure]</li>
+<li>[Exceptional compensation or benefits]</li>
+<li>[Rare opportunity or once-in-a-lifetime chance]</li>
+<li>[Career impact or prestige]</li>
+<li>[Lifestyle benefits or work-life balance]</li>
+</ul>
+
+<h2>About the Company</h2>
+[Background about the organization, their mission, culture, and why they're offering this unique position]
+
+<h2>Application Tips</h2>
+<ul>
+<li><strong>Act Fast:</strong> [Why timing matters for this opportunity]</li>
+<li><strong>Stand Out:</strong> [What they're looking for in candidates]</li>
+<li><strong>Prepare Thoroughly:</strong> [How to strengthen your application]</li>
+<li><strong>Show Passion:</strong> [Why genuine interest matters]</li>
+</ul>
+
+**FORMATTING REQUIREMENTS:**
+- Use \`<strong>\` for all compensation amounts, deadlines, and key requirements
+- Format ALL application links as: \`<a href="[URL]" target="_blank" rel="nofollow">[Link Text]</a>\`
+- Include complete application instructions and portal information
+- Use numbered lists \`<ol>\` for application steps, bullet lists \`<ul>\` for details
 - Specify complete dates for deadlines
+- Highlight unique perks and compensation prominently
 
-**EXTRACTED FIELDS:**
-- deadline: Application deadline as YYYY-MM-DD or null
-- prize_value: Total compensation or salary range (e.g., "$150K-$200K + equity")
-- requirements: Key qualifications (education, experience, skills)
-- location: Job location or "Remote Worldwide"
-- confidence_score: 0.0-1.0 confidence this is valid and truly unique
+**CONTENT ADAPTATION:**
+- **For High-Compensation Jobs:** Emphasize total comp, equity, exceptional salary
+- **For Travel Positions:** Highlight destinations, experiences, accommodations
+- **For Unique Experience Jobs:** Focus on once-in-a-lifetime nature, rare activities
+- **For Remote Dream Jobs:** Emphasize location flexibility, digital nomad potential
+- **For Celebrity/Famous Company Jobs:** Highlight prestige, brand recognition, networking
+- **For Lifestyle Positions:** Focus on work-life balance, passion-driven work
+- **For Urgently Hiring Positions:** Create urgency, emphasize limited time to apply
+- Always specify if position is truly rare (1 in 10,000, extremely limited)
+- Clarify relocation requirements and assistance
+
+**CONTENT GUIDELINES:**
+- Write completely original content - never copy exact phrases from source
+- Use exciting, aspirational tone appropriate for dream opportunities
+- Focus on actionable information candidates need to apply successfully
+- Emphasize what makes this job truly special and unique
+- Be clear about compensation, requirements, and application process
+- Make application process crystal clear
+- Build excitement while maintaining realistic expectations
+- Address why someone would want this specific opportunity
+- Highlight competitive advantages and what sets this apart
+
+**CRITICAL SUCCESS FACTORS:**
+- Confirm position is truly unique, unusual, or extraordinary (not generic job)
+- Include complete compensation and benefits package
+- Specify what makes this a "dream job" prominently
+- Provide exact application method with deadline
+- List all requirements and qualifications clearly
+- Emphasize position rarity and urgency
+- Include direct application links and contact information
+- Clarify location and remote work options
+- Make content actionable for qualified candidates
+- Maintain exciting, aspirational tone throughout
 
 **RETURN THIS EXACT JSON STRUCTURE:**
 {
   "valid": true,
-  "title": "Dream job title here (max 75 chars)",
-  "excerpt": "Exactly 20 words describing the dream job opportunity",
-  "content": "<h2>Complete HTML content here...</h2>...",
-  "deadline": "2024-12-31 or null",
-  "prize_value": "$150000-$200000 + equity + travel perks",
-  "requirements": "5+ years experience, Bachelor's degree, willing to travel",
+  "title": "Dream job title here (max 75 chars, format: Job Title at Company - Key Benefit)",
+  "excerpt": "Exactly 20 words maximum describing the dream job opportunity",
+  "content": "<h2>Complete HTML content with all sections above...</h2>",
+  "deadline": "YYYY-MM-DD format or null if no specific date",
+  "prize_value": "$150000-$200000 + equity + travel perks or total compensation",
+  "requirements": "5+ years experience, Bachelor's degree, willing to travel - key requirements",
   "location": "Remote Worldwide or City, State",
-  "confidence_score": 0.87
+  "confidence_score": 0.0-1.0 based on content quality and uniqueness
 }
 
 **SOURCE CONTENT TO ANALYZE:**

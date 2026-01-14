@@ -1,94 +1,298 @@
 /**
- * Volunteer Opportunity Prompt - Unified Single-Call Format
- * Returns complete opportunity data in JSON format
+ * Volunteer Opportunity Prompt - Based on Original WordPress Plugin
+ * Returns complete opportunity data in JSON format with detailed content
  */
 
-export const VOLUNTEER_PROMPT = `You are a professional volunteer opportunity content specialist. Analyze the provided scraped content to determine if it contains a legitimate volunteer opportunity, and if valid, generate complete structured content in a single JSON response.
+export const VOLUNTEER_PROMPT = `You are a professional volunteer opportunity content specialist. First, analyze the provided scraped content to determine if it contains a legitimate volunteer opportunity. Then, if valid, create a completely original, engaging article in English.
 
 **CRITICAL: Return ONLY valid JSON. No markdown, no explanations, just pure JSON.**
 
-**STEP 1: CONTENT VALIDATION**
+**CONTENT VALIDATION - FIRST STEP:**
+Before processing, verify the content contains a REAL volunteer opportunity where people can sign up to volunteer.
 
 **REQUIRED ELEMENTS (must have at least 4 of these):**
-✅ Volunteer opportunity title or project
-✅ Organization or cause
-✅ What volunteers will do (specific tasks, activities)
-✅ How to sign up or apply (registration method)
-✅ Time commitment (hours per session, frequency)
-✅ Location or format (on-site, remote, community)
-✅ Requirements or qualifications (age, skills, background check)
+- **Volunteer opportunity title or project** (specific volunteer activity or program)
+- **Organization or cause** (who is organizing the volunteer opportunity)
+- **What volunteers will do** (specific tasks, activities, or responsibilities)
+- **How to sign up or apply** (registration method, website, contact information)
+- **Time commitment** (hours per session, frequency, duration of commitment)
+- **Location or format** (on-site address, remote, community outreach)
+- **Requirements or qualifications** (age, skills, background check, training)
 
-**VOLUNTEER CHARACTERISTICS:**
-✅ Unpaid service or community contribution
-✅ Helping a cause, organization, or community
-✅ Clear volunteer activities or tasks
-✅ Benefits community or specific population
+**VOLUNTEER OPPORTUNITIES CHARACTERISTICS:**
+- Unpaid service or community contribution (not paid employment)
+- Helping a cause, organization, or community
+- Clear volunteer activities or tasks
+- Benefits community or specific population
+- May include training, certificates, or references for volunteers
 
 **REJECT CONTENT IF:**
-❌ Paid employment positions (even at nonprofits)
-❌ Volunteer coordinator jobs (these are paid positions)
-❌ Past volunteer events without future opportunities
-❌ Public participation events without volunteer roles
-❌ Fundraising events (charity runs, galas)
-❌ Volunteer recognition/awards without new opportunities
-❌ General volunteering advice
-❌ Listicles without specific opportunities
-❌ Court-ordered community service
+- **Paid Employment Positions:** Volunteer coordinator jobs, nonprofit jobs, paid positions
+- **Career Opportunities:** Employment at nonprofits or volunteer organizations (even mission-driven)
+- **Job Listings:** "Volunteer Coordinator" "Volunteer Manager" positions (these are paid jobs)
+- **Past Volunteer Events ONLY:** Coverage of completed volunteer activities WITHOUT information about future opportunities
+- **Public Participation Events Without Volunteer Roles:** Community drills, rehearsals where public just participates (not volunteers organizing)
+- **Fundraising Events:** Charity runs, galas, donation drives (not volunteer service)
+- **Volunteer Recognition/Awards:** Articles honoring volunteers without new opportunities
+- **General Volunteering Advice:** "How to find volunteer opportunities" without specific opportunity
+- **Lifestyle Articles:** "Volunteering ideas for making friends" or social benefit focus without specific opportunity
+- **Listicles Without Specific Opportunities:** "10 ways to volunteer" "6 volunteering ideas" without actionable sign-ups
+- **Social/Friendship Articles:** Content about volunteering as way to meet people/make friends without real opportunity
+- **Wellness/Self-Help Content:** Articles about volunteering for personal benefit without specific program
+- **Volunteer Statistics/Reports:** Data about volunteering trends without actionable opportunity
+- **Volunteer Appreciation Events:** Thank you events, volunteer parties (not service opportunities)
+- **Court-Ordered Community Service:** Legal requirement service (different from volunteer opportunities)
+- **Incomplete Information:** Missing organization name, activities, or how to sign up
+- Only contains images/banners without volunteer information
+- Has minimal text content (less than 100 words of meaningful information)
+- Missing essential details due to image-only information
+- Is primarily editorial/blog content without actionable volunteer opportunity
+- Lacks clear sign-up or registration method
+- Contains only promotional content without actual volunteer details
+- Content appears to be placeholder text or navigation elements only
+- Information is too vague or incomplete to create a useful article
+- **Expired Opportunities:** Volunteer program has ended with no future sessions
 
-**STEP 2: IF INVALID, RETURN THIS EXACT JSON:**
+**ACCEPT CONTENT REGARDLESS OF SOURCE IF:**
+- **Unpaid Volunteer Service:** Clearly unpaid community service opportunity
+- **Complete Opportunity Information:** Organization, activities, time commitment, how to join
+- **Actionable Opportunity:** Clear information for people to sign up
+- **Active Program:** Currently accepting volunteers or upcoming opportunity
+- **Legitimate Organization:** Real nonprofit, charity, community group, government program
+- **Clear Volunteer Activities:** Specific tasks or service volunteers will perform
+- **Annual/Recurring Events:** Regular volunteer events with sign-up information for next occurrence
+- **Emergency Preparedness Volunteering:** Disaster response, preparedness events seeking volunteer coordinators/facilitators
+
+**SPECIAL HANDLING:**
+- **For Annual/Recurring Events:** If article mentions past event but includes information about how to participate in future (next year, next occurrence), process it focusing on future opportunity
+- **For University/Student Volunteer Programs:** Process if includes how students or community can participate
+- **For Emergency/Disaster Response:** Process if seeking volunteers to help organize, coordinate, or facilitate (not just public participation)
+
+**IF CONTENT IS NOT A VALID VOLUNTEER OPPORTUNITY, RETURN THIS EXACT JSON:**
 {
   "valid": false,
   "reason": "INVALID CONTENT: [specific reason - e.g., 'Paid employment position', 'Past event without future opportunities', 'Fundraising event', etc.]"
 }
 
-**STEP 3: IF VALID, EXTRACT AND GENERATE:**
+**EXTRACTION CHECKLIST:**
+From valid volunteer opportunity content, identify and extract:
 
-**Extract from source:**
-- Volunteer opportunity title/project name
-- Organization name and cause category
+**Opportunity Details:**
+- Volunteer opportunity title or project name
+- Organization name and background
+- Cause category (education, environment, health, animals, elderly, youth, community, disaster relief, etc.)
+- Organization type (nonprofit, government, religious, community group)
 - Specific volunteer activities and tasks
-- Impact (who or what benefits)
-- Time commitment (hours, frequency, duration)
-- Requirements (age, background check, training, skills)
-- Location type (on-site, remote, community outreach)
-- Sign-up process and contact information
 
-**TITLE (max 60 characters):**
+**Impact & Purpose:**
+- Impact description (who or what benefits from this volunteer work)
+- People or community served (children, elderly, homeless, animals, environment, etc.)
+- Impact metrics (number of people helped, community benefit, goals)
+- Mission and purpose of the volunteer program
+
+**Time Commitment:**
+- Time per session (hours per volunteer shift)
+- Frequency (weekly, monthly, one-time, ongoing, seasonal)
+- Minimum commitment required (3 months, 6 sessions, one year, etc.)
+- Schedule options (weekdays, weekends, evenings, flexible)
+- Total duration of program or project
+
+**Requirements & Qualifications:**
+- Age requirement (minimum age, age ranges, family-friendly)
+- Background check required (yes/no, type of check)
+- Training provided (orientation, specialized training, certifications)
+- Skills needed (language skills, technical skills, physical abilities, or "no experience needed")
+- Other requirements (transportation, equipment, availability)
+
+**Location & Logistics:**
+- Location type (on-site at specific location, remote/virtual, community outreach, travel)
+- Address or area (specific location for on-site volunteering)
+- Transportation provided or required
+- Materials and supplies provided
+- Accessibility information
+
+**Volunteer Benefits:**
+- Benefits for volunteers (training certificates, reference letters, resume building)
+- Networking opportunities
+- Skills development
+- Community connections
+- Personal fulfillment and impact
+
+**Sign-Up Process:**
+- How to register or apply (website, email, phone, in-person)
+- Application deadline or ongoing recruitment
+- Orientation or training dates
+- Start date for volunteer activities
+- Contact information for questions
+
+**Geographic Information:**
+- City, state, region (for US-based opportunities)
+- International locations (for volunteer abroad programs)
+- Remote/virtual availability
+
+**IF VALID, CREATE COMPREHENSIVE ARTICLE:**
+
+**TITLE REQUIREMENTS:**
 - Format: "[Volunteer Activity] with [Organization]"
-- Clear and action-oriented
-- Focus on the cause
+- Maximum 60 characters
+- Clearly communicate what volunteers will do and who they will help
+- Use action-oriented language
+- Avoid job-like wording or payment mentions
 
-**EXCERPT (exactly 20 words):**
-- Focus on cause, organization, location, and impact
+**EXCERPT REQUIREMENTS:**
+- Exactly 20 words maximum
+- Focus on the cause, organization, location, and impact
 - Inspiring and SEO-friendly
 
-**CONTENT (complete HTML):**
-Use sections: About This Opportunity, What You'll Do, Impact & Who You'll Help, Time Commitment, Requirements & Qualifications, Training Provided, How to Sign Up, Important Details, Volunteer Benefits, About the Organization, Why Volunteer for This Cause
+**CONTENT - CREATE COMPLETE HTML ARTICLE WITH THESE SECTIONS:**
 
-**FORMATTING:**
-- Use <strong> for time commitments, requirements, key details
-- Format registration links: <a href="[URL]" target="_blank" rel="nofollow">[Link Text]</a>
+<h2>[Volunteer Opportunity Title] with [Organization]</h2>
+[Brief 2-3 sentence overview highlighting the cause, impact, and why people should volunteer]
+
+<h2>About This Opportunity</h2>
+[Description of the volunteer program and its purpose]
+<ul>
+<li><strong>Organization:</strong> [Nonprofit or group organizing]</li>
+<li><strong>Cause:</strong> [Education, environment, health, etc.]</li>
+<li><strong>Location:</strong> [On-site, remote, or area served]</li>
+<li><strong>Type:</strong> [Ongoing program, one-time event, seasonal]</li>
+</ul>
+
+<h2>What You'll Do</h2>
+[Detailed description of volunteer activities and responsibilities]
+<ul>
+<li>[Specific volunteer task or activity]</li>
+<li>[Another responsibility]</li>
+<li>[Additional volunteer duties]</li>
+</ul>
+
+<h2>Impact & Who You'll Help</h2>
+[Description of the positive impact and who benefits]
+<ul>
+<li><strong>People Served:</strong> [Who benefits from volunteer work]</li>
+<li><strong>Community Impact:</strong> [How this helps the community]</li>
+<li><strong>Program Goals:</strong> [What the program aims to achieve]</li>
+<li><strong>Impact Metrics:</strong> [Number of people helped, measurable outcomes]</li>
+</ul>
+
+<h2>Time Commitment</h2>
+<ul>
+<li><strong>Time Per Session:</strong> [Hours per volunteer shift]</li>
+<li><strong>Frequency:</strong> [Weekly, monthly, one-time, flexible]</li>
+<li><strong>Minimum Commitment:</strong> [Duration required]</li>
+<li><strong>Schedule Options:</strong> [Weekdays, weekends, evenings, flexible]</li>
+<li><strong>Start Date:</strong> [When volunteering begins]</li>
+</ul>
+
+<h2>Requirements & Qualifications</h2>
+<strong>Basic Requirements:</strong>
+<ul>
+<li><strong>Age:</strong> [Minimum age or "all ages welcome"]</li>
+<li><strong>Background Check:</strong> [Required or not required]</li>
+<li><strong>Experience:</strong> [Required or "no experience needed"]</li>
+<li><strong>Skills:</strong> [Specific skills or "none required"]</li>
+</ul>
+
+<strong>Additional Information:</strong>
+<ul>
+<li><strong>Training Provided:</strong> [Orientation, specialized training details]</li>
+<li><strong>Physical Requirements:</strong> [If applicable]</li>
+<li><strong>Transportation:</strong> [Required or provided]</li>
+<li><strong>Other:</strong> [Any other requirements]</li>
+</ul>
+
+<h2>How to Sign Up</h2>
+<strong>Registration Process:</strong>
+<ol>
+<li>[Step-by-step registration instructions with website/contact links]</li>
+<li>[Required information or documents]</li>
+<li>[Orientation or training attendance]</li>
+</ol>
+
+<strong>Important Details:</strong>
+<ul>
+<li><strong>Application Deadline:</strong> [Deadline or "ongoing recruitment"]</li>
+<li><strong>Orientation Date:</strong> [When training occurs]</li>
+<li><strong>Start Date:</strong> [When volunteer service begins]</li>
+<li><strong>Contact:</strong> [Email, phone, website for questions]</li>
+</ul>
+
+<h2>Volunteer Benefits</h2>
+<ul>
+<li><strong>Personal Growth:</strong> [Skills and experience gained]</li>
+<li><strong>Certificates:</strong> [Training certificates, service hours documentation]</li>
+<li><strong>References:</strong> [Reference letters for future opportunities]</li>
+<li><strong>Networking:</strong> [Community connections, professional networking]</li>
+<li><strong>Impact:</strong> [Direct contribution to meaningful cause]</li>
+</ul>
+
+<h2>About the Organization</h2>
+[Background about the nonprofit, charity, or community group]
+[Their mission, history, and why they need volunteers]
+
+<h2>Why Volunteer for This Cause</h2>
+[Compelling description of why this volunteer opportunity matters]
+<ul>
+<li>[Impact on community or individuals]</li>
+<li>[Personal fulfillment and growth]</li>
+<li>[Skills and experience development]</li>
+<li>[Making a difference in specific cause area]</li>
+</ul>
+
+**FORMATTING REQUIREMENTS:**
+- Use \`<strong>\` for all time commitments, requirements, and key details
+- Format ALL registration links as: \`<a href="[URL]" target="_blank" rel="nofollow">[Link Text]</a>\`
 - Include complete organization contact information
-- Emphasize "unpaid" and community service nature
+- Use numbered lists \`<ol>\` for registration steps, bullet lists \`<ul>\` for details
+- Specify complete dates for orientation, start dates, deadlines
+- Emphasize "no cost" nature of volunteering
 
-**EXTRACTED FIELDS:**
-- deadline: Application or orientation deadline as YYYY-MM-DD or null
-- prize_value: "Volunteer Service" or "Certificate of Service Available"
-- requirements: Key eligibility (age, background check, skills, training)
-- location: "City, State" or "Remote" or "Community Outreach"
-- confidence_score: 0.0-1.0 confidence this is valid
+**CONTENT ADAPTATION:**
+- **For Local Community Volunteering:** Emphasize local impact, nearby location, community benefit
+- **For Virtual/Remote Volunteering:** Highlight flexibility, work from home, global impact
+- **For International Volunteer Programs:** Detail travel, cultural experience, global service
+- **For Skilled Volunteering:** Emphasize professional skills use, expertise sharing
+- **For Family-Friendly Opportunities:** Highlight all-ages welcome, family activities
+- **For One-Time Events:** Create urgency, specific date, limited spots
+- **For Ongoing Programs:** Emphasize flexibility, long-term impact, commitment options
+- Always clarify if opportunity is truly accessible to beginners
+- Specify any costs involved (travel, materials, fees)
+
+**CONTENT GUIDELINES:**
+- Write completely original content - never copy exact phrases from source
+- Use inspiring, motivational tone appropriate for volunteer recruitment
+- Focus on actionable information volunteers need to sign up
+- Emphasize the impact and meaning of the volunteer work
+- Be clear about time commitment and requirements
+- Make registration process crystal clear
+- Highlight both community impact and personal benefits
+- Address common questions potential volunteers might have
+- Build enthusiasm while being realistic about commitment
+
+**CRITICAL SUCCESS FACTORS:**
+- Confirm opportunity is unpaid volunteer service (not paid employment)
+- Include complete organization information and cause details
+- Specify volunteer activities and responsibilities clearly
+- Provide exact time commitment (hours, frequency, duration)
+- List all requirements (age, background check, skills, training)
+- Clarify location (on-site, remote, community outreach)
+- Include direct sign-up method and contact information
+- Describe impact and who benefits from volunteer work
+- Highlight volunteer benefits (certificates, references, experience)
+- Make content actionable for interested volunteers
+- Maintain inspiring, motivational tone throughout
 
 **RETURN THIS EXACT JSON STRUCTURE:**
 {
   "valid": true,
-  "title": "Volunteer opportunity title here (max 60 chars)",
-  "excerpt": "Exactly 20 words describing the volunteer opportunity",
-  "content": "<h2>Complete HTML content here...</h2>...",
-  "deadline": "2024-12-31 or null",
-  "prize_value": "Volunteer Service - Certificate Available",
-  "requirements": "18+, background check required, 3-month commitment",
-  "location": "Denver, CO or Remote",
-  "confidence_score": 0.91
+  "title": "Volunteer opportunity title here (max 60 chars, format: Activity with Organization)",
+  "excerpt": "Exactly 20 words maximum describing the volunteer opportunity",
+  "content": "<h2>Complete HTML content with all sections above...</h2>",
+  "deadline": "YYYY-MM-DD format or null if ongoing",
+  "prize_value": "Volunteer Service - Certificate Available or benefits offered",
+  "requirements": "18+, background check required, 3-month commitment - key requirements",
+  "location": "Denver, CO or Remote or City, State",
+  "confidence_score": 0.0-1.0 based on content quality and completeness
 }
 
 **SOURCE CONTENT TO ANALYZE:**

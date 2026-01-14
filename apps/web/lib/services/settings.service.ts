@@ -17,6 +17,12 @@ interface SystemSettings {
     // Advanced
     'advanced.log_retention_days': number;
     'advanced.debug_mode': boolean;
+    // Personalization
+    'personalization.app_logo_url': string | null;
+    'personalization.app_name': string;
+    // Cleanup
+    'cleanup.days_after_deadline': number;
+    'cleanup.max_age_days_no_deadline': number;
 }
 
 type SettingKey = keyof SystemSettings;
@@ -145,13 +151,21 @@ class SettingsService {
         const supabase = createAdminClient();
 
         for (const [key, value] of Object.entries(settings)) {
+            // Extract category from key (e.g., 'personalization.app_logo_url' -> 'personalization')
+            const category = key.split('.')[0];
+
+            // For JSONB column, pass the value directly (Supabase handles serialization)
+            // Don't double-stringify string values
             const { error } = await supabase
                 .from('system_settings')
-                .update({
-                    value: JSON.stringify(value),
+                .upsert({
+                    key,
+                    value: value,
+                    category,
                     updated_at: new Date().toISOString(),
-                })
-                .eq('key', key);
+                }, {
+                    onConflict: 'key'
+                });
 
             if (error) {
                 console.error(`Error setting ${key}:`, error);
@@ -206,6 +220,10 @@ class SettingsService {
             'scraping.follow_google_feedproxy': true,
             'advanced.log_retention_days': 30,
             'advanced.debug_mode': false,
+            'personalization.app_logo_url': null,
+            'personalization.app_name': 'GelloBit',
+            'cleanup.days_after_deadline': 7,
+            'cleanup.max_age_days_no_deadline': 30,
         };
         return defaults[key];
     }

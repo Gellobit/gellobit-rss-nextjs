@@ -82,51 +82,69 @@ export class ScraperService {
   }
 
   /**
-   * Resolve Google FeedProxy redirects to final destination URL
+   * Resolve Google redirect URLs (Alerts, FeedProxy) to final destination URL
+   * Matches WordPress plugin behavior for Google Alerts URLs
    *
-   * @param url - Original URL (may be feedproxy)
+   * @param url - Original URL (may be Google redirect)
    * @returns Resolved final URL
    */
   private async resolveGoogleRedirect(url: string): Promise<string> {
-    // Check if URL is a Google FeedProxy URL
-    if (!url.includes('feedproxy.google.com')) {
-      return url;
-    }
+    // 1. Check for Google Alerts URL pattern: google.com/url?...&url=ACTUAL_URL
+    // This is the most common pattern from Google Alerts RSS feeds
+    if (url.includes('google.com/url')) {
+      try {
+        const parsedUrl = new URL(url);
+        const targetUrl = parsedUrl.searchParams.get('url');
 
-    try {
-      await logger.debug('Resolving Google FeedProxy redirect', { url });
-
-      const response = await fetch(url, {
-        method: 'HEAD',
-        redirect: 'manual', // Don't auto-follow redirects
-        headers: {
-          'User-Agent': this.USER_AGENT,
-        },
-        signal: AbortSignal.timeout(this.TIMEOUT_MS),
-      });
-
-      // Get Location header for redirect
-      const location = response.headers.get('Location');
-
-      if (location && response.status >= 300 && response.status < 400) {
-        await logger.debug('FeedProxy redirect resolved', {
-          original: url,
-          resolved: location,
+        if (targetUrl) {
+          await logger.debug('Resolved Google Alerts redirect', {
+            original: url,
+            resolved: targetUrl,
+          });
+          return targetUrl;
+        }
+      } catch (error) {
+        await logger.warning('Failed to parse Google Alerts URL', {
+          url,
+          error: error instanceof Error ? error.message : 'Unknown error',
         });
-        return location;
       }
-
-      // No redirect found, return original URL
-      return url;
-    } catch (error) {
-      await logger.warning('Failed to resolve FeedProxy redirect, using original URL', {
-        url,
-        error: error instanceof Error ? error.message : 'Unknown error',
-      });
-
-      // Fall back to original URL on error
-      return url;
     }
+
+    // 2. Check for Google FeedProxy URL
+    if (url.includes('feedproxy.google.com')) {
+      try {
+        await logger.debug('Resolving Google FeedProxy redirect', { url });
+
+        const response = await fetch(url, {
+          method: 'HEAD',
+          redirect: 'manual', // Don't auto-follow redirects
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+          },
+          signal: AbortSignal.timeout(10000),
+        });
+
+        // Get Location header for redirect
+        const location = response.headers.get('Location');
+
+        if (location && response.status >= 300 && response.status < 400) {
+          await logger.debug('FeedProxy redirect resolved', {
+            original: url,
+            resolved: location,
+          });
+          return location;
+        }
+      } catch (error) {
+        await logger.warning('Failed to resolve FeedProxy redirect', {
+          url,
+          error: error instanceof Error ? error.message : 'Unknown error',
+        });
+      }
+    }
+
+    // No redirect pattern found, return original URL
+    return url;
   }
 
   /**
@@ -248,14 +266,13 @@ export class ScraperService {
       });
     }
 
-    // Extract featured image
-    const featuredImage = this.extractFeaturedImage($, url);
+    // Note: Featured images are now handled by feed fallback images only
+    // This reduces scraping complexity since posts are private (not SEO indexed)
 
     return {
       title,
       content,
       url,
-      featuredImage,
     };
   }
 

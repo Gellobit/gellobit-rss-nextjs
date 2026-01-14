@@ -1,8 +1,36 @@
 import { createServerSupabaseClient } from '../../utils/supabase-server';
 import { redirect } from 'next/navigation';
 import AdminLayout from './AdminLayout';
+import { unstable_cache } from 'next/cache';
+import { createAdminClient } from '@/lib/utils/supabase-admin';
 
 export const dynamic = 'force-dynamic';
+
+// Cached function to fetch branding settings
+const getBranding = unstable_cache(
+    async () => {
+        const supabase = createAdminClient();
+
+        const { data: logoSetting } = await supabase
+            .from('system_settings')
+            .select('value')
+            .eq('key', 'personalization.app_logo_url')
+            .maybeSingle();
+
+        const { data: nameSetting } = await supabase
+            .from('system_settings')
+            .select('value')
+            .eq('key', 'personalization.app_name')
+            .maybeSingle();
+
+        return {
+            logoUrl: logoSetting?.value || null,
+            appName: nameSetting?.value || 'GelloBit',
+        };
+    },
+    ['branding-admin'],
+    { revalidate: 300, tags: ['branding'] }
+);
 
 export default async function AdminPage({ searchParams }: { searchParams: Promise<{ section?: string }> }) {
     const params = await searchParams;
@@ -15,12 +43,17 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
         redirect('/auth');
     }
 
-    // Check Admin Role
-    const { data: profile } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', session.user.id)
-        .single();
+    // Check Admin Role and fetch branding in parallel
+    const [profileResult, branding] = await Promise.all([
+        supabase
+            .from('profiles')
+            .select('role')
+            .eq('id', session.user.id)
+            .single(),
+        getBranding()
+    ]);
+
+    const { data: profile } = profileResult;
 
     if (profile?.role !== 'admin') {
         return (
@@ -33,5 +66,5 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
         );
     }
 
-    return <AdminLayout initialSection={params.section || 'dashboard'} />;
+    return <AdminLayout initialSection={params.section || 'dashboard'} branding={branding} />;
 }

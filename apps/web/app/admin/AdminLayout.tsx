@@ -2,27 +2,37 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { LayoutDashboard, Rss, BarChart3, Settings as SettingsIcon, ScrollText, LogOut } from 'lucide-react';
+import Link from 'next/link';
+import { LayoutDashboard, Rss, BarChart3, Settings as SettingsIcon, ScrollText, LogOut, FileText } from 'lucide-react';
 import Dashboard from './Dashboard';
 import ManageFeeds from './ManageFeeds';
+import ManagePosts from './ManagePosts';
+import ManageBlogPosts from './ManageBlogPosts';
 import Settings from './Settings';
 import Analytics from './Analytics';
 import ProcessingLog from './ProcessingLog';
+import { BookOpen } from 'lucide-react';
 
-type Section = 'dashboard' | 'feeds' | 'analytics' | 'settings' | 'logs';
+type Section = 'dashboard' | 'feeds' | 'posts' | 'blog' | 'analytics' | 'settings' | 'logs';
+
+interface Branding {
+    logoUrl: string | null;
+    appName: string;
+}
 
 interface AdminLayoutProps {
     initialSection: string;
+    branding: Branding;
 }
 
-export default function AdminLayout({ initialSection }: AdminLayoutProps) {
+export default function AdminLayout({ initialSection, branding }: AdminLayoutProps) {
     const router = useRouter();
     const searchParams = useSearchParams();
     const [activeSection, setActiveSection] = useState<Section>(initialSection as Section || 'dashboard');
 
     useEffect(() => {
         const section = searchParams.get('section');
-        if (section && ['dashboard', 'feeds', 'analytics', 'settings', 'logs'].includes(section)) {
+        if (section && ['dashboard', 'feeds', 'posts', 'blog', 'analytics', 'settings', 'logs'].includes(section)) {
             setActiveSection(section as Section);
         }
     }, [searchParams]);
@@ -40,6 +50,8 @@ export default function AdminLayout({ initialSection }: AdminLayoutProps) {
     const sections = [
         { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
         { id: 'feeds', label: 'RSS Feeds', icon: Rss },
+        { id: 'posts', label: 'Opportunities', icon: FileText },
+        { id: 'blog', label: 'Blog Posts', icon: BookOpen },
         { id: 'analytics', label: 'Analytics', icon: BarChart3 },
         { id: 'settings', label: 'Settings', icon: SettingsIcon },
         { id: 'logs', label: 'Processing Log', icon: ScrollText },
@@ -52,13 +64,23 @@ export default function AdminLayout({ initialSection }: AdminLayoutProps) {
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="flex items-center justify-between h-16">
                         {/* Logo */}
-                        <div className="flex items-center gap-2">
-                            <div className="bg-[#FFDE59] p-2 rounded-xl font-black text-xl shadow-sm">GB</div>
-                            <div>
-                                <div className="font-black text-xl tracking-tighter text-[#1a1a1a]">Gellobit</div>
-                                <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Admin Panel</div>
-                            </div>
-                        </div>
+                        <Link href="/" className="flex items-center gap-2">
+                            {branding.logoUrl ? (
+                                <img
+                                    src={branding.logoUrl}
+                                    alt={branding.appName}
+                                    className="h-10 object-contain"
+                                />
+                            ) : (
+                                <>
+                                    <div className="bg-[#FFDE59] p-2 rounded-xl font-black text-xl shadow-sm">GB</div>
+                                    <div>
+                                        <div className="font-black text-xl tracking-tighter text-[#1a1a1a]">{branding.appName}</div>
+                                        <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Admin Panel</div>
+                                    </div>
+                                </>
+                            )}
+                        </Link>
 
                         {/* Navigation Tabs */}
                         <div className="hidden md:flex items-center gap-1">
@@ -118,6 +140,8 @@ export default function AdminLayout({ initialSection }: AdminLayoutProps) {
                         <ManageFeeds />
                     </div>
                 )}
+                {activeSection === 'posts' && <ManagePosts />}
+                {activeSection === 'blog' && <ManageBlogPosts />}
                 {activeSection === 'analytics' && <Analytics />}
                 {activeSection === 'settings' && <Settings />}
                 {activeSection === 'logs' && <ProcessingLog />}

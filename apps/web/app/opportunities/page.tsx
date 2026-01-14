@@ -1,9 +1,36 @@
 import Link from 'next/link';
 import { createAdminClient } from '@/lib/utils/supabase-admin';
-import { Calendar, MapPin, Gift, Briefcase, GraduationCap, Trophy, Clock } from 'lucide-react';
+import { Calendar, MapPin, Gift, Briefcase, GraduationCap, Trophy, Clock, BookOpen } from 'lucide-react';
+import { unstable_cache } from 'next/cache';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 60; // Revalidate every 60 seconds
+
+// Cached function to fetch branding settings
+const getBranding = unstable_cache(
+    async () => {
+        const supabase = createAdminClient();
+
+        const { data: logoSetting } = await supabase
+            .from('system_settings')
+            .select('value')
+            .eq('key', 'personalization.app_logo_url')
+            .maybeSingle();
+
+        const { data: nameSetting } = await supabase
+            .from('system_settings')
+            .select('value')
+            .eq('key', 'personalization.app_name')
+            .maybeSingle();
+
+        return {
+            logoUrl: logoSetting?.value || null,
+            appName: nameSetting?.value || 'GelloBit',
+        };
+    },
+    ['branding-opportunities'],
+    { revalidate: 300, tags: ['branding'] }
+);
 
 const opportunityTypeLabels: Record<string, { label: string; icon: any; color: string }> = {
   giveaway: { label: 'Giveaway', icon: Gift, color: 'bg-pink-100 text-pink-700' },
@@ -17,6 +44,7 @@ const opportunityTypeLabels: Record<string, { label: string; icon: any; color: s
   volunteer: { label: 'Volunteer', icon: Briefcase, color: 'bg-teal-100 text-teal-700' },
   free_training: { label: 'Free Training', icon: GraduationCap, color: 'bg-emerald-100 text-emerald-700' },
   promo: { label: 'Promo', icon: Gift, color: 'bg-red-100 text-red-700' },
+  evergreen: { label: 'Evergreen', icon: BookOpen, color: 'bg-lime-100 text-lime-700' },
 };
 
 interface Opportunity {
@@ -62,7 +90,10 @@ export default async function OpportunitiesPage({
   searchParams: Promise<{ type?: string }>
 }) {
   const params = await searchParams;
-  const opportunities = await getOpportunities(params.type);
+  const [opportunities, branding] = await Promise.all([
+    getOpportunities(params.type),
+    getBranding()
+  ]);
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -71,7 +102,17 @@ export default async function OpportunitiesPage({
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="bg-[#FFDE59] p-2 rounded-xl font-black text-xl shadow-sm">GB</div>
+              <Link href="/">
+                {branding.logoUrl ? (
+                  <img
+                    src={branding.logoUrl}
+                    alt={branding.appName}
+                    className="h-10 object-contain"
+                  />
+                ) : (
+                  <div className="bg-[#FFDE59] p-2 rounded-xl font-black text-xl shadow-sm">GB</div>
+                )}
+              </Link>
               <div>
                 <h1 className="font-black text-2xl text-[#1a1a1a]">Opportunities</h1>
                 <p className="text-sm text-slate-500">Discover contests, giveaways, jobs & more</p>

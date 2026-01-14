@@ -12,11 +12,17 @@ import { AdUnit } from './AdUnit';
 import { FeatureCard } from './FeatureCard';
 import { PricingItem } from './PricingItem';
 
-interface LandingPageProps {
-    opportunities: any[]; // Replace with proper type
+interface Branding {
+    logoUrl: string | null;
+    appName: string;
 }
 
-export const LandingPage = ({ opportunities = [] }: LandingPageProps) => {
+interface LandingPageProps {
+    opportunities: any[]; // Replace with proper type
+    branding: Branding;
+}
+
+export const LandingPage = ({ opportunities = [], branding }: LandingPageProps) => {
     const { upgradeToPro, isPro } = useSubscription();
 
     return (
@@ -32,10 +38,20 @@ export const LandingPage = ({ opportunities = [] }: LandingPageProps) => {
                 {/* ... (Copy existing nav code) ... */}
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="flex justify-between items-center h-20">
-                        <div className="flex items-center gap-2">
-                            <div className="bg-[#FFDE59] p-2 rounded-xl font-black text-xl shadow-sm">GB</div>
-                            <span className="font-black text-2xl tracking-tighter text-[#1a1a1a]">GelloBit</span>
-                        </div>
+                        <Link href="/" className="flex items-center gap-2">
+                            {branding.logoUrl ? (
+                                <img
+                                    src={branding.logoUrl}
+                                    alt={branding.appName}
+                                    className="h-10 object-contain"
+                                />
+                            ) : (
+                                <>
+                                    <div className="bg-[#FFDE59] p-2 rounded-xl font-black text-xl shadow-sm">GB</div>
+                                    <span className="font-black text-2xl tracking-tighter text-[#1a1a1a]">{branding.appName}</span>
+                                </>
+                            )}
+                        </Link>
                         <div className="hidden md:flex items-center gap-8">
                             <a href="#features" className="text-sm font-bold text-slate-600 hover:text-[#1a1a1a] transition-colors">Features</a>
                             <a href="#pricing" className="text-sm font-bold text-slate-600 hover:text-[#1a1a1a] transition-colors">Pricing</a>
@@ -102,7 +118,7 @@ export const LandingPage = ({ opportunities = [] }: LandingPageProps) => {
                                 <div key={opp.id} className="border border-slate-100 rounded-2xl p-6 hover:shadow-lg transition-all">
                                     <div className="flex justify-between items-start mb-4">
                                         <span className="bg-yellow-100 text-yellow-800 text-xs font-bold px-2 py-1 rounded-lg uppercase">{opp.type}</span>
-                                        <span className="text-slate-400 text-xs">{new Date(opp.created_at).toLocaleDateString()}</span>
+                                        <span className="text-slate-400 text-xs">{new Date(opp.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</span>
                                     </div>
                                     <h3 className="font-bold text-lg mb-2">{opp.title}</h3>
                                     <p className="text-slate-500 text-sm mb-4 line-clamp-2">{opp.description}</p>
@@ -274,10 +290,20 @@ export const LandingPage = ({ opportunities = [] }: LandingPageProps) => {
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-20">
                         <div className="col-span-1 md:col-span-1">
-                            <div className="flex items-center gap-2 mb-6">
-                                <div className="bg-[#FFDE59] p-2 rounded-xl font-black text-xl text-[#1a1a1a]">GB</div>
-                                <span className="font-black text-2xl tracking-tighter">GelloBit</span>
-                            </div>
+                            <Link href="/" className="flex items-center gap-2 mb-6">
+                                {branding.logoUrl ? (
+                                    <img
+                                        src={branding.logoUrl}
+                                        alt={branding.appName}
+                                        className="h-10 object-contain brightness-0 invert"
+                                    />
+                                ) : (
+                                    <>
+                                        <div className="bg-[#FFDE59] p-2 rounded-xl font-black text-xl text-[#1a1a1a]">GB</div>
+                                        <span className="font-black text-2xl tracking-tighter">{branding.appName}</span>
+                                    </>
+                                )}
+                            </Link>
                             <p className="text-slate-400 text-sm leading-relaxed">
                                 Empowering the USA community through verified opportunities and valuable content since 2025.
                             </p>

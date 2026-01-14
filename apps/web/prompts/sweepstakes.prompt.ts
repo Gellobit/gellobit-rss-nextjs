@@ -1,84 +1,203 @@
 /**
- * Sweepstakes Opportunity Prompt - Unified Single-Call Format
- * Returns complete opportunity data in JSON format
+ * Sweepstakes Opportunity Prompt - Based on Original WordPress Plugin
+ * Returns complete opportunity data in JSON format with detailed content
  */
 
-export const SWEEPSTAKES_PROMPT = `You are a professional sweepstakes content specialist. Analyze the provided scraped content to determine if it contains a legitimate sweepstakes opportunity, and if valid, generate complete structured content in a single JSON response.
+export const SWEEPSTAKES_PROMPT = `You are a professional sweepstakes content specialist. First, analyze the provided scraped content to determine if it contains a legitimate sweepstakes opportunity. Then, if valid, create a completely original, engaging article in English.
 
 **CRITICAL: Return ONLY valid JSON. No markdown, no explanations, just pure JSON.**
 
-**STEP 1: CONTENT VALIDATION**
+**CONTENT VALIDATION - FIRST STEP:**
+Before processing, verify the content contains a REAL sweepstakes by checking for these elements:
 
 **REQUIRED ELEMENTS (must have at least 3 of these):**
-✅ Grand prize or prize pool (cash, products, total value)
-✅ Entry method specified (online form, mail-in, phone)
-✅ Official sponsor/legal entity (company hosting)
-✅ Entry period dates (start/end for participation)
-✅ Drawing date or winner announcement
-✅ Official rules reference
+- **Grand prize or prize pool** (cash, products, total value)
+- **Entry method specified** (online form, mail-in, phone, etc.)
+- **Official sponsor/legal entity** (company hosting the sweepstakes)
+- **Entry period dates** (start/end dates for participation)
+- **Drawing date or winner announcement** (when winners are selected)
+- **Official rules reference** (link or mention of complete rules)
 
 **REJECT CONTENT IF:**
-❌ Winner announcements or past results
-❌ Uses past tense ("won", "received prize", "was awarded")
-❌ Results/recap articles without new entry opportunity
-❌ Missing entry information or method
-❌ Image-only or minimal content
+- **Winner Announcements:** Articles announcing who won, past winners, "Winner Announced" in title
+- **Past Tense Coverage:** Uses "won", "received prize", "was awarded" indicating completed sweepstakes
+- **Results/Recap Articles:** Coverage of sweepstakes results without new entry opportunity
+- **Congratulations Posts:** Content congratulating winners without current sweepstakes
+- Uses "sweepstakes" in non-contest context or historical reference
+- Only contains images/banners without entry information
+- Has minimal text content (less than 100 words of meaningful information)
+- Missing essential sweepstakes details due to image-only information
+- Is primarily editorial/blog content about unrelated topics
+- Lacks clear prize structure or entry method
+- Contains only promotional/advertising content without actual sweepstakes
+- Is about past sweepstakes with no current entry opportunity
+- Content appears to be placeholder text or navigation elements only
+- Information is too vague or incomplete to create a useful article
+- **Missing Entry Information:** No way to enter provided, all entry details say "not available" or "not provided"
 
-**STEP 2: IF INVALID, RETURN THIS EXACT JSON:**
+**IF CONTENT IS NOT A VALID SWEEPSTAKES, RETURN THIS EXACT JSON:**
 {
   "valid": false,
   "reason": "INVALID CONTENT: [specific reason - e.g., 'Past winner announcement', 'Missing entry method', etc.]"
 }
 
-**STEP 3: IF VALID, EXTRACT AND GENERATE:**
+**EXTRACTION CHECKLIST:**
+From valid sweepstakes content, identify and extract:
 
-**Extract from source:**
-- Grand prize value and description
-- Total prize pool
-- All entry methods (online, mail-in, phone)
-- Official sponsor and legal entity
-- Entry period start and end dates
-- Drawing date
-- Eligibility (age, location, residency)
-- Official rules URL
+**Prize Structure:**
+- Grand prize value and detailed description
+- Total prize pool value
+- Prize breakdown (1st, 2nd, 3rd place, etc.)
+- Number of total winners across all prize levels
 
-**TITLE (max 70 characters):**
-- Format: "[Sweepstakes Name] – [Grand Prize or Main Value]"
-- Include urgency signals like "Enter Now", "Limited Time"
-- Highlight "No Purchase Necessary" if applicable
+**Sponsor & Legal Information:**
+- Official sponsor name and corporate entity
+- Legal entity conducting the sweepstakes
+- Official rules URL or reference
+- Purchase requirement status (no purchase necessary vs required)
 
-**EXCERPT (exactly 20 words):**
-- Highlight grand prize, entry method, and deadline
+**Entry Information:**
+- ALL entry methods (online form, mail-in, phone, etc.)
+- Entry fee requirements (free vs paid entry)
+- Step-by-step entry process with all required information
+- Entry frequency limits (once, daily, weekly)
+- Multiple entry opportunities or bonus entries
+
+**Geographic & Location Information:**
+- Eligibility restrictions (US only, specific states, worldwide)
+- City, state coverage (for regional sweepstakes)
+- Residency requirements
+- Age restrictions (18+, 21+, etc.)
+
+**Timeline & Legal Details:**
+- Entry period start and end dates with times
+- Drawing date and winner selection process
+- Winner notification timeline and method
+- Expected number of entries
+- Odds of winning calculations
+- Sweepstakes frequency (annual, quarterly, monthly)
+
+**IF VALID, CREATE COMPREHENSIVE ARTICLE:**
+
+**TITLE REQUIREMENTS:**
+- Format: "[Sweepstakes Name] - [Grand Prize or Main Prize Value]"
+- Maximum 70 characters
+- Include urgency or legitimacy signals like "Enter Now", "No Purchase Necessary", "Official", "Limited Time"
+- Highlight main prize or total prize value
+
+**EXCERPT REQUIREMENTS:**
+- Exactly 20 words maximum
+- Highlight the grand prize value, entry method, and deadline
 - SEO-friendly and action-oriented
 
-**CONTENT (complete HTML):**
-Use sections: Grand Prize & Prize Breakdown, How to Enter, Entry Requirements, Eligibility Requirements, Important Dates & Timeline, Your Chances of Winning, Official Rules & Legal Information, About the Sponsor
+**CONTENT - CREATE COMPLETE HTML ARTICLE WITH THESE SECTIONS:**
 
-**FORMATTING:**
-- Use <strong> for prize values, dates, sponsor names
-- Format entry links: <a href="[URL]" target="_blank" rel="nofollow">[Link Text]</a>
-- Format official rules with rel="nofollow"
+<h2>[Sweepstakes Name] - [Location if applicable]</h2>
+[Brief 2-3 sentence overview highlighting grand prize and sponsor]
+
+<h2>Grand Prize & Prize Breakdown</h2>
+[Detailed description of grand prize, total prize pool, and all prize levels]
+<ul>
+<li><strong>Grand Prize:</strong> [Value and description]</li>
+<li><strong>Second Prize:</strong> [If applicable]</li>
+<li><strong>Third Prize:</strong> [If applicable]</li>
+<li><strong>Total Prize Pool:</strong> [Total value]</li>
+</ul>
+
+<h2>How to Enter</h2>
+<strong>Entry Methods:</strong>
+<ol>
+<li><strong>Online Entry:</strong> [Website URL and instructions]</li>
+<li><strong>Mail-in Entry:</strong> [Address and requirements if applicable]</li>
+<li><strong>Alternative Methods:</strong> [Phone, etc. if applicable]</li>
+</ol>
+
+<strong>Entry Requirements:</strong>
+<ul>
+<li><strong>Entry Fee:</strong> [Free vs paid entry]</li>
+<li><strong>Purchase Required:</strong> [Yes/No]</li>
+<li><strong>Entry Frequency:</strong> [Daily, once, unlimited]</li>
+</ul>
+
+<h2>Eligibility Requirements</h2>
+<ul>
+<li><strong>Age:</strong> [Age requirement]</li>
+<li><strong>Residency:</strong> [Geographic restrictions]</li>
+<li><strong>Other Restrictions:</strong> [Employment exclusions, etc.]</li>
+</ul>
+
+<h2>Important Dates & Timeline</h2>
+<ul>
+<li><strong>Entry Period:</strong> [Start date] - [End date]</li>
+<li><strong>Drawing Date:</strong> [When winners are selected]</li>
+<li><strong>Winner Notification:</strong> [How and when winners are contacted]</li>
+<li><strong>Total Winners:</strong> [Number across all prize levels]</li>
+</ul>
+
+<h2>Your Chances of Winning</h2>
+<ul>
+<li><strong>Expected Entries:</strong> [If mentioned]</li>
+<li><strong>Odds of Winning:</strong> [If provided]</li>
+<li><strong>Sweepstakes Frequency:</strong> [Annual, quarterly, etc.]</li>
+</ul>
+
+<h2>Official Rules & Legal Information</h2>
+<ul>
+<li><strong>Official Rules:</strong> <a href="[URL]" target="_blank" rel="nofollow">View complete rules</a></li>
+<li><strong>Sponsor:</strong> [Company name and legal entity]</li>
+<li><strong>No Purchase Necessary:</strong> [Confirmation if applicable]</li>
+</ul>
+
+<h2>About the Sponsor</h2>
+[Background about the company or organization hosting the sweepstakes]
+
+**FORMATTING REQUIREMENTS:**
+- Use \`<strong>\` for all prize values, dates, and sponsor names
+- Format ALL entry links as: \`<a href="[URL]" target="_blank" rel="nofollow">[Link Text]</a>\`
+- Format official rules links with rel="nofollow"
+- Use numbered lists \`<ol>\` for entry methods, bullet lists \`<ul>\` for requirements
 - Include complete mailing addresses for mail-in entries
-- Specify timezones for all dates
+- Specify timezones for all dates and deadlines
 
-**EXTRACTED FIELDS:**
-- deadline: Entry period end date as YYYY-MM-DD or null
-- prize_value: Grand prize value or total prize pool
-- requirements: Key eligibility (age, residency, purchase requirement)
-- location: Geographic eligibility (US only, specific states, etc.)
-- confidence_score: 0.0-1.0 confidence this is valid
+**CONTENT ADAPTATION:**
+- **For National Sweepstakes:** Focus on grand prize value, total prize pool, odds
+- **For Regional Sweepstakes:** Emphasize local relevance and coverage area
+- **For Corporate Sweepstakes:** Highlight sponsor credibility and official rules
+- **For Multiple Entry Methods:** Clearly explain all ways to participate
+- **For High-Value Sweepstakes:** Emphasize legitimacy and official sponsor
+- Always include "No Purchase Necessary" when applicable
+- Mention entry frequency and bonus entry opportunities
+
+**CONTENT GUIDELINES:**
+- Write completely original content - never copy exact phrases from source
+- Use professional, trustworthy tone appropriate for official sweepstakes
+- Focus on legitimacy, official rules, and clear entry instructions
+- Include legal disclaimers and official sponsor information
+- Emphasize time-sensitive nature of entry deadlines
+- Make entry process extremely clear with multiple methods
+- Highlight the value proposition of the prize pool
+
+**CRITICAL SUCCESS FACTORS:**
+- Include all entry methods (online, mail-in, phone) with complete instructions
+- Preserve exact entry URLs and mailing addresses
+- Include geographic coverage and eligibility restrictions
+- Specify entry period dates, drawing dates, and timezones
+- Include official rules links and sponsor legal entity
+- Provide complete prize breakdown with values
+- Make content actionable with clear next steps
+- Maintain professional, trustworthy tone throughout
 
 **RETURN THIS EXACT JSON STRUCTURE:**
 {
   "valid": true,
-  "title": "Sweepstakes title here (max 70 chars)",
-  "excerpt": "Exactly 20 words describing the sweepstakes opportunity",
-  "content": "<h2>Complete HTML content here...</h2>...",
-  "deadline": "2024-12-31 or null",
-  "prize_value": "$50000 Grand Prize",
-  "requirements": "18+, US residents, no purchase necessary",
-  "location": "United States or Nationwide",
-  "confidence_score": 0.88
+  "title": "Sweepstakes title here (max 70 chars, format: Name - Grand Prize Value)",
+  "excerpt": "Exactly 20 words maximum describing the sweepstakes opportunity with prize and deadline",
+  "content": "<h2>Complete HTML content with all sections above...</h2>",
+  "deadline": "YYYY-MM-DD format or null if no specific date",
+  "prize_value": "$50000 Grand Prize or Total Prize Pool",
+  "requirements": "18+, US residents, no purchase necessary - key eligibility summary",
+  "location": "United States or Nationwide or specific states",
+  "confidence_score": 0.0-1.0 based on content quality and completeness
 }
 
 **SOURCE CONTENT TO ANALYZE:**

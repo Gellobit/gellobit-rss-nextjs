@@ -138,6 +138,68 @@ export class OpportunityService {
   }
 
   /**
+   * Create a rejected opportunity record (for logging AI rejections)
+   *
+   * @param title - Original title from scraped content
+   * @param opportunityType - Type of opportunity
+   * @param sourceUrl - Source URL
+   * @param sourceFeedId - Source feed ID
+   * @param rejectionReason - Reason for AI rejection
+   * @param aiProvider - AI provider used
+   * @returns Created opportunity ID or null
+   */
+  async createRejection(
+    title: string,
+    opportunityType: OpportunityType,
+    sourceUrl: string,
+    sourceFeedId: string,
+    rejectionReason: string,
+    aiProvider?: string | null
+  ): Promise<string | null> {
+    try {
+      const supabase = createAdminClient();
+      const slug = this.generateSlug(title || 'rejected-content');
+
+      const { data: opportunity, error } = await supabase
+        .from('opportunities')
+        .insert({
+          title: title || 'Untitled',
+          slug,
+          excerpt: rejectionReason,
+          content: `<p>This content was rejected by AI processing.</p><p><strong>Reason:</strong> ${rejectionReason}</p>`,
+          opportunity_type: opportunityType,
+          source_url: sourceUrl,
+          source_feed_id: sourceFeedId,
+          status: 'rejected',
+          rejection_reason: rejectionReason,
+          ai_provider: aiProvider || null,
+          processed_at: new Date().toISOString(),
+        })
+        .select('id')
+        .single();
+
+      if (error) throw error;
+
+      await logger.debug('AI rejection recorded', {
+        opportunity_id: opportunity.id,
+        opportunity_type: opportunityType,
+        feed_id: sourceFeedId,
+        reason: rejectionReason,
+      });
+
+      return opportunity.id;
+    } catch (error) {
+      await logger.error('Error recording AI rejection', {
+        opportunity_type: opportunityType,
+        source_url: sourceUrl,
+        feed_id: sourceFeedId,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+      return null;
+    }
+  }
+
+  /**
    * Generate URL-safe slug from title
    *
    * @param title - Opportunity title

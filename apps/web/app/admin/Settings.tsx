@@ -1,15 +1,16 @@
 'use client';
 
 import { useState } from 'react';
-import { Settings as SettingsIcon, Sparkles, FileText, Globe, Wrench, Rss } from 'lucide-react';
+import { Settings as SettingsIcon, Sparkles, FileText, Globe, Wrench, Rss, Palette } from 'lucide-react';
 import GeneralSettings from './settings/GeneralSettings';
 import AISettings from './settings/AISettings';
 import PromptsSettings from './settings/PromptsSettings';
 import ScrapingSettings from './settings/ScrapingSettings';
 import AdvancedSettings from './settings/AdvancedSettings';
 import FeedsSettings from './settings/FeedsSettings';
+import PersonalizationSettings from './settings/PersonalizationSettings';
 
-type SettingsTab = 'general' | 'ai' | 'prompts' | 'scraping' | 'feeds' | 'advanced';
+type SettingsTab = 'general' | 'ai' | 'prompts' | 'scraping' | 'feeds' | 'personalization' | 'advanced';
 
 export default function Settings() {
     const [activeTab, setActiveTab] = useState<SettingsTab>('general');
@@ -20,6 +21,7 @@ export default function Settings() {
         { id: 'prompts', label: 'Prompts', icon: FileText },
         { id: 'scraping', label: 'Scraping', icon: Globe },
         { id: 'feeds', label: 'Feeds Backup', icon: Rss },
+        { id: 'personalization', label: 'Personalization', icon: Palette },
         { id: 'advanced', label: 'Advanced', icon: Wrench },
     ] as const;
 
@@ -58,6 +60,7 @@ export default function Settings() {
                     {activeTab === 'prompts' && <PromptsSettings />}
                     {activeTab === 'scraping' && <ScrapingSettings />}
                     {activeTab === 'feeds' && <FeedsSettings />}
+                    {activeTab === 'personalization' && <PersonalizationSettings />}
                     {activeTab === 'advanced' && <AdvancedSettings />}
                 </div>
             </div>

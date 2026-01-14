@@ -15,7 +15,8 @@ export type OpportunityType =
     | 'scholarship'
     | 'volunteer'
     | 'free_training'
-    | 'promo';
+    | 'promo'
+    | 'evergreen';
 
 export type FeedStatus = 'active' | 'inactive' | 'error';
 export type OpportunityStatus = 'draft' | 'published' | 'rejected';

@@ -14,6 +14,7 @@ import { buildScholarshipPrompt } from './scholarship.prompt';
 import { buildVolunteerPrompt } from './volunteer.prompt';
 import { buildFreeTrainingPrompt } from './free_training.prompt';
 import { buildPromoPrompt } from './promo.prompt';
+import { buildEvergreenPrompt } from './evergreen.prompt';
 
 import type { OpportunityType } from '../types/database.types';
 
@@ -47,6 +48,7 @@ const PROMPT_BUILDERS: Record<OpportunityType, PromptBuilder> = {
   volunteer: buildVolunteerPrompt,
   free_training: buildFreeTrainingPrompt,
   promo: buildPromoPrompt,
+  evergreen: buildEvergreenPrompt,
 };
 
 /**
@@ -112,6 +114,7 @@ export {
   buildVolunteerPrompt,
   buildFreeTrainingPrompt,
   buildPromoPrompt,
+  buildEvergreenPrompt,
 };
 
 // Export raw prompts (without content substitution) for testing
@@ -126,3 +129,4 @@ export { SCHOLARSHIP_PROMPT } from './scholarship.prompt';
 export { VOLUNTEER_PROMPT } from './volunteer.prompt';
 export { FREE_TRAINING_PROMPT } from './free_training.prompt';
 export { PROMO_PROMPT } from './promo.prompt';
+export { EVERGREEN_PROMPT } from './evergreen.prompt';

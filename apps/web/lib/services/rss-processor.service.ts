@@ -197,26 +197,33 @@ export class RSSProcessorService {
             continue;
           }
 
-          // Check for duplicates BEFORE scraping
+          // Check for duplicates BEFORE scraping (unless allow_republishing is enabled)
           const preliminaryContent = {
             title: normalized.title,
             content: normalized.content || normalized.contentSnippet || '',
             url: normalized.link,
           };
 
-          const duplicateCheck = await duplicateCheckerService.isDuplicate(
-            preliminaryContent,
-            feedId
-          );
+          if (!feed.allow_republishing) {
+            const duplicateCheck = await duplicateCheckerService.isDuplicate(
+              preliminaryContent,
+              feedId
+            );
 
-          if (duplicateCheck.isDuplicate) {
-            result.duplicatesSkipped++;
-            await logger.debug('Skipping duplicate item', {
+            if (duplicateCheck.isDuplicate) {
+              result.duplicatesSkipped++;
+              await logger.debug('Skipping duplicate item', {
+                feed_id: feedId,
+                item_url: normalized.link,
+                reason: duplicateCheck.reason,
+              });
+              continue;
+            }
+          } else {
+            await logger.debug('Skipping duplicate check - allow_republishing enabled', {
               feed_id: feedId,
               item_url: normalized.link,
-              reason: duplicateCheck.reason,
             });
-            continue;
           }
 
           // Scrape full content (if enabled)
@@ -280,30 +287,49 @@ export class RSSProcessorService {
               item_url: normalized.link,
               reason: aiContent.reason,
             });
+            // Record the rejection for visibility in processing log
+            await opportunityService.createRejection(
+              scrapedContent.title,
+              feed.opportunity_type,
+              normalized.link,
+              feedId,
+              aiContent.reason || 'Content rejected by AI',
+              feed.ai_provider
+            );
             continue;
           }
 
-          // Check quality threshold (use global setting, fallback to feed setting)
-          const qualityThreshold = globalQualityThreshold || feed.quality_threshold || 0.7;
+          // Check quality threshold (feed setting overrides global)
+          const qualityThreshold = feed.quality_threshold ?? globalQualityThreshold ?? 0.7;
 
           if (
             aiContent.confidence_score &&
             aiContent.confidence_score < qualityThreshold
           ) {
             result.aiRejections++;
+            const rejectionReason = `Content below quality threshold (${(aiContent.confidence_score * 100).toFixed(0)}% < ${(qualityThreshold * 100).toFixed(0)}%)`;
             await logger.info('Content below quality threshold', {
               feed_id: feedId,
               confidence_score: aiContent.confidence_score,
               threshold: qualityThreshold,
             });
+            // Record the rejection for visibility in processing log
+            await opportunityService.createRejection(
+              aiContent.title || scrapedContent.title,
+              feed.opportunity_type,
+              normalized.link,
+              feedId,
+              rejectionReason,
+              feed.ai_provider
+            );
             continue;
           }
 
-          // Determine auto-publish (global setting overrides feed setting)
-          const shouldAutoPublish = globalAutoPublish && feed.auto_publish;
+          // Determine auto-publish (feed setting takes priority, then global default)
+          const shouldAutoPublish = feed.auto_publish ?? globalAutoPublish ?? false;
 
-          // Determine featured image (scraped image or feed fallback)
-          const featuredImageUrl = scrapedContent.featuredImage || feed.fallback_featured_image_url || null;
+          // Use feed's fallback featured image (no scraping since posts are private)
+          const featuredImageUrl = feed.fallback_featured_image_url || null;
 
           // Create opportunity
           const opportunityId = await opportunityService.createFromAI(

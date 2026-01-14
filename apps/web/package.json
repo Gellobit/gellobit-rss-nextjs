@@ -1,6 +1,6 @@
 {
     "name": "web",
-    "version": "1.0.0-alpha.1",
+    "version": "1.0.0-alpha.2",
     "private": true,
     "scripts": {
         "dev": "next dev",
@@ -13,6 +13,14 @@
         "@google/generative-ai": "^0.24.1",
         "@supabase/auth-helpers-nextjs": "^0.8.1",
         "@supabase/supabase-js": "^2.38.4",
+        "@tailwindcss/typography": "^0.5.19",
+        "@tiptap/extension-image": "^3.15.3",
+        "@tiptap/extension-link": "^3.15.3",
+        "@tiptap/extension-placeholder": "^3.15.3",
+        "@tiptap/extension-underline": "^3.15.3",
+        "@tiptap/pm": "^3.15.3",
+        "@tiptap/react": "^3.15.3",
+        "@tiptap/starter-kit": "^3.15.3",
         "cheerio": "^1.0.0-rc.12",
         "clsx": "^2.0.0",
         "crypto-js": "^4.2.0",

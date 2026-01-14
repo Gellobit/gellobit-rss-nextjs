@@ -71,6 +71,7 @@ const opportunityTypes = [
     { value: 'volunteer', label: 'Volunteer' },
     { value: 'free_training', label: 'Free Training' },
     { value: 'promo', label: 'Promo' },
+    { value: 'evergreen', label: 'Evergreen' },
 ];
 
 const cronIntervals = [
