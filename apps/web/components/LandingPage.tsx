@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
@@ -106,6 +106,17 @@ export const LandingPage = ({ opportunities = [], branding, heroContent, appSect
     const [selectedCategory, setSelectedCategory] = useState('');
     const [categoryDropdownOpen, setCategoryDropdownOpen] = useState(false);
 
+    // Scroll state for header
+    const [isScrolled, setIsScrolled] = useState(false);
+
+    useEffect(() => {
+        const handleScroll = () => {
+            setIsScrolled(window.scrollY > 10);
+        };
+        window.addEventListener('scroll', handleScroll);
+        return () => window.removeEventListener('scroll', handleScroll);
+    }, []);
+
     const handleSearch = () => {
         const params = new URLSearchParams();
         if (searchQuery) params.set('q', searchQuery);
@@ -152,7 +163,11 @@ export const LandingPage = ({ opportunities = [], branding, heroContent, appSect
                 </div>
             )}
             {/* Navigation - Hidden on mobile */}
-            <nav className="hidden md:block sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-slate-100">
+            <nav className={`hidden md:block fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+                isScrolled
+                    ? 'bg-white/80 backdrop-blur-md border-b border-slate-100'
+                    : 'bg-white border-b border-transparent'
+            }`}>
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="flex justify-between items-center h-20">
                         <Link href="/" className="flex items-center gap-2">
@@ -163,18 +178,17 @@ export const LandingPage = ({ opportunities = [], branding, heroContent, appSect
                                     className="h-10 object-contain"
                                 />
                             ) : (
-                                <>
-                                    <div className="bg-[#FFDE59] p-2 rounded-xl font-black text-xl shadow-sm">GB</div>
-                                    <span className="font-black text-2xl tracking-tighter text-[#1a1a1a]">{branding.appName}</span>
-                                </>
+                                <div className="bg-[#FFDE59] p-2 rounded-xl font-black text-xl shadow-sm">GB</div>
                             )}
+                            <span className="text-sm font-bold text-[#1a1a1a]">{branding.appName}</span>
                         </Link>
                         <div className="hidden md:flex items-center gap-8">
                             <a href="#features" className="text-sm font-bold text-slate-600 hover:text-[#1a1a1a] transition-colors">Features</a>
                             <a href="#pricing" className="text-sm font-bold text-slate-600 hover:text-[#1a1a1a] transition-colors">Pricing</a>
                             <a href="#trust" className="text-sm font-bold text-slate-600 hover:text-[#1a1a1a] transition-colors">Why Us</a>
+                            <Link href="/opportunities" className="text-sm font-bold text-slate-600 hover:text-[#1a1a1a] transition-colors">Opportunities</Link>
                         </div>
-                        <UserNav />
+                        <UserNav hideOpportunities />
                     </div>
                 </div>
             </nav>

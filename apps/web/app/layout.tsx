@@ -33,16 +33,42 @@ const getAnalyticsSettings = unstable_cache(
     { revalidate: 300, tags: ['analytics'] }
 );
 
+// Cached function to fetch custom CSS
+const getCustomCSS = unstable_cache(
+    async () => {
+        try {
+            const supabase = createAdminClient();
+            const { data } = await supabase
+                .from('system_settings')
+                .select('value')
+                .eq('key', 'personalization.custom_css')
+                .maybeSingle();
+            return data?.value || '';
+        } catch (error) {
+            console.error('Error fetching custom CSS:', error);
+            return '';
+        }
+    },
+    ['custom-css'],
+    { revalidate: 300, tags: ['personalization'] }
+);
+
 export default async function RootLayout({
     children,
 }: {
     children: React.ReactNode
 }) {
-    const gaId = await getAnalyticsSettings();
+    const [gaId, customCSS] = await Promise.all([
+        getAnalyticsSettings(),
+        getCustomCSS()
+    ]);
 
     return (
         <html lang="en">
             <body className={inter.className}>
+                {customCSS && (
+                    <style dangerouslySetInnerHTML={{ __html: customCSS }} />
+                )}
                 <GoogleAnalytics gaId={gaId} />
                 <UserProvider>
                     {children}

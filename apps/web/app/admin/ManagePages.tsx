@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import {
     Plus,
     Edit2,
@@ -9,15 +9,16 @@ import {
     RefreshCw,
     Save,
     X,
-    Upload,
     Image as ImageIcon,
     ExternalLink,
     FileText,
     Globe,
     Clock,
     GripVertical,
+    FolderOpen,
 } from 'lucide-react';
 import dynamic from 'next/dynamic';
+import MediaModal from '@/components/MediaModal';
 
 // Dynamic import to avoid SSR issues with TipTap
 const WysiwygEditor = dynamic(() => import('@/components/WysiwygEditor'), {
@@ -76,7 +77,6 @@ export default function ManagePages() {
     const [pages, setPages] = useState<Page[]>([]);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
-    const [uploading, setUploading] = useState(false);
     const [total, setTotal] = useState(0);
     const [sessionExpired, setSessionExpired] = useState(false);
 
@@ -90,7 +90,8 @@ export default function ManagePages() {
     const [formData, setFormData] = useState<PageFormData>(initialFormData);
     const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
-    const fileInputRef = useRef<HTMLInputElement>(null);
+    // Media modal state
+    const [mediaModalOpen, setMediaModalOpen] = useState(false);
 
     useEffect(() => {
         fetchPages();
@@ -141,48 +142,9 @@ export default function ManagePages() {
         }));
     };
 
-    const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-        const file = event.target.files?.[0];
-        if (!file) return;
-
-        if (!file.type.startsWith('image/')) {
-            setMessage({ type: 'error', text: 'Please select an image file' });
-            return;
-        }
-
-        if (file.size > 5 * 1024 * 1024) {
-            setMessage({ type: 'error', text: 'Image must be less than 5MB' });
-            return;
-        }
-
-        setUploading(true);
-        setMessage(null);
-
-        try {
-            const uploadFormData = new FormData();
-            uploadFormData.append('file', file);
-
-            const res = await fetch('/api/admin/pages/upload', {
-                method: 'POST',
-                body: uploadFormData,
-            });
-
-            const data = await res.json();
-
-            if (res.ok && data.url) {
-                setFormData(prev => ({ ...prev, featured_image_url: data.url }));
-                setMessage({ type: 'success', text: 'Image uploaded successfully!' });
-            } else {
-                setMessage({ type: 'error', text: data.error || 'Failed to upload image' });
-            }
-        } catch (error) {
-            setMessage({ type: 'error', text: 'Failed to upload image' });
-        }
-
-        setUploading(false);
-        if (fileInputRef.current) {
-            fileInputRef.current.value = '';
-        }
+    const handleMediaSelect = (url: string) => {
+        setFormData(prev => ({ ...prev, featured_image_url: url }));
+        setMediaModalOpen(false);
     };
 
     const handleSubmit = async () => {
@@ -281,6 +243,7 @@ export default function ManagePages() {
 
     if (showForm) {
         return (
+            <>
             <div className="space-y-6">
                 {/* Header */}
                 <div className="flex items-center justify-between">
@@ -467,29 +430,12 @@ export default function ManagePages() {
                                     <div className="aspect-video bg-slate-100 rounded-lg border-2 border-dashed border-slate-300 flex items-center justify-center">
                                         <ImageIcon className="text-slate-400" size={32} />
                                     </div>
-                                    <input
-                                        ref={fileInputRef}
-                                        type="file"
-                                        accept="image/*"
-                                        onChange={handleImageUpload}
-                                        className="hidden"
-                                    />
                                     <button
-                                        onClick={() => fileInputRef.current?.click()}
-                                        disabled={uploading}
-                                        className="w-full bg-slate-100 text-slate-700 px-4 py-2 rounded-lg font-bold hover:bg-slate-200 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                                        onClick={() => setMediaModalOpen(true)}
+                                        className="w-full bg-slate-100 text-slate-700 px-4 py-2 rounded-lg font-bold hover:bg-slate-200 transition-colors flex items-center justify-center gap-2"
                                     >
-                                        {uploading ? (
-                                            <>
-                                                <RefreshCw size={16} className="animate-spin" />
-                                                Uploading...
-                                            </>
-                                        ) : (
-                                            <>
-                                                <Upload size={16} />
-                                                Upload Image
-                                            </>
-                                        )}
+                                        <FolderOpen size={16} />
+                                        Select Image
                                     </button>
                                 </div>
                             )}
@@ -528,6 +474,15 @@ export default function ManagePages() {
                     </div>
                 </div>
             </div>
+
+            {/* Media Modal */}
+            <MediaModal
+                isOpen={mediaModalOpen}
+                onClose={() => setMediaModalOpen(false)}
+                onSelect={handleMediaSelect}
+                title="Select Featured Image"
+            />
+            </>
         );
     }
 

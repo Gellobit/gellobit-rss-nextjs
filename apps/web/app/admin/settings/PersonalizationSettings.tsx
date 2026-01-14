@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
-import { Save, RefreshCw, Upload, Trash2, Image as ImageIcon, Plus, GripVertical, X, Sun, Moon, Smartphone, Type, Link2 } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Save, RefreshCw, Trash2, Image as ImageIcon, Plus, GripVertical, X, Sun, Moon, Smartphone, Type, Link2, FolderOpen } from 'lucide-react';
+import MediaModal from '@/components/MediaModal';
 
 interface ExploreLink {
     id: string;
@@ -19,6 +20,7 @@ interface PersonalizationConfig {
     app_logo_url: string | null;
     app_logo_footer_url: string | null;
     app_name: string;
+    custom_css: string;
     // Homepage Content
     hero_badge_text: string;
     hero_title: string;
@@ -63,6 +65,7 @@ const DEFAULT_CONFIG: PersonalizationConfig = {
     app_logo_url: null,
     app_logo_footer_url: null,
     app_name: 'GelloBit',
+    custom_css: '',
     hero_badge_text: 'New Platform 2.0 Available!',
     hero_title: 'Verified USA Opportunities',
     hero_title_highlight: 'just a click away.',
@@ -87,18 +90,15 @@ export default function PersonalizationSettings() {
     const [config, setConfig] = useState<PersonalizationConfig>(DEFAULT_CONFIG);
     const [loading, setLoading] = useState(false);
     const [saving, setSaving] = useState(false);
-    const [uploadingHeader, setUploadingHeader] = useState(false);
-    const [uploadingFooter, setUploadingFooter] = useState(false);
-    const [uploadingMockup, setUploadingMockup] = useState(false);
     const [sessionExpired, setSessionExpired] = useState(false);
     const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
     const [previewFooterUrl, setPreviewFooterUrl] = useState<string | null>(null);
     const [previewMockupUrl, setPreviewMockupUrl] = useState<string | null>(null);
     const [availablePages, setAvailablePages] = useState<Page[]>([]);
-    const fileInputRef = useRef<HTMLInputElement>(null);
-    const footerFileInputRef = useRef<HTMLInputElement>(null);
-    const mockupFileInputRef = useRef<HTMLInputElement>(null);
+
+    // Media modal state
+    const [mediaModalOpen, setMediaModalOpen] = useState<'header' | 'footer' | 'mockup' | null>(null);
 
     useEffect(() => {
         fetchSettings();
@@ -154,65 +154,18 @@ export default function PersonalizationSettings() {
         }
     };
 
-    const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>, type: 'header' | 'footer' | 'mockup') => {
-        const file = event.target.files?.[0];
-        if (!file) return;
-
-        if (!file.type.startsWith('image/')) {
-            setMessage({ type: 'error', text: 'Please select an image file' });
-            return;
+    const handleMediaSelect = (url: string) => {
+        if (mediaModalOpen === 'header') {
+            setConfig({ ...config, app_logo_url: url });
+            setPreviewUrl(url);
+        } else if (mediaModalOpen === 'footer') {
+            setConfig({ ...config, app_logo_footer_url: url });
+            setPreviewFooterUrl(url);
+        } else if (mediaModalOpen === 'mockup') {
+            setConfig({ ...config, app_mockup_image_url: url });
+            setPreviewMockupUrl(url);
         }
-
-        if (file.size > 5 * 1024 * 1024) {
-            setMessage({ type: 'error', text: 'Image must be less than 5MB' });
-            return;
-        }
-
-        if (type === 'header') setUploadingHeader(true);
-        else if (type === 'footer') setUploadingFooter(true);
-        else setUploadingMockup(true);
-        setMessage(null);
-
-        try {
-            const formData = new FormData();
-            formData.append('file', file);
-
-            const res = await fetch('/api/admin/upload/logo', {
-                method: 'POST',
-                body: formData,
-            });
-
-            const data = await res.json();
-
-            if (res.ok && data.url) {
-                if (type === 'header') {
-                    setConfig({ ...config, app_logo_url: data.url });
-                    setPreviewUrl(data.url);
-                } else if (type === 'footer') {
-                    setConfig({ ...config, app_logo_footer_url: data.url });
-                    setPreviewFooterUrl(data.url);
-                } else {
-                    setConfig({ ...config, app_mockup_image_url: data.url });
-                    setPreviewMockupUrl(data.url);
-                }
-                setMessage({ type: 'success', text: 'Image uploaded successfully!' });
-            } else {
-                setMessage({ type: 'error', text: data.error || 'Failed to upload image' });
-            }
-        } catch (error) {
-            setMessage({ type: 'error', text: 'Failed to upload image' });
-        }
-
-        if (type === 'header') {
-            setUploadingHeader(false);
-            if (fileInputRef.current) fileInputRef.current.value = '';
-        } else if (type === 'footer') {
-            setUploadingFooter(false);
-            if (footerFileInputRef.current) footerFileInputRef.current.value = '';
-        } else {
-            setUploadingMockup(false);
-            if (mockupFileInputRef.current) mockupFileInputRef.current.value = '';
-        }
+        setMediaModalOpen(null);
     };
 
     const handleRemoveImage = (type: 'header' | 'footer' | 'mockup') => {
@@ -385,10 +338,9 @@ export default function PersonalizationSettings() {
                                 )}
                             </div>
                             <div className="flex flex-col gap-2">
-                                <input ref={fileInputRef} type="file" accept="image/*" onChange={(e) => handleFileSelect(e, 'header')} className="hidden" />
-                                <button onClick={() => fileInputRef.current?.click()} disabled={uploadingHeader} className="bg-blue-600 text-white px-3 py-1.5 rounded-lg font-bold hover:bg-blue-700 transition-colors flex items-center gap-2 disabled:opacity-50 text-xs">
-                                    {uploadingHeader ? <RefreshCw size={14} className="animate-spin" /> : <Upload size={14} />}
-                                    Upload
+                                <button onClick={() => setMediaModalOpen('header')} className="bg-blue-600 text-white px-3 py-1.5 rounded-lg font-bold hover:bg-blue-700 transition-colors flex items-center gap-2 text-xs">
+                                    <FolderOpen size={14} />
+                                    Select Image
                                 </button>
                                 {previewUrl && (
                                     <button onClick={() => handleRemoveImage('header')} className="text-red-600 px-3 py-1.5 rounded-lg font-bold border border-red-200 hover:bg-red-50 transition-colors flex items-center gap-2 text-xs">
@@ -419,10 +371,9 @@ export default function PersonalizationSettings() {
                                 )}
                             </div>
                             <div className="flex flex-col gap-2">
-                                <input ref={footerFileInputRef} type="file" accept="image/*" onChange={(e) => handleFileSelect(e, 'footer')} className="hidden" />
-                                <button onClick={() => footerFileInputRef.current?.click()} disabled={uploadingFooter} className="bg-blue-600 text-white px-3 py-1.5 rounded-lg font-bold hover:bg-blue-700 transition-colors flex items-center gap-2 disabled:opacity-50 text-xs">
-                                    {uploadingFooter ? <RefreshCw size={14} className="animate-spin" /> : <Upload size={14} />}
-                                    Upload
+                                <button onClick={() => setMediaModalOpen('footer')} className="bg-blue-600 text-white px-3 py-1.5 rounded-lg font-bold hover:bg-blue-700 transition-colors flex items-center gap-2 text-xs">
+                                    <FolderOpen size={14} />
+                                    Select Image
                                 </button>
                                 {previewFooterUrl && (
                                     <button onClick={() => handleRemoveImage('footer')} className="text-red-600 px-3 py-1.5 rounded-lg font-bold border border-red-200 hover:bg-red-50 transition-colors flex items-center gap-2 text-xs">
@@ -444,7 +395,21 @@ export default function PersonalizationSettings() {
                         placeholder="GelloBit"
                         className="w-full max-w-md border border-slate-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
-                    <p className="text-xs text-slate-500">Displayed when no logo is set</p>
+                    <p className="text-xs text-slate-500">Displayed next to the logo in the header</p>
+                </div>
+
+                {/* Custom CSS */}
+                <div className="space-y-2 pt-4 border-t border-slate-200">
+                    <label className="block text-sm font-bold text-slate-900">Custom CSS</label>
+                    <textarea
+                        value={config.custom_css}
+                        onChange={(e) => setConfig({ ...config, custom_css: e.target.value })}
+                        placeholder={`/* Add your custom CSS here */\n.my-class {\n  color: red;\n}`}
+                        rows={8}
+                        className="w-full border border-slate-300 rounded-lg px-4 py-3 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500 bg-slate-900 text-green-400"
+                        style={{ tabSize: 2 }}
+                    />
+                    <p className="text-xs text-slate-500">Add custom CSS styles to override default styles. Use with caution.</p>
                 </div>
             </div>
 
@@ -640,10 +605,9 @@ export default function PersonalizationSettings() {
                         </div>
 
                         <div className="flex flex-col gap-2">
-                            <input ref={mockupFileInputRef} type="file" accept="image/*" onChange={(e) => handleFileSelect(e, 'mockup')} className="hidden" />
-                            <button onClick={() => mockupFileInputRef.current?.click()} disabled={uploadingMockup} className="bg-blue-600 text-white px-4 py-2 rounded-lg font-bold hover:bg-blue-700 transition-colors flex items-center gap-2 disabled:opacity-50 text-sm">
-                                {uploadingMockup ? <RefreshCw size={16} className="animate-spin" /> : <Upload size={16} />}
-                                Upload Screenshot
+                            <button onClick={() => setMediaModalOpen('mockup')} className="bg-blue-600 text-white px-4 py-2 rounded-lg font-bold hover:bg-blue-700 transition-colors flex items-center gap-2 text-sm">
+                                <FolderOpen size={16} />
+                                Select Screenshot
                             </button>
                             {previewMockupUrl && (
                                 <button onClick={() => handleRemoveImage('mockup')} className="text-red-600 px-4 py-2 rounded-lg font-bold border border-red-200 hover:bg-red-50 transition-colors flex items-center gap-2 text-sm">
@@ -786,6 +750,18 @@ export default function PersonalizationSettings() {
                     Reset
                 </button>
             </div>
+
+            {/* Media Modal */}
+            <MediaModal
+                isOpen={mediaModalOpen !== null}
+                onClose={() => setMediaModalOpen(null)}
+                onSelect={handleMediaSelect}
+                title={
+                    mediaModalOpen === 'header' ? 'Select Header Logo' :
+                    mediaModalOpen === 'footer' ? 'Select Footer Logo' :
+                    'Select App Screenshot'
+                }
+            />
         </div>
     );
 }

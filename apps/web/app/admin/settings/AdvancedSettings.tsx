@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Save, RefreshCw, Download, Upload, Trash2, AlertTriangle } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { Save, RefreshCw, Download, Upload, Trash2, AlertTriangle, Rss, ChevronDown, ChevronUp } from 'lucide-react';
 
 interface AdvancedConfig {
     log_retention_days: number;
@@ -19,6 +19,12 @@ export default function AdvancedSettings() {
     const [exporting, setExporting] = useState(false);
     const [sessionExpired, setSessionExpired] = useState(false);
     const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+    // Feeds backup state
+    const [feedsExpanded, setFeedsExpanded] = useState(false);
+    const [exportingFeeds, setExportingFeeds] = useState(false);
+    const [importingFeeds, setImportingFeeds] = useState(false);
+    const feedsFileInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
         fetchSettings();
@@ -149,6 +155,86 @@ export default function AdvancedSettings() {
             }
         };
         input.click();
+    };
+
+    // Feeds backup functions
+    const handleExportFeeds = async () => {
+        setExportingFeeds(true);
+        setMessage(null);
+
+        try {
+            const res = await fetch('/api/admin/feeds/export');
+
+            if (!res.ok) {
+                const data = await res.json();
+                throw new Error(data.error || 'Export failed');
+            }
+
+            const data = await res.json();
+
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `feeds-export-${new Date().toISOString().split('T')[0]}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+
+            setMessage({ type: 'success', text: `Exported ${data.feeds_count} feeds successfully` });
+        } catch (error) {
+            setMessage({ type: 'error', text: error instanceof Error ? error.message : 'Export failed' });
+        }
+
+        setExportingFeeds(false);
+    };
+
+    const handleImportFeedsClick = () => {
+        feedsFileInputRef.current?.click();
+    };
+
+    const handleFeedsFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        setImportingFeeds(true);
+        setMessage(null);
+
+        try {
+            const text = await file.text();
+            let data;
+
+            try {
+                data = JSON.parse(text);
+            } catch {
+                throw new Error('Invalid JSON file');
+            }
+
+            const res = await fetch('/api/admin/feeds/import', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+
+            const result = await res.json();
+
+            if (!res.ok) {
+                throw new Error(result.error || 'Import failed');
+            }
+
+            setMessage({
+                type: 'success',
+                text: `Imported ${result.imported} feeds${result.skipped > 0 ? ` (${result.skipped} duplicates skipped)` : ''}`
+            });
+        } catch (error) {
+            setMessage({ type: 'error', text: error instanceof Error ? error.message : 'Import failed' });
+        }
+
+        if (feedsFileInputRef.current) {
+            feedsFileInputRef.current.value = '';
+        }
+        setImportingFeeds(false);
     };
 
     if (sessionExpired) {
@@ -293,6 +379,77 @@ export default function AdvancedSettings() {
                         </button>
                     </div>
                 </div>
+            </div>
+
+            {/* Feeds Backup */}
+            <div className="bg-slate-50 border border-slate-200 rounded-lg overflow-hidden">
+                <button
+                    onClick={() => setFeedsExpanded(!feedsExpanded)}
+                    className="w-full flex items-center justify-between p-4 hover:bg-slate-100 transition-colors"
+                >
+                    <div className="flex items-center gap-3">
+                        <Rss size={20} className="text-orange-600" />
+                        <div className="text-left">
+                            <h4 className="text-sm font-bold text-slate-900">Feeds Backup</h4>
+                            <p className="text-xs text-slate-600">Export or import RSS feeds configuration</p>
+                        </div>
+                    </div>
+                    {feedsExpanded ? (
+                        <ChevronUp size={20} className="text-slate-400" />
+                    ) : (
+                        <ChevronDown size={20} className="text-slate-400" />
+                    )}
+                </button>
+
+                {feedsExpanded && (
+                    <div className="p-4 pt-0 border-t border-slate-200">
+                        <p className="text-xs text-slate-600 mb-4 mt-4">
+                            Export your RSS feeds configuration to a JSON file for backup or migration.
+                            Import feeds from a previously exported file.
+                        </p>
+
+                        <div className="flex flex-wrap gap-3 mb-4">
+                            <button
+                                onClick={handleExportFeeds}
+                                disabled={exportingFeeds}
+                                className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-lg text-sm font-bold hover:bg-slate-800 disabled:opacity-50 transition-colors"
+                            >
+                                <Download size={14} />
+                                {exportingFeeds ? 'Exporting...' : 'Export Feeds'}
+                            </button>
+
+                            <button
+                                onClick={handleImportFeedsClick}
+                                disabled={importingFeeds}
+                                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-bold hover:bg-blue-700 disabled:opacity-50 transition-colors"
+                            >
+                                <Upload size={14} />
+                                {importingFeeds ? 'Importing...' : 'Import Feeds'}
+                            </button>
+
+                            <input
+                                ref={feedsFileInputRef}
+                                type="file"
+                                accept=".json"
+                                onChange={handleFeedsFileChange}
+                                className="hidden"
+                            />
+                        </div>
+
+                        <div className="p-3 bg-white rounded-lg border border-slate-200">
+                            <h5 className="font-bold text-xs text-slate-700 mb-2">Export includes:</h5>
+                            <ul className="text-xs text-slate-500 space-y-1">
+                                <li>• Feed name, URL, and opportunity type</li>
+                                <li>• Status and processing settings</li>
+                                <li>• AI provider configuration (per feed)</li>
+                                <li>• Quality threshold, priority, and cron interval</li>
+                            </ul>
+                            <p className="text-[10px] text-slate-400 mt-2">
+                                Note: API keys are not exported for security reasons.
+                            </p>
+                        </div>
+                    </div>
+                )}
             </div>
 
             {/* Clear Processing Logs */}

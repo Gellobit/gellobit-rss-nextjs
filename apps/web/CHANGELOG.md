@@ -2,6 +2,51 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.0-alpha.8] - 2026-01-14
+
+### Added
+- **Media Manager**: WordPress-style media library for image management
+  - New "Media" tab in Settings (between Scraping and Personalization)
+  - Gallery view with thumbnails, file info, and actions
+  - Upload new images with drag & drop support
+  - Delete images from library
+  - Copy image URL to clipboard
+  - Search and pagination
+
+- **MediaModal Component**: Reusable modal for image selection
+  - "Library" tab to select from existing images
+  - "Upload" tab to upload new images
+  - Integrated into Personalization Settings (logos, app mockup)
+  - Integrated into Blog Posts (featured image)
+  - Integrated into Pages (featured image)
+
+- **Custom CSS Field**: New option in Personalization Settings
+  - Code editor style textarea (dark theme)
+  - CSS injected into global layout
+  - Cached with 5-minute revalidation
+
+### Changed
+- **Header Navigation**:
+  - "Opportunities" link moved to main menu (alongside Features, Pricing, Why Us)
+  - Header now uses `fixed` positioning (overlay on hero)
+  - Smooth transition from solid white to semi-transparent with blur on scroll
+  - App name now displayed next to logo (not just when logo is missing)
+
+- **Settings Tab Reorganization**:
+  - "Feeds Backup" moved from separate tab to collapsible section in "Advanced"
+  - New "Media" tab added after "Scraping"
+  - Tab order: General, AI, Prompts, Scraping, Media, Personalization, Analytics, Advanced
+
+### Removed
+- Separate "Feeds Backup" tab (functionality preserved in Advanced settings)
+- Old file upload buttons in Personalization, Blog Posts, and Pages (replaced with MediaModal)
+
+### Technical Details
+- New API endpoints: `/api/admin/media` (GET, POST) and `/api/admin/media/[id]` (DELETE)
+- Media files stored in Supabase Storage `images` bucket under `media/` folder
+- All media tracked in existing `media_files` database table
+- Custom CSS fetched with `unstable_cache` and `personalization` tag
+
 ## [1.0.0-alpha.7] - 2026-01-14
 
 ### Added

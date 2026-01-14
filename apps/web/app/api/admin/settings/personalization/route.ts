@@ -10,6 +10,7 @@ const SETTING_KEYS = [
     'app_logo_url',
     'app_logo_footer_url',
     'app_name',
+    'custom_css',
     'hero_badge_text',
     'hero_title',
     'hero_title_highlight',
