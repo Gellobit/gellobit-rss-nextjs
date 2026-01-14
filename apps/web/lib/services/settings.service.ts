@@ -154,13 +154,17 @@ class SettingsService {
             // Extract category from key (e.g., 'personalization.app_logo_url' -> 'personalization')
             const category = key.split('.')[0];
 
+            // Handle null/undefined values - convert to empty string to avoid NOT NULL constraint
+            // The column requires a value, so we store empty string for null values
+            const storedValue = value === null || value === undefined ? '' : value;
+
             // For JSONB column, pass the value directly (Supabase handles serialization)
             // Don't double-stringify string values
             const { error } = await supabase
                 .from('system_settings')
                 .upsert({
                     key,
-                    value: value,
+                    value: storedValue,
                     category,
                     updated_at: new Date().toISOString(),
                 }, {
@@ -192,6 +196,10 @@ class SettingsService {
      * Parse JSONB value to proper type
      */
     private parseValue(value: any): any {
+        // Handle empty string as null (we store empty strings for null values)
+        if (value === '') {
+            return null;
+        }
         if (typeof value === 'string') {
             try {
                 return JSON.parse(value);

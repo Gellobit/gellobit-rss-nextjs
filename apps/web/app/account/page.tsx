@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { User, Mail, Camera, Save, RefreshCw, Key, Crown, Calendar, Heart, Bell, LogOut, ChevronRight, ChevronDown, Settings, FileText } from 'lucide-react';
+import { User, Mail, Camera, Save, RefreshCw, Key, Crown, Calendar, Heart, Bell, LogOut, ChevronRight, ChevronDown, Settings, FileText, Info } from 'lucide-react';
+import { APP_VERSION } from '@/components/LandingPage';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useUser } from '@/context/UserContext';
@@ -372,6 +373,11 @@ export default function AccountPage() {
                         )}
                     </div>
                 )}
+
+                {/* Version Info */}
+                <div className="text-center py-4">
+                    <span className="text-xs text-slate-400 font-medium">{APP_VERSION}</span>
+                </div>
             </div>
 
             {/* Desktop View */}

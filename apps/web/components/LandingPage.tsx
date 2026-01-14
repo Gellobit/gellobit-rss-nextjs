@@ -16,7 +16,19 @@ import MobileNavBar from './MobileNavBar';
 
 interface Branding {
     logoUrl: string | null;
+    footerLogoUrl: string | null;
     appName: string;
+}
+
+interface ExploreLink {
+    id: string;
+    label: string;
+    url: string;
+}
+
+interface SocialLink {
+    platform: string;
+    url: string;
 }
 
 interface FooterPage {
@@ -25,14 +37,78 @@ interface FooterPage {
     slug: string;
 }
 
-interface LandingPageProps {
-    opportunities: any[]; // Replace with proper type
-    branding: Branding;
-    footerPages?: FooterPage[];
+interface FooterConfig {
+    tagline: string;
+    exploreLinks: ExploreLink[];
+    infoPages: FooterPage[];
+    socialLinks: SocialLink[];
+    bottomLeft: string;
+    bottomRight: string;
 }
 
-export const LandingPage = ({ opportunities = [], branding, footerPages = [] }: LandingPageProps) => {
+interface HeroContent {
+    badgeText: string;
+    title: string;
+    titleHighlight: string;
+    subtitle: string;
+    ctaPrimary: string;
+    ctaSecondary: string;
+}
+
+interface AppSection {
+    title: string;
+    subtitle: string;
+    playstoreUrl: string;
+    appstoreUrl: string;
+    mockupImageUrl: string | null;
+}
+
+interface LandingPageProps {
+    opportunities: any[];
+    branding: Branding;
+    heroContent?: HeroContent;
+    appSection?: AppSection;
+    footer?: FooterConfig;
+}
+
+const SOCIAL_ICONS: Record<string, string> = {
+    facebook: 'F',
+    instagram: 'I',
+    twitter: 'X',
+    tiktok: 'T',
+    youtube: 'Y',
+    linkedin: 'L',
+    threads: '@',
+    website: 'W',
+};
+
+const APP_VERSION = 'v1.0.0-alpha.5';
+
+export const LandingPage = ({ opportunities = [], branding, heroContent, appSection, footer }: LandingPageProps) => {
     const { upgradeToPro, isPro } = useSubscription();
+
+    // Default hero content values
+    const heroBadgeText = heroContent?.badgeText || 'New Platform 2.0 Available!';
+    const heroTitle = heroContent?.title || 'Verified USA Opportunities';
+    const heroTitleHighlight = heroContent?.titleHighlight || 'just a click away.';
+    const heroSubtitle = heroContent?.subtitle || 'Gellobit connects you with real giveaways, job fairs, and scholarships. No scams, just value verified daily by experts.';
+    const heroCtaPrimary = heroContent?.ctaPrimary || 'Explore Feed Now';
+    const heroCtaSecondary = heroContent?.ctaSecondary || 'View Pro Plan';
+
+    // Default app section values
+    const appSectionTitle = appSection?.title || 'Carry opportunities in your pocket.';
+    const appSectionSubtitle = appSection?.subtitle || 'Download the mobile App and never miss a job fair or verified giveaway by not being at your PC.';
+    const appPlaystoreUrl = appSection?.playstoreUrl || '';
+    const appAppstoreUrl = appSection?.appstoreUrl || '';
+    const appMockupImageUrl = appSection?.mockupImageUrl || null;
+
+    // Default footer values
+    const footerTagline = footer?.tagline || 'Empowering the USA community through verified opportunities and valuable content since 2025.';
+    const footerExploreLinks = footer?.exploreLinks || [];
+    const footerInfoPages = footer?.infoPages || [];
+    const footerSocialLinks = footer?.socialLinks || [];
+    const footerBottomLeft = footer?.bottomLeft || '© 2026 Gellobit.com. All rights reserved.';
+    const footerBottomRight = footer?.bottomRight || 'Developed with ❤️ for USA';
 
     return (
         <div className="min-h-screen bg-white font-sans text-slate-900 selection:bg-yellow-200 pb-20 md:pb-0">
@@ -72,24 +148,23 @@ export const LandingPage = ({ opportunities = [], branding, footerPages = [] }: 
 
             {/* ... Hero ... */}
             <header className="relative pt-16 pb-24 overflow-hidden">
-                {/* ... (Copy existing hero code) ... */}
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
                     <div className="text-center max-w-4xl mx-auto">
                         <div className="inline-flex items-center gap-2 bg-yellow-100 text-yellow-800 px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-widest mb-8">
-                            <Star size={14} fill="currentColor" /> New Platform 2.0 Available!
+                            <Star size={14} fill="currentColor" /> {heroBadgeText}
                         </div>
                         <h1 className="text-5xl md:text-7xl font-black text-[#1a1a1a] leading-[1.1] mb-8 tracking-tight">
-                            Verified USA Opportunities <span className="text-yellow-500">just a click away.</span>
+                            {heroTitle} <span className="text-yellow-500">{heroTitleHighlight}</span>
                         </h1>
                         <p className="text-xl text-slate-500 mb-12 max-w-2xl mx-auto leading-relaxed">
-                            Gellobit connects you with real giveaways, job fairs, and scholarships. No scams, just value verified daily by experts.
+                            {heroSubtitle}
                         </p>
                         <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16">
                             <button className="w-full sm:w-auto bg-[#FFDE59] text-[#1a1a1a] font-black px-10 py-5 rounded-2xl text-lg hover:bg-yellow-400 transition-all shadow-xl shadow-yellow-100 flex items-center justify-center gap-2">
-                                Explore Feed Now <ArrowRight size={20} />
+                                {heroCtaPrimary} <ArrowRight size={20} />
                             </button>
                             <button className="w-full sm:w-auto bg-white border-2 border-slate-100 text-slate-600 font-bold px-10 py-5 rounded-2xl text-lg hover:border-yellow-400 hover:text-[#1a1a1a] transition-all">
-                                View Pro Plan
+                                {heroCtaSecondary}
                             </button>
                         </div>
                         {/* Search Mockup */}
@@ -136,8 +211,7 @@ export const LandingPage = ({ opportunities = [], branding, footerPages = [] }: 
                 </section>
             )}
 
-            {/* ... Rest of sections (Stats, Features, Pricing, Footer) ... */}
-            {/* Copy Stats, Features, Pricing, App Download, Footer from original file */}
+            {/* Stats Section */}
             <section className="bg-white py-12 border-y border-slate-50">
                 <div className="max-w-7xl mx-auto px-4 flex flex-wrap justify-center gap-12 md:gap-24">
                     <div className="text-center">
@@ -154,6 +228,7 @@ export const LandingPage = ({ opportunities = [], branding, footerPages = [] }: 
                     </div>
                 </div>
             </section>
+
             {/* --- FEATURES SECTION --- */}
             <section id="features" className="py-24 bg-slate-50">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -245,58 +320,107 @@ export const LandingPage = ({ opportunities = [], branding, footerPages = [] }: 
                 <div className="max-w-7xl mx-auto px-4 flex flex-col md:flex-row items-center gap-12">
                     <div className="flex-1 text-center md:text-left">
                         <h2 className="text-4xl md:text-5xl font-black text-[#1a1a1a] mb-6 tracking-tight">
-                            Carry opportunities in your pocket.
+                            {appSectionTitle}
                         </h2>
                         <p className="text-lg text-[#1a1a1a]/70 font-bold mb-10 max-w-lg">
-                            Download the mobile App and never miss a job fair or verified giveaway by not being at your PC.
+                            {appSectionSubtitle}
                         </p>
                         <div className="flex flex-wrap justify-center md:justify-start gap-4">
-                            <button className="bg-black text-white px-8 py-4 rounded-2xl flex items-center gap-3 hover:scale-105 transition-transform shadow-xl">
-                                <Smartphone size={24} />
-                                <div className="text-left">
-                                    <p className="text-[10px] uppercase font-bold opacity-70 leading-none">Available on</p>
-                                    <p className="text-lg font-black leading-none mt-1">Google Play</p>
+                            {appPlaystoreUrl && (
+                                <a
+                                    href={appPlaystoreUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="bg-black text-white px-8 py-4 rounded-2xl flex items-center gap-3 hover:scale-105 transition-transform shadow-xl"
+                                >
+                                    <svg className="w-6 h-6" viewBox="0 0 24 24" fill="currentColor">
+                                        <path d="M3.609 1.814L13.792 12 3.61 22.186a1.004 1.004 0 0 1-.61-.92V2.734c0-.4.23-.755.61-.92zm10.89 9.48l2.71-2.71 5.79 3.34c.6.35.6 1.21 0 1.55l-5.79 3.34-2.71-2.71L12 12l2.5-2.5.006.793zM4.47.914l9.32 5.38-2.71 2.71L4.47.914zm9.32 17.79l-9.32 5.38 6.61-8.09 2.71 2.71z"/>
+                                    </svg>
+                                    <div className="text-left">
+                                        <p className="text-[10px] uppercase font-bold opacity-70 leading-none">Get it on</p>
+                                        <p className="text-lg font-black leading-none mt-1">Google Play</p>
+                                    </div>
+                                </a>
+                            )}
+                            {appAppstoreUrl && (
+                                <a
+                                    href={appAppstoreUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="bg-black text-white px-8 py-4 rounded-2xl flex items-center gap-3 hover:scale-105 transition-transform shadow-xl"
+                                >
+                                    <svg className="w-6 h-6" viewBox="0 0 24 24" fill="currentColor">
+                                        <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
+                                    </svg>
+                                    <div className="text-left">
+                                        <p className="text-[10px] uppercase font-bold opacity-70 leading-none">Download on the</p>
+                                        <p className="text-lg font-black leading-none mt-1">App Store</p>
+                                    </div>
+                                </a>
+                            )}
+                            {!appPlaystoreUrl && !appAppstoreUrl && (
+                                <div className="bg-black/20 text-[#1a1a1a] px-8 py-4 rounded-2xl flex items-center gap-3">
+                                    <Smartphone size={24} />
+                                    <div className="text-left">
+                                        <p className="text-[10px] uppercase font-bold opacity-70 leading-none">Coming soon</p>
+                                        <p className="text-lg font-black leading-none mt-1">Mobile App</p>
+                                    </div>
                                 </div>
-                            </button>
-                            {/* Option for App Store in the future */}
+                            )}
                         </div>
                     </div>
                     <div className="flex-1 relative">
                         {/* Mockup of Phone */}
                         <div className="w-[280px] h-[580px] bg-[#1a1a1a] rounded-[50px] border-[10px] border-[#1a1a1a] shadow-2xl mx-auto relative overflow-hidden flex items-center justify-center">
-                            <div className="absolute top-0 w-32 h-6 bg-[#1a1a1a] rounded-b-3xl"></div>
-                            <div className="bg-white w-full h-full p-4 flex flex-col gap-4">
-                                <div className="flex items-center gap-2 mt-4">
-                                    <div className="bg-yellow-400 p-1.5 rounded-lg font-bold text-xs">GB</div>
-                                    <div className="h-4 w-24 bg-slate-100 rounded-full"></div>
+                            <div className="absolute top-0 w-32 h-6 bg-[#1a1a1a] rounded-b-3xl z-10"></div>
+                            {appMockupImageUrl ? (
+                                <img
+                                    src={appMockupImageUrl}
+                                    alt="App Preview"
+                                    className="w-full h-full object-cover"
+                                />
+                            ) : (
+                                <div className="bg-white w-full h-full p-4 flex flex-col gap-4">
+                                    <div className="flex items-center gap-2 mt-4">
+                                        <div className="bg-yellow-400 p-1.5 rounded-lg font-bold text-xs">GB</div>
+                                        <div className="h-4 w-24 bg-slate-100 rounded-full"></div>
+                                    </div>
+                                    <div className="h-32 w-full bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200"></div>
+                                    <div className="space-y-2">
+                                        <div className="h-4 w-full bg-slate-100 rounded-full"></div>
+                                        <div className="h-4 w-2/3 bg-slate-100 rounded-full"></div>
+                                    </div>
+                                    <div className="mt-4 grid grid-cols-2 gap-2">
+                                        <div className="h-24 bg-yellow-50 rounded-xl border border-yellow-100"></div>
+                                        <div className="h-24 bg-slate-50 rounded-xl"></div>
+                                    </div>
                                 </div>
-                                <div className="h-32 w-full bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200"></div>
-                                <div className="space-y-2">
-                                    <div className="h-4 w-full bg-slate-100 rounded-full"></div>
-                                    <div className="h-4 w-2/3 bg-slate-100 rounded-full"></div>
-                                </div>
-                                <div className="mt-4 grid grid-cols-2 gap-2">
-                                    <div className="h-24 bg-yellow-50 rounded-xl border border-yellow-100"></div>
-                                    <div className="h-24 bg-slate-50 rounded-xl"></div>
-                                </div>
-                            </div>
+                            )}
                         </div>
                         {/* Decoration */}
                         <div className="absolute -z-10 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-white/20 rounded-full blur-3xl"></div>
                     </div>
                 </div>
             </section>
+
             {/* --- FOOTER --- */}
             <footer className="bg-[#1a1a1a] text-white pt-20 pb-10">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-20">
+                        {/* Logo & Tagline */}
                         <div className="col-span-1 md:col-span-1">
                             <Link href="/" className="flex items-center gap-2 mb-6">
-                                {branding.logoUrl ? (
+                                {branding.footerLogoUrl ? (
+                                    <img
+                                        src={branding.footerLogoUrl}
+                                        alt={branding.appName}
+                                        className="h-10 object-contain"
+                                    />
+                                ) : branding.logoUrl ? (
                                     <img
                                         src={branding.logoUrl}
                                         alt={branding.appName}
-                                        className="h-10 object-contain brightness-0 invert"
+                                        className="h-10 object-contain"
                                     />
                                 ) : (
                                     <>
@@ -306,25 +430,40 @@ export const LandingPage = ({ opportunities = [], branding, footerPages = [] }: 
                                 )}
                             </Link>
                             <p className="text-slate-400 text-sm leading-relaxed">
-                                Empowering the USA community through verified opportunities and valuable content since 2025.
+                                {footerTagline}
                             </p>
                         </div>
 
+                        {/* Explore Column */}
                         <div>
                             <h4 className="font-bold text-sm uppercase tracking-widest text-slate-500 mb-6">Explore</h4>
                             <ul className="space-y-4 text-slate-300 text-sm">
-                                <li><a href="#" className="hover:text-yellow-400 transition-colors">Verified Giveaways</a></li>
-                                <li><a href="#" className="hover:text-yellow-400 transition-colors">Job Fairs</a></li>
-                                <li><a href="#" className="hover:text-yellow-400 transition-colors">STEM Scholarships</a></li>
-                                <li><a href="#" className="hover:text-yellow-400 transition-colors">Evergreen Guides</a></li>
+                                {footerExploreLinks.length > 0 ? (
+                                    footerExploreLinks.map((link) => (
+                                        <li key={link.id}>
+                                            <Link
+                                                href={link.url}
+                                                className="hover:text-yellow-400 transition-colors"
+                                            >
+                                                {link.label}
+                                            </Link>
+                                        </li>
+                                    ))
+                                ) : (
+                                    <>
+                                        <li><Link href="/opportunities" className="hover:text-yellow-400 transition-colors">Browse Opportunities</Link></li>
+                                        <li><Link href="/blog" className="hover:text-yellow-400 transition-colors">Blog</Link></li>
+                                    </>
+                                )}
                             </ul>
                         </div>
 
+                        {/* Information Column */}
                         <div>
                             <h4 className="font-bold text-sm uppercase tracking-widest text-slate-500 mb-6">Information</h4>
                             <ul className="space-y-4 text-slate-300 text-sm">
-                                {footerPages.length > 0 ? (
-                                    footerPages.map((page) => (
+                                {footerInfoPages.length > 0 ? (
+                                    footerInfoPages.map((page) => (
                                         <li key={page.id}>
                                             <Link href={`/${page.slug}`} className="hover:text-yellow-400 transition-colors">
                                                 {page.title}
@@ -341,22 +480,37 @@ export const LandingPage = ({ opportunities = [], branding, footerPages = [] }: 
                             </ul>
                         </div>
 
+                        {/* Social Column */}
                         <div>
                             <h4 className="font-bold text-sm uppercase tracking-widest text-slate-500 mb-6">Social</h4>
-                            <div className="flex gap-4">
-                                <div className="w-10 h-10 bg-slate-800 rounded-full flex items-center justify-center hover:bg-yellow-400 hover:text-black cursor-pointer transition-all">
-                                    <Globe size={18} />
-                                </div>
-                                {/* Add more social icons if desired */}
+                            <div className="flex gap-4 flex-wrap">
+                                {footerSocialLinks.length > 0 ? (
+                                    footerSocialLinks.map((social) => (
+                                        <a
+                                            key={social.platform}
+                                            href={social.url}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="w-10 h-10 bg-slate-800 rounded-full flex items-center justify-center hover:bg-yellow-400 hover:text-black cursor-pointer transition-all font-bold text-sm"
+                                        >
+                                            {SOCIAL_ICONS[social.platform] || '?'}
+                                        </a>
+                                    ))
+                                ) : (
+                                    <div className="w-10 h-10 bg-slate-800 rounded-full flex items-center justify-center hover:bg-yellow-400 hover:text-black cursor-pointer transition-all">
+                                        <Globe size={18} />
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>
 
+                    {/* Bottom Bar */}
                     <div className="border-t border-slate-800 pt-8 flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-slate-500 font-medium">
-                        <p>© 2026 Gellobit.com. All rights reserved.</p>
+                        <p>{footerBottomLeft}</p>
                         <div className="flex gap-6">
-                            <span>Developed with ❤️ for USA</span>
-                            <span>v2.0.4-Stable</span>
+                            <span>{footerBottomRight}</span>
+                            <span>{APP_VERSION}</span>
                         </div>
                     </div>
                 </div>
@@ -367,3 +521,5 @@ export const LandingPage = ({ opportunities = [], branding, footerPages = [] }: 
         </div>
     );
 };
+
+export { APP_VERSION };
