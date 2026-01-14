@@ -26,6 +26,7 @@ interface PersonalizationConfig {
     hero_subtitle: string;
     hero_cta_primary: string;
     hero_cta_secondary: string;
+    hero_background_color: string;
     // App Download Section
     app_section_title: string;
     app_section_subtitle: string;
@@ -68,6 +69,7 @@ const DEFAULT_CONFIG: PersonalizationConfig = {
     hero_subtitle: 'Gellobit connects you with real giveaways, job fairs, and scholarships. No scams, just value verified daily by experts.',
     hero_cta_primary: 'Explore Feed Now',
     hero_cta_secondary: 'View Pro Plan',
+    hero_background_color: '#ffffff',
     app_section_title: 'Carry opportunities in your pocket.',
     app_section_subtitle: 'Download the mobile App and never miss a job fair or verified giveaway by not being at your PC.',
     app_playstore_url: '',
@@ -501,6 +503,31 @@ export default function PersonalizationSettings() {
                         rows={2}
                         className="w-full border border-slate-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
+                </div>
+
+                {/* Hero Background Color */}
+                <div className="space-y-2">
+                    <label className="block text-sm font-bold text-slate-900">Hero Background Color</label>
+                    <div className="flex items-center gap-3">
+                        <input
+                            type="color"
+                            value={config.hero_background_color}
+                            onChange={(e) => setConfig({ ...config, hero_background_color: e.target.value })}
+                            className="w-12 h-10 rounded-lg border border-slate-300 cursor-pointer"
+                        />
+                        <input
+                            type="text"
+                            value={config.hero_background_color}
+                            onChange={(e) => setConfig({ ...config, hero_background_color: e.target.value })}
+                            placeholder="#ffffff"
+                            className="w-32 border border-slate-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono"
+                        />
+                        <div
+                            className="w-20 h-10 rounded-lg border border-slate-300"
+                            style={{ backgroundColor: config.hero_background_color }}
+                        />
+                    </div>
+                    <p className="text-xs text-slate-500">Background color for the full-height hero section</p>
                 </div>
 
                 {/* CTA Buttons */}

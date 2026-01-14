@@ -1,9 +1,11 @@
+import { redirect } from 'next/navigation';
+import { createServerClient } from '@/lib/utils/supabase-server';
 import { createAdminClient } from '@/lib/utils/supabase-admin';
 import { unstable_cache } from 'next/cache';
 import OpportunitiesBrowser from './OpportunitiesBrowser';
 
 export const dynamic = 'force-dynamic';
-export const revalidate = 60;
+export const revalidate = 0;
 
 // Cached function to fetch branding settings
 const getBranding = unstable_cache(
@@ -50,11 +52,32 @@ async function getOpportunities() {
     return data || [];
 }
 
-export default async function OpportunitiesPage() {
+interface PageProps {
+    searchParams: Promise<{ q?: string; type?: string }>;
+}
+
+export default async function OpportunitiesPage({ searchParams }: PageProps) {
+    // Check authentication
+    const supabase = await createServerClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+        redirect('/auth?redirect=/opportunities');
+    }
+
     const [opportunities, branding] = await Promise.all([
         getOpportunities(),
         getBranding()
     ]);
 
-    return <OpportunitiesBrowser opportunities={opportunities} branding={branding} />;
+    const params = await searchParams;
+
+    return (
+        <OpportunitiesBrowser
+            opportunities={opportunities}
+            branding={branding}
+            initialSearch={params.q || ''}
+            initialType={params.type || ''}
+        />
+    );
 }

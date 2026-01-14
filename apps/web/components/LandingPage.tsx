@@ -2,8 +2,9 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import {
-    Check, ArrowRight, ShieldCheck, Zap, Bell, Smartphone, Search,
+    Check, ShieldCheck, Zap, Bell, Smartphone, Search,
     Briefcase, Gift, GraduationCap, Star, Users, ChevronDown, Globe
 } from 'lucide-react';
 
@@ -53,6 +54,7 @@ interface HeroContent {
     subtitle: string;
     ctaPrimary: string;
     ctaSecondary: string;
+    backgroundColor: string;
 }
 
 interface AppSection {
@@ -82,18 +84,49 @@ const SOCIAL_ICONS: Record<string, string> = {
     website: 'W',
 };
 
-const APP_VERSION = 'v1.0.0-alpha.5';
+const APP_VERSION = 'v1.0.0-alpha.7';
+
+const SEARCH_CATEGORIES = [
+    { value: '', label: 'All Categories' },
+    { value: 'giveaway', label: 'Giveaways' },
+    { value: 'contest', label: 'Contests' },
+    { value: 'sweepstakes', label: 'Sweepstakes' },
+    { value: 'dream_job', label: 'Dream Jobs' },
+    { value: 'scholarship', label: 'Scholarships' },
+    { value: 'free_training', label: 'Free Training' },
+    { value: 'get_paid_to', label: 'Get Paid To' },
+];
 
 export const LandingPage = ({ opportunities = [], branding, heroContent, appSection, footer }: LandingPageProps) => {
+    const router = useRouter();
     const { upgradeToPro, isPro } = useSubscription();
+
+    // Search state
+    const [searchQuery, setSearchQuery] = useState('');
+    const [selectedCategory, setSelectedCategory] = useState('');
+    const [categoryDropdownOpen, setCategoryDropdownOpen] = useState(false);
+
+    const handleSearch = () => {
+        const params = new URLSearchParams();
+        if (searchQuery) params.set('q', searchQuery);
+        if (selectedCategory) params.set('type', selectedCategory);
+
+        const queryString = params.toString();
+        router.push(`/opportunities${queryString ? `?${queryString}` : ''}`);
+    };
+
+    const handleKeyDown = (e: React.KeyboardEvent) => {
+        if (e.key === 'Enter') {
+            handleSearch();
+        }
+    };
 
     // Default hero content values
     const heroBadgeText = heroContent?.badgeText || 'New Platform 2.0 Available!';
     const heroTitle = heroContent?.title || 'Verified USA Opportunities';
     const heroTitleHighlight = heroContent?.titleHighlight || 'just a click away.';
     const heroSubtitle = heroContent?.subtitle || 'Gellobit connects you with real giveaways, job fairs, and scholarships. No scams, just value verified daily by experts.';
-    const heroCtaPrimary = heroContent?.ctaPrimary || 'Explore Feed Now';
-    const heroCtaSecondary = heroContent?.ctaSecondary || 'View Pro Plan';
+    const heroBackgroundColor = heroContent?.backgroundColor || '#ffffff';
 
     // Default app section values
     const appSectionTitle = appSection?.title || 'Carry opportunities in your pocket.';
@@ -147,36 +180,94 @@ export const LandingPage = ({ opportunities = [], branding, heroContent, appSect
             </nav>
 
             {/* ... Hero ... */}
-            <header className="relative pt-16 pb-24 overflow-hidden">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+            <header
+                className="relative min-h-screen flex items-center justify-center overflow-hidden"
+                style={{ backgroundColor: heroBackgroundColor }}
+            >
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 w-full">
                     <div className="text-center max-w-4xl mx-auto">
                         <div className="inline-flex items-center gap-2 bg-yellow-100 text-yellow-800 px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-widest mb-8">
                             <Star size={14} fill="currentColor" /> {heroBadgeText}
                         </div>
-                        <h1 className="text-5xl md:text-7xl font-black text-[#1a1a1a] leading-[1.1] mb-8 tracking-tight">
-                            {heroTitle} <span className="text-yellow-500">{heroTitleHighlight}</span>
+                        <h1 className="text-4xl sm:text-5xl md:text-7xl font-black text-[#1a1a1a] leading-[1.1] mb-6 md:mb-8 tracking-tight">
+                            {heroTitle} <span className="text-white">{heroTitleHighlight}</span>
                         </h1>
-                        <p className="text-xl text-slate-500 mb-12 max-w-2xl mx-auto leading-relaxed">
+                        <p className="text-lg md:text-xl text-[#1a1a1a] mb-8 md:mb-12 max-w-2xl mx-auto leading-relaxed px-4">
                             {heroSubtitle}
                         </p>
-                        <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16">
-                            <button className="w-full sm:w-auto bg-[#FFDE59] text-[#1a1a1a] font-black px-10 py-5 rounded-2xl text-lg hover:bg-yellow-400 transition-all shadow-xl shadow-yellow-100 flex items-center justify-center gap-2">
-                                {heroCtaPrimary} <ArrowRight size={20} />
-                            </button>
-                            <button className="w-full sm:w-auto bg-white border-2 border-slate-100 text-slate-600 font-bold px-10 py-5 rounded-2xl text-lg hover:border-yellow-400 hover:text-[#1a1a1a] transition-all">
-                                {heroCtaSecondary}
-                            </button>
-                        </div>
-                        {/* Search Mockup */}
-                        <div className="bg-white p-4 rounded-3xl shadow-2xl border border-slate-100 max-w-3xl mx-auto relative group">
-                            <div className="flex flex-col md:flex-row gap-2">
-                                <div className="flex-1 flex items-center px-4 bg-slate-50 rounded-2xl border border-transparent group-focus-within:border-yellow-400 transition-all">
-                                    <Search className="text-slate-400 mr-2" size={20} />
-                                    <input type="text" placeholder="What are you looking for today?" className="bg-transparent w-full py-4 outline-none font-medium text-slate-700" />
+                        {/* Search Bar */}
+                        <div className="bg-white py-2 px-2 md:py-3 md:px-3 rounded-full shadow-2xl max-w-3xl mx-auto relative">
+                            <div className="flex items-center gap-2">
+                                {/* Search Input */}
+                                <div className="flex-1 flex items-center pl-4">
+                                    <Search className="text-slate-400 mr-3 flex-shrink-0" size={20} />
+                                    <input
+                                        type="text"
+                                        value={searchQuery}
+                                        onChange={(e) => setSearchQuery(e.target.value)}
+                                        onKeyDown={handleKeyDown}
+                                        placeholder="Search prizes, jobs, or training..."
+                                        className="bg-transparent w-full py-2 outline-none font-medium text-slate-700 placeholder:text-slate-400"
+                                    />
                                 </div>
-                                <button className="bg-[#1a1a1a] text-white px-8 py-4 rounded-2xl font-bold hover:bg-slate-800 transition-all">
+
+                                {/* Category Dropdown - Desktop */}
+                                <div className="hidden md:block relative">
+                                    <button
+                                        onClick={() => setCategoryDropdownOpen(!categoryDropdownOpen)}
+                                        className="flex items-center gap-2 px-4 py-2 text-sm font-bold text-slate-700 hover:text-slate-900 transition-colors whitespace-nowrap"
+                                    >
+                                        {SEARCH_CATEGORIES.find(c => c.value === selectedCategory)?.label || 'All Categories'}
+                                        <ChevronDown size={16} className={`transition-transform ${categoryDropdownOpen ? 'rotate-180' : ''}`} />
+                                    </button>
+
+                                    {categoryDropdownOpen && (
+                                        <>
+                                            <div className="fixed inset-0 z-10" onClick={() => setCategoryDropdownOpen(false)} />
+                                            <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-xl shadow-xl border border-slate-100 py-2 z-20">
+                                                {SEARCH_CATEGORIES.map((category) => (
+                                                    <button
+                                                        key={category.value}
+                                                        onClick={() => {
+                                                            setSelectedCategory(category.value);
+                                                            setCategoryDropdownOpen(false);
+                                                        }}
+                                                        className={`w-full text-left px-4 py-2 text-sm font-medium transition-colors ${
+                                                            selectedCategory === category.value
+                                                                ? 'bg-slate-100 text-slate-900'
+                                                                : 'text-slate-600 hover:bg-slate-50'
+                                                        }`}
+                                                    >
+                                                        {category.label}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </>
+                                    )}
+                                </div>
+
+                                {/* Search Button */}
+                                <button
+                                    onClick={handleSearch}
+                                    className="bg-[#1a1a1a] text-white px-6 md:px-8 py-2.5 md:py-3 rounded-full font-bold hover:bg-slate-800 transition-all flex-shrink-0"
+                                >
                                     Search
                                 </button>
+                            </div>
+
+                            {/* Category Select - Mobile */}
+                            <div className="md:hidden mt-2 px-2">
+                                <select
+                                    value={selectedCategory}
+                                    onChange={(e) => setSelectedCategory(e.target.value)}
+                                    className="w-full bg-slate-50 border border-slate-200 rounded-full px-4 py-2 text-sm font-medium text-slate-700"
+                                >
+                                    {SEARCH_CATEGORIES.map((category) => (
+                                        <option key={category.value} value={category.value}>
+                                            {category.label}
+                                        </option>
+                                    ))}
+                                </select>
                             </div>
                         </div>
                     </div>

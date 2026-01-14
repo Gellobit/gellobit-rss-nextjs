@@ -37,6 +37,7 @@ const getHomepageSettings = unstable_cache(
             subtitle: settingsMap['hero_subtitle'] || 'Gellobit connects you with real giveaways, job fairs, and scholarships. No scams, just value verified daily by experts.',
             ctaPrimary: settingsMap['hero_cta_primary'] || 'Explore Feed Now',
             ctaSecondary: settingsMap['hero_cta_secondary'] || 'View Pro Plan',
+            backgroundColor: settingsMap['hero_background_color'] || '#ffffff',
         };
 
         // App download section

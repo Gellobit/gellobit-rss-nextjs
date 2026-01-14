@@ -43,6 +43,8 @@ interface Branding {
 interface OpportunitiesBrowserProps {
     opportunities: Opportunity[];
     branding: Branding;
+    initialSearch?: string;
+    initialType?: string;
 }
 
 const opportunityTypes = [
@@ -60,11 +62,11 @@ const opportunityTypes = [
     { value: 'evergreen', label: 'Evergreen', icon: BookOpen, color: 'bg-lime-100 text-lime-700' },
 ];
 
-export default function OpportunitiesBrowser({ opportunities, branding }: OpportunitiesBrowserProps) {
-    const [searchQuery, setSearchQuery] = useState('');
-    const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
+export default function OpportunitiesBrowser({ opportunities, branding, initialSearch = '', initialType = '' }: OpportunitiesBrowserProps) {
+    const [searchQuery, setSearchQuery] = useState(initialSearch);
+    const [selectedTypes, setSelectedTypes] = useState<string[]>(initialType ? [initialType] : []);
     const [isFilterOpen, setIsFilterOpen] = useState(false);
-    const [tempSelectedTypes, setTempSelectedTypes] = useState<string[]>([]);
+    const [tempSelectedTypes, setTempSelectedTypes] = useState<string[]>(initialType ? [initialType] : []);
     const [viewMode, setViewMode] = useState<'table' | 'card'>('table');
 
     // Filter opportunities
@@ -179,7 +181,7 @@ export default function OpportunitiesBrowser({ opportunities, branding }: Opport
                     </div>
 
                     {/* View Mode Toggle */}
-                    <div className="hidden sm:flex items-center bg-slate-100 rounded-xl p-1">
+                    <div className="flex items-center bg-slate-100 rounded-xl p-1">
                         <button
                             onClick={() => setViewMode('table')}
                             className={`p-2 rounded-lg transition-colors ${
@@ -276,15 +278,17 @@ export default function OpportunitiesBrowser({ opportunities, branding }: Opport
                 ) : viewMode === 'table' ? (
                     /* Table View */
                     <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-                        <div className="overflow-x-auto">
-                        <table className="w-full table-fixed min-w-[600px]">
+                        <table className="w-full">
                             <thead className="bg-slate-50 border-b border-slate-100">
                                 <tr>
-                                    <th className="text-left text-xs font-bold text-slate-500 uppercase tracking-wider px-4 py-3 w-1/2">Opportunity</th>
-                                    <th className="text-left text-xs font-bold text-slate-500 uppercase tracking-wider px-4 py-3 hidden md:table-cell w-28">Type</th>
-                                    <th className="text-left text-xs font-bold text-slate-500 uppercase tracking-wider px-4 py-3 hidden lg:table-cell w-44">Prize</th>
-                                    <th className="text-left text-xs font-bold text-slate-500 uppercase tracking-wider px-4 py-3 hidden sm:table-cell w-28">Deadline</th>
-                                    <th className="w-12"></th>
+                                    <th className="text-left text-xs font-bold text-slate-500 uppercase tracking-wider px-3 md:px-4 py-3 md:w-1/2">Opportunity</th>
+                                    <th className="text-left text-xs font-bold text-slate-500 uppercase tracking-wider px-2 md:px-4 py-3 w-10 md:w-28">Type</th>
+                                    <th className="text-left text-xs font-bold text-slate-500 uppercase tracking-wider px-4 py-3 hidden lg:table-cell">Prize</th>
+                                    <th className="text-left text-xs font-bold text-slate-500 uppercase tracking-wider px-2 md:px-4 py-3 w-[52px] md:w-28">
+                                        <span className="hidden md:inline">Deadline</span>
+                                        <span className="md:hidden">Date</span>
+                                    </th>
+                                    <th className="w-10 md:w-12"></th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100">
@@ -294,10 +298,10 @@ export default function OpportunitiesBrowser({ opportunities, branding }: Opport
 
                                     return (
                                         <tr key={opp.id} className="group hover:bg-slate-50 transition-colors">
-                                            <td className="px-4 py-3">
-                                                <Link href={`/opportunities/${opp.slug}`} className="flex items-center gap-3">
+                                            <td className="px-3 md:px-4 py-3">
+                                                <Link href={`/opportunities/${opp.slug}`} className="flex items-center gap-2 md:gap-3">
                                                     {/* Thumbnail */}
-                                                    <div className="w-16 h-12 rounded-lg overflow-hidden flex-shrink-0 bg-slate-100">
+                                                    <div className="w-12 h-10 md:w-16 md:h-12 rounded-lg overflow-hidden flex-shrink-0 bg-slate-100">
                                                         {opp.featured_image_url ? (
                                                             <img
                                                                 src={opp.featured_image_url}
@@ -306,22 +310,28 @@ export default function OpportunitiesBrowser({ opportunities, branding }: Opport
                                                             />
                                                         ) : (
                                                             <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100">
-                                                                <Icon className="w-6 h-6 text-slate-300" />
+                                                                <Icon className="w-5 h-5 md:w-6 md:h-6 text-slate-300" />
                                                             </div>
                                                         )}
                                                     </div>
                                                     <div className="min-w-0 flex-1">
-                                                        <h3 className="font-bold text-sm text-slate-900 truncate group-hover:text-yellow-600 transition-colors">
+                                                        <h3 className="font-bold text-xs md:text-sm text-slate-900 line-clamp-1 group-hover:text-yellow-600 transition-colors">
                                                             {opp.title}
                                                         </h3>
                                                         {opp.excerpt && (
-                                                            <p className="text-xs text-slate-500 truncate hidden sm:block">{opp.excerpt}</p>
+                                                            <p className="text-[10px] md:text-xs text-slate-500 line-clamp-1">{opp.excerpt}</p>
                                                         )}
                                                     </div>
                                                 </Link>
                                             </td>
-                                            <td className="px-4 py-3 hidden md:table-cell">
-                                                <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold ${config.color}`}>
+                                            {/* Type - Icon only on mobile, icon+label on md+ */}
+                                            <td className="px-2 md:px-4 py-3">
+                                                {/* Mobile: Icon only */}
+                                                <span className={`md:hidden inline-flex items-center justify-center w-7 h-7 rounded-lg ${config.color}`}>
+                                                    <Icon size={14} />
+                                                </span>
+                                                {/* Desktop: Icon + Label */}
+                                                <span className={`hidden md:inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold ${config.color}`}>
                                                     <Icon size={12} />
                                                     {config.label}
                                                 </span>
@@ -333,25 +343,35 @@ export default function OpportunitiesBrowser({ opportunities, branding }: Opport
                                                     <span className="text-sm text-slate-400">-</span>
                                                 )}
                                             </td>
-                                            <td className="px-4 py-3 hidden sm:table-cell">
+                                            {/* Deadline - Abbreviated on mobile */}
+                                            <td className="px-2 md:px-4 py-3">
                                                 {opp.deadline ? (
-                                                    <span className="flex items-center gap-1 text-sm text-slate-600">
-                                                        <Clock size={14} className="text-slate-400" />
-                                                        {new Date(opp.deadline).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                                                    </span>
+                                                    <>
+                                                        {/* Mobile: Very short format */}
+                                                        <span className="md:hidden text-[10px] text-slate-600 whitespace-nowrap">
+                                                            {new Date(opp.deadline).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                                                        </span>
+                                                        {/* Desktop: With icon */}
+                                                        <span className="hidden md:flex items-center gap-1 text-sm text-slate-600">
+                                                            <Clock size={14} className="text-slate-400" />
+                                                            {new Date(opp.deadline).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                                                        </span>
+                                                    </>
                                                 ) : (
-                                                    <span className="text-sm text-slate-400">No deadline</span>
+                                                    <>
+                                                        <span className="md:hidden text-[10px] text-slate-400 whitespace-nowrap">No date</span>
+                                                        <span className="hidden md:inline text-sm text-slate-400">No deadline</span>
+                                                    </>
                                                 )}
                                             </td>
-                                            <td className="px-4 py-3">
-                                                <FavoriteButton opportunityId={opp.id} size={18} />
+                                            <td className="px-2 md:px-4 py-3">
+                                                <FavoriteButton opportunityId={opp.id} size={16} />
                                             </td>
                                         </tr>
                                     );
                                 })}
                             </tbody>
                         </table>
-                        </div>
                     </div>
                 ) : (
                     /* Card View - Horizontal layout with 50% image */

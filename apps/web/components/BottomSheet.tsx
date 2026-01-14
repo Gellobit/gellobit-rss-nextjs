@@ -89,12 +89,12 @@ export default function BottomSheet({
 
     return (
         <div
-            className="fixed inset-0 z-50 bg-black/50 transition-opacity"
+            className="fixed inset-0 z-50 bg-black/50 transition-opacity flex items-end md:items-center md:justify-center"
             onClick={handleBackdropClick}
         >
             <div
                 ref={sheetRef}
-                className="absolute bottom-0 left-0 right-0 bg-white rounded-t-3xl shadow-2xl transition-transform duration-200 ease-out"
+                className="w-full md:max-w-xl md:mx-4 bg-white rounded-t-3xl md:rounded-2xl shadow-2xl transition-transform duration-200 ease-out"
                 style={{
                     height: sheetHeight,
                     transform: `translateY(${isOpen ? 0 : '100%'})`,

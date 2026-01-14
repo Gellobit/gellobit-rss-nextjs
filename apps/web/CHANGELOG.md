@@ -2,6 +2,53 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.0-alpha.7] - 2026-01-14
+
+### Added
+- **Homepage Hero Redesign**:
+  - Full viewport height (100vh) with vertically centered content
+  - Customizable background color via admin personalization settings
+  - New color picker in admin for hero background
+
+- **New Search Bar Design**:
+  - Pill/rounded design matching modern UI patterns
+  - "All Categories" dropdown with 8 opportunity types
+  - Search navigates to opportunities page with query params
+  - Mobile-friendly with select dropdown on small screens
+
+- **Opportunities Page Authentication**:
+  - Page now requires user authentication
+  - Unauthenticated users redirected to login
+  - Search params (query & type) passed from homepage
+
+### Changed
+- **Mobile Table View Improvements**:
+  - View mode toggle now visible on mobile
+  - Type column shows icon only with colored background
+  - Excerpt visible below title
+  - Abbreviated deadline format ("No date" on mobile)
+  - Removed horizontal scrollbar
+
+- **Desktop Table Adjustments**:
+  - Title column now takes 50% width for better balance
+  - "No deadline" text instead of "-" for empty deadlines
+
+- **Filter Modal (BottomSheet)**:
+  - Centered on desktop with max-width constraint
+  - Rounded corners on all sides for desktop view
+
+- **Hero Text Colors**:
+  - Title highlight changed from yellow to white (for yellow background)
+  - Subtitle changed from gray to black for better contrast
+
+### Removed
+- Removed "Explore Feed Now" and "View Pro Plan" buttons from homepage hero
+
+### Technical Details
+- Added `hero_background_color` to personalization settings API
+- OpportunitiesBrowser accepts `initialSearch` and `initialType` props
+- BottomSheet uses `md:max-w-xl md:rounded-2xl` for desktop centering
+
 ## [1.0.0-alpha.6] - 2026-01-14
 
 ### Added
