@@ -44,6 +44,7 @@ export async function GET(request: NextRequest) {
       .select(`
         id,
         title,
+        slug,
         opportunity_type,
         status,
         ai_provider,
@@ -101,6 +102,7 @@ export async function GET(request: NextRequest) {
               opp.status === 'draft' ? 'Awaiting review' : 'No reason provided'),
       source_url: opp.source_url,
       opportunity_id: opp.status === 'published' ? opp.id : null,
+      opportunity_slug: opp.status === 'published' ? opp.slug : null,
       confidence_score: opp.confidence_score,
     })) || [];
 

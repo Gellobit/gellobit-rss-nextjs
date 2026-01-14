@@ -161,7 +161,7 @@ export default function SavedPage() {
                                     >
                                         <div className="flex">
                                             {/* Image */}
-                                            <Link href={`/p/${opp.slug}`} className="w-24 shrink-0">
+                                            <Link href={`/opportunities/${opp.slug}`} className="w-24 shrink-0">
                                                 {opp.featured_image_url ? (
                                                     <img
                                                         src={opp.featured_image_url}
@@ -188,7 +188,7 @@ export default function SavedPage() {
                                                             </span>
                                                         )}
                                                     </div>
-                                                    <Link href={`/p/${opp.slug}`}>
+                                                    <Link href={`/opportunities/${opp.slug}`}>
                                                         <h3 className="font-bold text-sm text-slate-900 line-clamp-2">
                                                             {opp.title}
                                                         </h3>

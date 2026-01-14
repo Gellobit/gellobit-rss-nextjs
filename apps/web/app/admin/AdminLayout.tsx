@@ -3,7 +3,8 @@
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { LayoutDashboard, Rss, BarChart3, Settings as SettingsIcon, ScrollText, LogOut, FileText, BookOpen, StickyNote } from 'lucide-react';
+import { LayoutDashboard, Rss, BarChart3, Settings as SettingsIcon, ScrollText, FileText, BookOpen, StickyNote } from 'lucide-react';
+import UserNav from '@/components/UserNav';
 import Dashboard from './Dashboard';
 import ManageFeeds from './ManageFeeds';
 import ManagePosts from './ManagePosts';
@@ -40,11 +41,6 @@ export default function AdminLayout({ initialSection, branding }: AdminLayoutPro
     const navigateToSection = (section: Section) => {
         setActiveSection(section);
         router.push(`/admin?section=${section}`);
-    };
-
-    const handleLogout = async () => {
-        // TODO: Implement logout
-        router.push('/auth');
     };
 
     const sections = [
@@ -105,14 +101,8 @@ export default function AdminLayout({ initialSection, branding }: AdminLayoutPro
                             })}
                         </div>
 
-                        {/* Logout */}
-                        <button
-                            onClick={handleLogout}
-                            className="flex items-center gap-2 px-4 py-2 text-sm font-bold text-slate-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                        >
-                            <LogOut size={16} />
-                            <span className="hidden sm:inline">Logout</span>
-                        </button>
+                        {/* User Menu */}
+                        <UserNav hideOpportunities />
                     </div>
                 </div>
             </nav>

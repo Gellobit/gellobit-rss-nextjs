@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { User, Mail, Camera, Save, RefreshCw, Key, Crown, Calendar, Heart, Bell, LogOut, ChevronRight, ChevronDown, Settings, FileText, Info } from 'lucide-react';
+import { User, Mail, Camera, Save, RefreshCw, Key, Crown, Calendar, Heart, Bell, LogOut, ChevronRight, ChevronDown, Settings, FileText, Info, Briefcase } from 'lucide-react';
 import { APP_VERSION } from '@/components/LandingPage';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -268,6 +268,19 @@ export default function AccountPage() {
                 {/* Menu Items */}
                 <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden">
                     <Link
+                        href="/opportunities"
+                        className="flex items-center justify-between px-4 py-4 border-b border-slate-100 hover:bg-slate-50 transition-colors"
+                    >
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center">
+                                <Briefcase className="text-blue-600" size={20} />
+                            </div>
+                            <span className="font-medium">Browse Opportunities</span>
+                        </div>
+                        <ChevronRight className="text-slate-400" size={20} />
+                    </Link>
+
+                    <Link
                         href="/saved"
                         className="flex items-center justify-between px-4 py-4 border-b border-slate-100 hover:bg-slate-50 transition-colors"
                     >
@@ -285,8 +298,8 @@ export default function AccountPage() {
                         className="flex items-center justify-between px-4 py-4 border-b border-slate-100 hover:bg-slate-50 transition-colors"
                     >
                         <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center">
-                                <Bell className="text-blue-600" size={20} />
+                            <div className="w-10 h-10 bg-amber-100 rounded-xl flex items-center justify-center">
+                                <Bell className="text-amber-600" size={20} />
                             </div>
                             <span className="font-medium">Notifications</span>
                         </div>

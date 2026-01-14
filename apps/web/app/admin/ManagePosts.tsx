@@ -65,6 +65,7 @@ export default function ManagePosts() {
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [feeds, setFeeds] = useState<Feed[]>([]);
+    const [sessionExpired, setSessionExpired] = useState(false);
 
     // Filters
     const [statusFilter, setStatusFilter] = useState<string>('');
@@ -114,6 +115,7 @@ export default function ManagePosts() {
 
     const fetchOpportunities = async () => {
         setRefreshing(true);
+        setSessionExpired(false);
         try {
             const params = new URLSearchParams();
             params.append('limit', limit.toString());
@@ -124,6 +126,14 @@ export default function ManagePosts() {
             if (searchQuery) params.append('search', searchQuery);
 
             const res = await fetch(`/api/admin/opportunities?${params.toString()}`);
+
+            if (res.status === 401) {
+                setSessionExpired(true);
+                setLoading(false);
+                setRefreshing(false);
+                return;
+            }
+
             const data = await res.json();
 
             if (res.ok) {
@@ -261,6 +271,28 @@ export default function ManagePosts() {
         const found = opportunityTypes.find(t => t.value === type);
         return found?.label || type;
     };
+
+    if (sessionExpired) {
+        return (
+            <div className="flex items-center justify-center min-h-[400px]">
+                <div className="text-center py-12 px-8 bg-amber-50 border border-amber-200 rounded-lg max-w-md">
+                    <div className="text-amber-600 mb-2">
+                        <svg className="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        </svg>
+                    </div>
+                    <h3 className="text-lg font-bold text-amber-800 mb-2">Session Expired</h3>
+                    <p className="text-amber-700 mb-4">Your session has expired. Please log in again to continue.</p>
+                    <a
+                        href="/auth?redirect=/admin?section=posts"
+                        className="inline-flex items-center gap-2 bg-amber-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-amber-700 transition-colors"
+                    >
+                        Log In Again
+                    </a>
+                </div>
+            </div>
+        );
+    }
 
     if (loading) {
         return (
@@ -475,7 +507,7 @@ export default function ManagePosts() {
                                                 {/* View live (if published) */}
                                                 {opp.status === 'published' && (
                                                     <a
-                                                        href={`/p/${opp.slug}`}
+                                                        href={`/opportunities/${opp.slug}`}
                                                         target="_blank"
                                                         rel="noopener noreferrer"
                                                         className="p-1.5 text-green-600 hover:bg-green-50 rounded transition-colors"

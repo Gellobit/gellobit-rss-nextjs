@@ -4,6 +4,7 @@ import { unstable_cache } from 'next/cache';
 import { createAdminClient } from '@/lib/utils/supabase-admin';
 import AccountSidebar from './AccountSidebar';
 import MobileNavBar from '@/components/MobileNavBar';
+import UserNav from '@/components/UserNav';
 
 // Get branding
 const getBranding = unstable_cache(
@@ -65,10 +66,8 @@ export default async function AccountLayout({
                         )}
                     </a>
                     <h1 className="md:hidden font-bold text-lg">Account</h1>
-                    <div className="hidden md:flex items-center gap-4">
-                        <a href="/" className="text-sm font-bold text-slate-500 hover:text-[#1a1a1a]">
-                            Browse Opportunities
-                        </a>
+                    <div className="hidden md:block">
+                        <UserNav />
                     </div>
                     <div className="w-8 md:hidden" />
                 </div>

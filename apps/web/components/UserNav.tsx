@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { User, Settings, Heart, Bell, LogOut, Shield, ChevronDown } from 'lucide-react';
+import { User, Settings, Heart, Bell, LogOut, Shield, ChevronDown, Briefcase } from 'lucide-react';
 
 interface UserProfile {
     id: string;
@@ -12,7 +12,11 @@ interface UserProfile {
     role: string;
 }
 
-export default function UserNav() {
+interface UserNavProps {
+    hideOpportunities?: boolean;
+}
+
+export default function UserNav({ hideOpportunities = false }: UserNavProps) {
     const [user, setUser] = useState<UserProfile | null>(null);
     const [mounted, setMounted] = useState(false);
     const [menuOpen, setMenuOpen] = useState(false);
@@ -93,7 +97,17 @@ export default function UserNav() {
     const isAdmin = user.role === 'admin';
 
     return (
-        <div className="relative" ref={menuRef}>
+        <div className="flex items-center gap-4">
+            {!hideOpportunities && (
+                <Link
+                    href="/opportunities"
+                    className="flex items-center gap-2 text-sm font-bold text-slate-600 hover:text-[#1a1a1a] transition-colors"
+                >
+                    <Briefcase size={18} />
+                    Opportunities
+                </Link>
+            )}
+            <div className="relative" ref={menuRef}>
             <button
                 onClick={() => setMenuOpen(!menuOpen)}
                 className="flex items-center gap-2 hover:bg-slate-50 px-3 py-2 rounded-xl transition-colors"
@@ -127,6 +141,14 @@ export default function UserNav() {
 
                     {/* Menu Items */}
                     <div className="p-2">
+                        <Link
+                            href="/opportunities"
+                            onClick={() => setMenuOpen(false)}
+                            className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50 rounded-xl transition-colors"
+                        >
+                            <Briefcase size={18} />
+                            Browse Opportunities
+                        </Link>
                         <Link
                             href="/account"
                             onClick={() => setMenuOpen(false)}
@@ -178,6 +200,7 @@ export default function UserNav() {
                     </div>
                 </div>
             )}
+            </div>
         </div>
     );
 }

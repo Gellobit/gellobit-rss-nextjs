@@ -424,7 +424,7 @@ export class RSSProcessorService {
 
       const { data: feed } = await supabase
         .from('rss_feeds')
-        .select('stats_total_processed, stats_opportunities_created')
+        .select('total_processed, total_published')
         .eq('id', feedId)
         .single();
 
@@ -433,12 +433,12 @@ export class RSSProcessorService {
       await supabase
         .from('rss_feeds')
         .update({
-          stats_total_processed:
-            (feed.stats_total_processed || 0) + result.itemsProcessed,
-          stats_opportunities_created:
-            (feed.stats_opportunities_created || 0) +
+          total_processed:
+            (feed.total_processed || 0) + result.itemsProcessed,
+          total_published:
+            (feed.total_published || 0) +
             result.opportunitiesCreated,
-          last_processed_at: new Date().toISOString(),
+          last_fetched: new Date().toISOString(),
         })
         .eq('id', feedId);
 
@@ -472,7 +472,7 @@ export class RSSProcessorService {
 
     const { data: feeds } = await supabase
       .from('rss_feeds')
-      .select('id, name, stats_total_processed, stats_opportunities_created');
+      .select('id, name, total_processed, total_published');
 
     const { data: recentLogs } = await supabase
       .from('processing_logs')
@@ -488,11 +488,11 @@ export class RSSProcessorService {
     return {
       total_feeds: feeds?.length || 0,
       total_items_processed:
-        feeds?.reduce((sum, f) => sum + (f.stats_total_processed || 0), 0) ||
+        feeds?.reduce((sum, f) => sum + (f.total_processed || 0), 0) ||
         0,
       total_opportunities_created:
         feeds?.reduce(
-          (sum, f) => sum + (f.stats_opportunities_created || 0),
+          (sum, f) => sum + (f.total_published || 0),
           0
         ) || 0,
       errors_last_24h: errors,

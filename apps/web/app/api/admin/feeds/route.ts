@@ -11,8 +11,17 @@ import { safeParse, createFeedSchema } from '@/lib/utils/validation';
  */
 export async function GET(request: NextRequest) {
   try {
-    // Verify user is authenticated and admin
+    // Create clients and start feeds query in parallel
     const supabase = await createRouteClient();
+    const adminSupabase = createAdminClient();
+
+    // Start feeds query early (will be used if authorized)
+    const feedsPromise = adminSupabase
+      .from('rss_feeds')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    // Verify user is authenticated
     const {
       data: { user },
       error: authError,
@@ -33,12 +42,8 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    // Get feeds
-    const adminSupabase = createAdminClient();
-    const { data: feeds, error } = await adminSupabase
-      .from('rss_feeds')
-      .select('*')
-      .order('created_at', { ascending: false });
+    // Now await the feeds query that started earlier
+    const { data: feeds, error } = await feedsPromise;
 
     if (error) {
       throw error;

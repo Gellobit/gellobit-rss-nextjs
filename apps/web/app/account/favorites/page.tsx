@@ -182,7 +182,7 @@ export default function FavoritesPage() {
                                                 </div>
 
                                                 {/* Title */}
-                                                <Link href={`/p/${opp.slug}`}>
+                                                <Link href={`/opportunities/${opp.slug}`}>
                                                     <h3 className="font-bold text-lg text-slate-900 hover:text-blue-600 transition-colors line-clamp-2">
                                                         {opp.title}
                                                     </h3>
@@ -218,7 +218,7 @@ export default function FavoritesPage() {
                                             {/* Actions */}
                                             <div className="flex items-center gap-2">
                                                 <Link
-                                                    href={`/p/${opp.slug}`}
+                                                    href={`/opportunities/${opp.slug}`}
                                                     className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                                                     title="View"
                                                 >

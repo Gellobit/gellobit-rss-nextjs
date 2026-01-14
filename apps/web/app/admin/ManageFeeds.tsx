@@ -21,8 +21,8 @@ interface Feed {
     fallback_featured_image_url?: string | null;
     allow_republishing?: boolean;
     last_fetched?: string;
-    total_items_processed?: number;
-    opportunities_created?: number;
+    total_processed?: number;
+    total_published?: number;
 }
 
 interface FeedFormValues {
@@ -292,6 +292,8 @@ export default function ManageFeeds() {
     const [syncing, setSyncing] = useState<string | null>(null);
     const [newFeed, setNewFeed] = useState<FeedFormValues>(defaultFeedValues);
     const [adding, setAdding] = useState(false);
+    const [showAddForm, setShowAddForm] = useState(false);
+    const [sessionExpired, setSessionExpired] = useState(false);
 
     // Edit modal state
     const [editingFeed, setEditingFeed] = useState<Feed | null>(null);
@@ -304,8 +306,14 @@ export default function ManageFeeds() {
 
     const fetchFeeds = async () => {
         setLoading(true);
+        setSessionExpired(false);
         try {
             const res = await fetch('/api/admin/feeds');
+            if (res.status === 401) {
+                setSessionExpired(true);
+                setLoading(false);
+                return;
+            }
             const data = await res.json();
             if (res.ok) {
                 setFeeds(data.feeds || []);
@@ -338,6 +346,7 @@ export default function ManageFeeds() {
             const data = await res.json();
             if (res.ok) {
                 setNewFeed(defaultFeedValues);
+                setShowAddForm(false);
                 fetchFeeds();
             } else {
                 alert('Error adding feed: ' + data.error);
@@ -346,6 +355,11 @@ export default function ManageFeeds() {
             alert('Error adding feed: ' + error);
         }
         setAdding(false);
+    };
+
+    const handleCancelAdd = () => {
+        setShowAddForm(false);
+        setNewFeed(defaultFeedValues);
     };
 
     const handleDelete = async (id: string) => {
@@ -429,27 +443,87 @@ export default function ManageFeeds() {
 
     return (
         <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-            <h3 className="text-lg font-bold mb-6 flex items-center gap-2">
-                <RefreshCw size={20} /> Manage RSS Feeds
-            </h3>
+            <div className="flex items-center justify-between mb-6">
+                <h3 className="text-lg font-bold flex items-center gap-2">
+                    <RefreshCw size={20} /> Manage RSS Feeds
+                </h3>
+                {!showAddForm && (
+                    <button
+                        onClick={() => setShowAddForm(true)}
+                        className="bg-slate-900 text-white px-4 py-2 rounded font-bold hover:bg-slate-800 flex items-center gap-2"
+                    >
+                        <Plus size={16} /> Add Feed
+                    </button>
+                )}
+            </div>
 
-            {/* Add Feed Form */}
-            <form onSubmit={handleAddFeed} className="mb-8 bg-slate-50 p-4 rounded-lg">
-                <FeedForm values={newFeed} onChange={handleNewFeedChange} />
-                <button
-                    type="submit"
-                    disabled={adding}
-                    className="mt-4 bg-slate-900 text-white px-4 py-2 rounded font-bold hover:bg-slate-800 flex items-center gap-2 justify-center disabled:opacity-50"
-                >
-                    <Plus size={16} /> {adding ? 'Adding...' : 'Add Feed'}
-                </button>
-            </form>
+            {/* Add Feed Form - Only shown when showAddForm is true */}
+            {showAddForm && (
+                <form onSubmit={handleAddFeed} className="mb-8 bg-slate-50 p-4 rounded-lg border border-slate-200">
+                    <div className="flex items-center justify-between mb-4">
+                        <h4 className="font-bold text-slate-700">New Feed</h4>
+                        <button
+                            type="button"
+                            onClick={handleCancelAdd}
+                            className="p-1 text-slate-400 hover:text-slate-600 hover:bg-slate-200 rounded"
+                        >
+                            <X size={18} />
+                        </button>
+                    </div>
+                    <FeedForm values={newFeed} onChange={handleNewFeedChange} />
+                    <div className="flex gap-3 mt-4">
+                        <button
+                            type="submit"
+                            disabled={adding}
+                            className="bg-slate-900 text-white px-4 py-2 rounded font-bold hover:bg-slate-800 flex items-center gap-2 justify-center disabled:opacity-50"
+                        >
+                            <Plus size={16} /> {adding ? 'Adding...' : 'Add Feed'}
+                        </button>
+                        <button
+                            type="button"
+                            onClick={handleCancelAdd}
+                            className="px-4 py-2 border border-slate-300 rounded font-bold hover:bg-slate-100"
+                        >
+                            Cancel
+                        </button>
+                    </div>
+                </form>
+            )}
 
             {/* Feeds List */}
-            {loading ? (
-                <p className="text-center text-slate-500">Loading feeds...</p>
+            {sessionExpired ? (
+                <div className="text-center py-12 bg-amber-50 border border-amber-200 rounded-lg">
+                    <div className="text-amber-600 mb-2">
+                        <svg className="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        </svg>
+                    </div>
+                    <h3 className="text-lg font-bold text-amber-800 mb-2">Session Expired</h3>
+                    <p className="text-amber-700 mb-4">Your session has expired. Please log in again to continue.</p>
+                    <a
+                        href="/auth?redirect=/admin?section=feeds"
+                        className="inline-flex items-center gap-2 bg-amber-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-amber-700 transition-colors"
+                    >
+                        Log In Again
+                    </a>
+                </div>
+            ) : loading ? (
+                <div className="flex items-center justify-center py-12">
+                    <RefreshCw size={24} className="animate-spin text-slate-400" />
+                    <span className="ml-2 text-slate-500">Loading feeds...</span>
+                </div>
             ) : feeds.length === 0 ? (
-                <p className="text-center text-slate-400 italic">No feeds configured yet.</p>
+                <div className="text-center py-12">
+                    <p className="text-slate-400 italic mb-4">No feeds configured yet.</p>
+                    {!showAddForm && (
+                        <button
+                            onClick={() => setShowAddForm(true)}
+                            className="bg-slate-900 text-white px-4 py-2 rounded font-bold hover:bg-slate-800 inline-flex items-center gap-2"
+                        >
+                            <Plus size={16} /> Add Your First Feed
+                        </button>
+                    )}
+                </div>
             ) : (
                 <div className="space-y-4">
                     {feeds.map((feed) => (
@@ -473,8 +547,8 @@ export default function ManageFeeds() {
                                                 AI: {feed.ai_provider}
                                             </span>
                                         )}
-                                        <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-slate-100 text-slate-600">
-                                            P{feed.priority || 5}
+                                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-600">
+                                            Priority: {feed.priority || 5}
                                         </span>
                                     </div>
                                     <a href={feed.url} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-500 hover:underline flex items-center gap-1 mb-2">
@@ -482,8 +556,8 @@ export default function ManageFeeds() {
                                     </a>
                                     <div className="flex gap-4 text-xs text-slate-500 flex-wrap">
                                         <span>Last: {feed.last_fetched ? new Date(feed.last_fetched).toLocaleString() : 'Never'}</span>
-                                        <span>Processed: {feed.total_items_processed || 0}</span>
-                                        <span>Created: {feed.opportunities_created || 0}</span>
+                                        <span>Processed: {feed.total_processed || 0}</span>
+                                        <span>Created: {feed.total_published || 0}</span>
                                         <span>Interval: {feed.cron_interval || 'hourly'}</span>
                                     </div>
                                 </div>

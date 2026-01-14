@@ -2,6 +2,42 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.0-alpha.6] - 2026-01-14
+
+### Added
+- **Opportunities Page View Modes**: New table and card view options
+  - Table view (default) with thumbnail, title, type, prize, deadline, and favorite button
+  - Card view with horizontal layout (50% image, 50% content)
+  - View mode toggle buttons in search bar
+  - Proper max-width container (max-w-7xl) matching app layout
+
+- **Enhanced User Navigation**:
+  - "Opportunities" link in header for logged-in users (desktop)
+  - "Browse Opportunities" added to UserNav dropdown menu
+  - "Browse Opportunities" added to mobile account menu
+  - `hideOpportunities` prop for UserNav to avoid duplicates in admin
+
+- **Session Expiration Handling**: Friendly UI across all admin components
+  - Amber warning banner when session expires
+  - "Log In Again" button for easy re-authentication
+  - Consistent behavior across Dashboard, ManageFeeds, ManagePosts, ManageBlogPosts, ManagePages, ProcessingLog, and all Settings components
+
+### Changed
+- **Feed Management UI**: Reorganized to show feeds list first, add form on button click
+- **Feed Stats Display**: Changed "P5" label to "Priority: 5" for clarity
+- **UserNav Component**: Added to account layout header and admin layout
+
+### Fixed
+- Fixed 404 error when accessing published opportunities (URL pattern was `/p/` instead of `/opportunities/`)
+- Fixed feed stats not updating after processing (field name mismatch between code and database)
+- Fixed "Browse Opportunities" link in account layout (was pointing to `/`)
+- Fixed feed loading performance by parallelizing API queries
+
+### Technical Details
+- Database fields corrected: `last_fetched`, `total_processed`, `total_published`
+- Opportunities table uses `table-fixed` layout with explicit column widths
+- Table supports horizontal scroll on smaller screens
+
 ## [1.0.0-alpha.5] - 2026-01-14
 
 ### Added

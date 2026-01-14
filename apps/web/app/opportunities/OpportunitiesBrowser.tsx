@@ -15,6 +15,8 @@ import {
     X,
     Check,
     ChevronLeft,
+    LayoutGrid,
+    Table2,
 } from 'lucide-react';
 import BottomSheet from '@/components/BottomSheet';
 import MobileNavBar from '@/components/MobileNavBar';
@@ -63,6 +65,7 @@ export default function OpportunitiesBrowser({ opportunities, branding }: Opport
     const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
     const [isFilterOpen, setIsFilterOpen] = useState(false);
     const [tempSelectedTypes, setTempSelectedTypes] = useState<string[]>([]);
+    const [viewMode, setViewMode] = useState<'table' | 'card'>('table');
 
     // Filter opportunities
     const filteredOpportunities = useMemo(() => {
@@ -154,7 +157,7 @@ export default function OpportunitiesBrowser({ opportunities, branding }: Opport
                 </div>
 
                 {/* Search and Filter Bar */}
-                <div className="px-4 py-3 flex gap-2">
+                <div className="max-w-7xl mx-auto px-4 py-3 flex gap-2">
                     {/* Search Input */}
                     <div className="flex-1 relative">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
@@ -173,6 +176,32 @@ export default function OpportunitiesBrowser({ opportunities, branding }: Opport
                                 <X size={16} />
                             </button>
                         )}
+                    </div>
+
+                    {/* View Mode Toggle */}
+                    <div className="hidden sm:flex items-center bg-slate-100 rounded-xl p-1">
+                        <button
+                            onClick={() => setViewMode('table')}
+                            className={`p-2 rounded-lg transition-colors ${
+                                viewMode === 'table'
+                                    ? 'bg-white shadow-sm text-slate-900'
+                                    : 'text-slate-500 hover:text-slate-700'
+                            }`}
+                            title="Table view"
+                        >
+                            <Table2 size={18} />
+                        </button>
+                        <button
+                            onClick={() => setViewMode('card')}
+                            className={`p-2 rounded-lg transition-colors ${
+                                viewMode === 'card'
+                                    ? 'bg-white shadow-sm text-slate-900'
+                                    : 'text-slate-500 hover:text-slate-700'
+                            }`}
+                            title="Card view"
+                        >
+                            <LayoutGrid size={18} />
+                        </button>
                     </div>
 
                     {/* Filter Button */}
@@ -196,7 +225,7 @@ export default function OpportunitiesBrowser({ opportunities, branding }: Opport
 
                 {/* Active Filters (Desktop) */}
                 {selectedTypes.length > 0 && (
-                    <div className="hidden md:flex px-4 pb-3 gap-2 flex-wrap">
+                    <div className="hidden md:flex max-w-7xl mx-auto px-4 pb-3 gap-2 flex-wrap">
                         {selectedTypes.map((type) => {
                             const config = getTypeConfig(type);
                             return (
@@ -221,12 +250,12 @@ export default function OpportunitiesBrowser({ opportunities, branding }: Opport
             </header>
 
             {/* Results Count */}
-            <div className="px-4 py-3 text-sm text-slate-500">
+            <div className="max-w-7xl mx-auto px-4 py-3 text-sm text-slate-500">
                 {filteredOpportunities.length} {filteredOpportunities.length === 1 ? 'opportunity' : 'opportunities'} found
             </div>
 
             {/* Opportunities Grid */}
-            <main className="px-4 pb-6">
+            <main className="max-w-7xl mx-auto px-4 pb-6">
                 {filteredOpportunities.length === 0 ? (
                     <div className="text-center py-16">
                         <Gift className="mx-auto h-16 w-16 text-slate-300 mb-4" />
@@ -244,8 +273,89 @@ export default function OpportunitiesBrowser({ opportunities, branding }: Opport
                             </button>
                         )}
                     </div>
+                ) : viewMode === 'table' ? (
+                    /* Table View */
+                    <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+                        <div className="overflow-x-auto">
+                        <table className="w-full table-fixed min-w-[600px]">
+                            <thead className="bg-slate-50 border-b border-slate-100">
+                                <tr>
+                                    <th className="text-left text-xs font-bold text-slate-500 uppercase tracking-wider px-4 py-3 w-1/2">Opportunity</th>
+                                    <th className="text-left text-xs font-bold text-slate-500 uppercase tracking-wider px-4 py-3 hidden md:table-cell w-28">Type</th>
+                                    <th className="text-left text-xs font-bold text-slate-500 uppercase tracking-wider px-4 py-3 hidden lg:table-cell w-44">Prize</th>
+                                    <th className="text-left text-xs font-bold text-slate-500 uppercase tracking-wider px-4 py-3 hidden sm:table-cell w-28">Deadline</th>
+                                    <th className="w-12"></th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100">
+                                {filteredOpportunities.map((opp) => {
+                                    const config = getTypeConfig(opp.opportunity_type);
+                                    const Icon = config.icon;
+
+                                    return (
+                                        <tr key={opp.id} className="group hover:bg-slate-50 transition-colors">
+                                            <td className="px-4 py-3">
+                                                <Link href={`/opportunities/${opp.slug}`} className="flex items-center gap-3">
+                                                    {/* Thumbnail */}
+                                                    <div className="w-16 h-12 rounded-lg overflow-hidden flex-shrink-0 bg-slate-100">
+                                                        {opp.featured_image_url ? (
+                                                            <img
+                                                                src={opp.featured_image_url}
+                                                                alt=""
+                                                                className="w-full h-full object-cover"
+                                                            />
+                                                        ) : (
+                                                            <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100">
+                                                                <Icon className="w-6 h-6 text-slate-300" />
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                    <div className="min-w-0 flex-1">
+                                                        <h3 className="font-bold text-sm text-slate-900 truncate group-hover:text-yellow-600 transition-colors">
+                                                            {opp.title}
+                                                        </h3>
+                                                        {opp.excerpt && (
+                                                            <p className="text-xs text-slate-500 truncate hidden sm:block">{opp.excerpt}</p>
+                                                        )}
+                                                    </div>
+                                                </Link>
+                                            </td>
+                                            <td className="px-4 py-3 hidden md:table-cell">
+                                                <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold ${config.color}`}>
+                                                    <Icon size={12} />
+                                                    {config.label}
+                                                </span>
+                                            </td>
+                                            <td className="px-4 py-3 hidden lg:table-cell">
+                                                {opp.prize_value ? (
+                                                    <span className="text-sm text-slate-700">{opp.prize_value}</span>
+                                                ) : (
+                                                    <span className="text-sm text-slate-400">-</span>
+                                                )}
+                                            </td>
+                                            <td className="px-4 py-3 hidden sm:table-cell">
+                                                {opp.deadline ? (
+                                                    <span className="flex items-center gap-1 text-sm text-slate-600">
+                                                        <Clock size={14} className="text-slate-400" />
+                                                        {new Date(opp.deadline).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                                                    </span>
+                                                ) : (
+                                                    <span className="text-sm text-slate-400">No deadline</span>
+                                                )}
+                                            </td>
+                                            <td className="px-4 py-3">
+                                                <FavoriteButton opportunityId={opp.id} size={18} />
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+                        </div>
+                    </div>
                 ) : (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                    /* Card View - Horizontal layout with 50% image */
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                         {filteredOpportunities.map((opp) => {
                             const config = getTypeConfig(opp.opportunity_type);
                             const Icon = config.icon;
@@ -253,11 +363,11 @@ export default function OpportunitiesBrowser({ opportunities, branding }: Opport
                             return (
                                 <div
                                     key={opp.id}
-                                    className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden group"
+                                    className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden group flex flex-col sm:flex-row"
                                 >
-                                    {/* Image */}
-                                    <Link href={`/p/${opp.slug}`}>
-                                        <div className="aspect-[4/3] bg-slate-100 relative overflow-hidden">
+                                    {/* Image - 50% width on desktop */}
+                                    <Link href={`/opportunities/${opp.slug}`} className="sm:w-1/2 flex-shrink-0">
+                                        <div className="aspect-[4/3] sm:aspect-auto sm:h-full bg-slate-100 relative overflow-hidden">
                                             {opp.featured_image_url ? (
                                                 <img
                                                     src={opp.featured_image_url}
@@ -265,41 +375,46 @@ export default function OpportunitiesBrowser({ opportunities, branding }: Opport
                                                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                                                 />
                                             ) : (
-                                                <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100">
+                                                <div className="w-full h-full min-h-[160px] flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100">
                                                     <Icon className="w-12 h-12 text-slate-300" />
                                                 </div>
                                             )}
-                                            <span className={`absolute top-2 left-2 px-2.5 py-1 rounded-lg text-[10px] font-bold ${config.color}`}>
+                                            <span className={`absolute top-3 left-3 px-2.5 py-1 rounded-lg text-xs font-bold ${config.color}`}>
                                                 {config.label}
                                             </span>
                                         </div>
                                     </Link>
 
-                                    {/* Content */}
-                                    <div className="p-3">
-                                        <Link href={`/p/${opp.slug}`}>
-                                            <h3 className="font-bold text-sm text-slate-900 mb-1.5 line-clamp-2 group-hover:text-yellow-600 transition-colors">
-                                                {opp.title}
-                                            </h3>
-                                        </Link>
+                                    {/* Content - 50% width on desktop */}
+                                    <div className="p-4 sm:w-1/2 flex flex-col justify-between">
+                                        <div>
+                                            <Link href={`/opportunities/${opp.slug}`}>
+                                                <h3 className="font-bold text-base text-slate-900 mb-2 line-clamp-2 group-hover:text-yellow-600 transition-colors">
+                                                    {opp.title}
+                                                </h3>
+                                            </Link>
+                                            {opp.excerpt && (
+                                                <p className="text-sm text-slate-500 line-clamp-3 mb-3">{opp.excerpt}</p>
+                                            )}
+                                        </div>
 
                                         {/* Meta */}
-                                        <div className="flex items-center justify-between">
-                                            <div className="flex flex-wrap gap-2 text-[10px] text-slate-500">
+                                        <div className="flex items-center justify-between mt-auto pt-3 border-t border-slate-100">
+                                            <div className="flex flex-wrap gap-3 text-xs text-slate-500">
                                                 {opp.prize_value && (
-                                                    <span className="flex items-center gap-0.5">
-                                                        <Gift size={10} />
+                                                    <span className="flex items-center gap-1">
+                                                        <Gift size={14} />
                                                         {opp.prize_value}
                                                     </span>
                                                 )}
                                                 {opp.deadline && (
-                                                    <span className="flex items-center gap-0.5">
-                                                        <Clock size={10} />
+                                                    <span className="flex items-center gap-1">
+                                                        <Clock size={14} />
                                                         {new Date(opp.deadline).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                                                     </span>
                                                 )}
                                             </div>
-                                            <FavoriteButton opportunityId={opp.id} size={16} />
+                                            <FavoriteButton opportunityId={opp.id} size={18} />
                                         </div>
                                     </div>
                                 </div>
