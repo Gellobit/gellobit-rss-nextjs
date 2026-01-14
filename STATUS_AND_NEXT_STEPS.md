@@ -1,6 +1,7 @@
 # Gellobit RSS Next.js - Estado Actual y Próximos Pasos
 
-**Fecha:** 2026-01-12
+**Fecha:** 2026-01-13
+**Versión:** 1.0.0-alpha.3
 **Última actualización:** Sesión actual
 
 ---
@@ -109,16 +110,55 @@
 - `/apps/web/lib/services/scraper.service.ts` (actualizado)
 - `/apps/web/migrations/011_image_storage.sql` (nuevo)
 
-### 8. Páginas Públicas de Oportunidades (100% Completo) - NUEVO
+### 8. Páginas Públicas de Oportunidades (100% Completo)
 - ✅ Lista de oportunidades publicadas `/opportunities`
 - ✅ Detalle de oportunidad `/opportunities/[slug]`
 - ✅ Página 404 personalizada
 
 **Archivos:**
-- `/apps/web/app/opportunities/page.tsx` (nuevo)
-- `/apps/web/app/opportunities/[slug]/page.tsx` (nuevo)
-- `/apps/web/app/opportunities/[slug]/not-found.tsx` (nuevo)
-- `/apps/web/app/api/opportunities/route.ts` (nuevo)
+- `/apps/web/app/opportunities/page.tsx`
+- `/apps/web/app/opportunities/[slug]/page.tsx`
+- `/apps/web/app/opportunities/[slug]/not-found.tsx`
+- `/apps/web/app/api/opportunities/route.ts`
+
+### 9. Sistema de Gestión de Usuarios (100% Completo) - NUEVO
+- ✅ Registro e inicio de sesión con Supabase Auth
+- ✅ Redirección automática a `/account` después de login
+- ✅ Dashboard de cuenta con información de perfil y membresía
+- ✅ Upload de avatar a Supabase Storage
+- ✅ Cambio de contraseña
+- ✅ Sistema de favoritos para guardar oportunidades
+- ✅ Configuración de notificaciones (email, push, in-app)
+- ✅ Navegación dinámica según estado de autenticación
+- ✅ Auto-creación de perfil si no existe
+
+**Archivos:**
+- `/apps/web/app/account/page.tsx` - Dashboard principal
+- `/apps/web/app/account/favorites/page.tsx` - Lista de favoritos
+- `/apps/web/app/account/notifications/page.tsx` - Configuración notificaciones
+- `/apps/web/app/api/user/profile/route.ts` - API perfil
+- `/apps/web/app/api/user/avatar/route.ts` - API avatar
+- `/apps/web/app/api/user/password/route.ts` - API password
+- `/apps/web/app/api/user/favorites/route.ts` - API favoritos
+- `/apps/web/app/api/user/notifications/route.ts` - API notificaciones
+- `/apps/web/components/UserNav.tsx` - Navegación usuario
+- `/apps/web/components/FavoriteButton.tsx` - Botón favoritos
+- `/apps/web/migrations/013_user_features.sql` - Migración DB
+
+### 10. Experiencia Móvil Nativa (100% Completo) - NUEVO
+- ✅ Componente `BottomSheet` con gestos táctiles (slide up/down)
+- ✅ Componente `MobileNavBar` estilo app nativa (4 items)
+- ✅ Página `/opportunities` con diseño mobile-first
+- ✅ Filtros por tipo de oportunidad (12 tipos)
+- ✅ Búsqueda en tiempo real
+- ✅ Grid responsivo (1/2/3/4 columnas)
+- ✅ Botón de favoritos en cada tarjeta
+- ✅ Funciona en desktop cuando se reduce el viewport
+
+**Archivos:**
+- `/apps/web/components/BottomSheet.tsx` - Modal deslizante
+- `/apps/web/components/MobileNavBar.tsx` - Navegación inferior
+- `/apps/web/app/opportunities/OpportunitiesBrowser.tsx` - Explorador con filtros
 
 ---
 
@@ -223,19 +263,22 @@ git log --oneline -10
 
 ## 📞 Estado del Proyecto
 
-**Última sesión:** 2026-01-12
+**Última sesión:** 2026-01-13
 **Branch actual:** `main`
+**Versión:** 1.0.0-alpha.3
 
-**Progreso general:** ~80% completado
+**Progreso general:** ~90% completado
 - ✅ Core AI y Prompts: 100%
 - ✅ Settings y Feeds: 100%
 - ✅ Featured Images: 100%
 - ✅ Export/Import: 100%
 - ✅ Páginas Públicas: 100%
+- ✅ Gestión de Usuarios: 100%
+- ✅ Experiencia Móvil: 100%
 - ⚠️ CMS y Visibilidad: 0%
 - ⚠️ Auto-borrado: 0%
 
 ---
 
 **Fin del documento**
-Última actualización: 2026-01-12 por Claude Opus 4.5
+Última actualización: 2026-01-13 por Claude Opus 4.5

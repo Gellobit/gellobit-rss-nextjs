@@ -8,8 +8,8 @@ import type { Database } from '../types/database.types';
  *
  * @returns Supabase client with user context
  */
-export function createServerClient() {
-  const cookieStore = cookies();
+export async function createServerClient() {
+  const cookieStore = await cookies();
 
   return createServerComponentClient<Database>({
     cookies: () => cookieStore,

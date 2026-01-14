@@ -11,31 +11,39 @@ import { useSubscription } from '../context/SubscriptionContext';
 import { AdUnit } from './AdUnit';
 import { FeatureCard } from './FeatureCard';
 import { PricingItem } from './PricingItem';
+import UserNav from './UserNav';
+import MobileNavBar from './MobileNavBar';
 
 interface Branding {
     logoUrl: string | null;
     appName: string;
 }
 
+interface FooterPage {
+    id: string;
+    title: string;
+    slug: string;
+}
+
 interface LandingPageProps {
     opportunities: any[]; // Replace with proper type
     branding: Branding;
+    footerPages?: FooterPage[];
 }
 
-export const LandingPage = ({ opportunities = [], branding }: LandingPageProps) => {
+export const LandingPage = ({ opportunities = [], branding, footerPages = [] }: LandingPageProps) => {
     const { upgradeToPro, isPro } = useSubscription();
 
     return (
-        <div className="min-h-screen bg-white font-sans text-slate-900 selection:bg-yellow-200">
+        <div className="min-h-screen bg-white font-sans text-slate-900 selection:bg-yellow-200 pb-20 md:pb-0">
             {/* Sticky Banner for Demo */}
             {!isPro && (
                 <div className="bg-black text-white text-xs text-center py-2 font-bold cursor-pointer hover:bg-gray-900" onClick={upgradeToPro}>
                     DEMO: Click here to simulate upgrading to PRO (Removes Ads)
                 </div>
             )}
-            {/* ... Navigation ... */}
-            <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-slate-100">
-                {/* ... (Copy existing nav code) ... */}
+            {/* Navigation - Hidden on mobile */}
+            <nav className="hidden md:block sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-slate-100">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="flex justify-between items-center h-20">
                         <Link href="/" className="flex items-center gap-2">
@@ -57,14 +65,7 @@ export const LandingPage = ({ opportunities = [], branding }: LandingPageProps) 
                             <a href="#pricing" className="text-sm font-bold text-slate-600 hover:text-[#1a1a1a] transition-colors">Pricing</a>
                             <a href="#trust" className="text-sm font-bold text-slate-600 hover:text-[#1a1a1a] transition-colors">Why Us</a>
                         </div>
-                        <div className="flex items-center gap-4">
-                            <Link href="/auth">
-                                <button className="text-sm font-bold text-[#1a1a1a] hover:bg-slate-50 px-4 py-2 rounded-xl transition-all">Sign In</button>
-                            </Link>
-                            <Link href="/auth">
-                                <button className="bg-[#1a1a1a] text-white text-sm font-bold px-6 py-3 rounded-xl hover:bg-slate-800 shadow-lg shadow-slate-200 transition-all">Sign Up Free</button>
-                            </Link>
-                        </div>
+                        <UserNav />
                     </div>
                 </div>
             </nav>
@@ -320,12 +321,23 @@ export const LandingPage = ({ opportunities = [], branding }: LandingPageProps) 
                         </div>
 
                         <div>
-                            <h4 className="font-bold text-sm uppercase tracking-widest text-slate-500 mb-6">Support</h4>
+                            <h4 className="font-bold text-sm uppercase tracking-widest text-slate-500 mb-6">Information</h4>
                             <ul className="space-y-4 text-slate-300 text-sm">
-                                <li><a href="#" className="hover:text-yellow-400 transition-colors">Contact</a></li>
-                                <li><a href="#" className="hover:text-yellow-400 transition-colors">Terms of Service</a></li>
-                                <li><a href="#" className="hover:text-yellow-400 transition-colors">Privacy</a></li>
-                                <li><a href="#" className="hover:text-yellow-400 transition-colors">FTC Compliance</a></li>
+                                {footerPages.length > 0 ? (
+                                    footerPages.map((page) => (
+                                        <li key={page.id}>
+                                            <Link href={`/${page.slug}`} className="hover:text-yellow-400 transition-colors">
+                                                {page.title}
+                                            </Link>
+                                        </li>
+                                    ))
+                                ) : (
+                                    <>
+                                        <li><a href="#" className="hover:text-yellow-400 transition-colors">Contact</a></li>
+                                        <li><a href="#" className="hover:text-yellow-400 transition-colors">Terms of Service</a></li>
+                                        <li><a href="#" className="hover:text-yellow-400 transition-colors">Privacy</a></li>
+                                    </>
+                                )}
                             </ul>
                         </div>
 
@@ -349,6 +361,9 @@ export const LandingPage = ({ opportunities = [], branding }: LandingPageProps) 
                     </div>
                 </div>
             </footer>
+
+            {/* Mobile Navigation */}
+            <MobileNavBar />
         </div>
     );
 };

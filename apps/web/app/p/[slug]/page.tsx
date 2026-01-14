@@ -12,6 +12,7 @@ import {
     ExternalLink
 } from 'lucide-react';
 import { createAdminClient } from '@/lib/utils/supabase-admin';
+import FavoriteButton from '@/components/FavoriteButton';
 
 // Revalidate page every 60 seconds
 export const revalidate = 60;
@@ -169,6 +170,11 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
                                     </div>
                                 </div>
                                 <div className="flex gap-2">
+                                    <FavoriteButton
+                                        opportunityId={opportunity.id}
+                                        className="p-3 rounded-full hover:bg-red-50 transition-colors"
+                                        size={20}
+                                    />
                                     <button className="p-3 rounded-full hover:bg-slate-50 text-slate-500 transition-colors">
                                         <Share2 size={20} />
                                     </button>

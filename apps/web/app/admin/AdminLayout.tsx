@@ -3,17 +3,17 @@
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { LayoutDashboard, Rss, BarChart3, Settings as SettingsIcon, ScrollText, LogOut, FileText } from 'lucide-react';
+import { LayoutDashboard, Rss, BarChart3, Settings as SettingsIcon, ScrollText, LogOut, FileText, BookOpen, StickyNote } from 'lucide-react';
 import Dashboard from './Dashboard';
 import ManageFeeds from './ManageFeeds';
 import ManagePosts from './ManagePosts';
 import ManageBlogPosts from './ManageBlogPosts';
+import ManagePages from './ManagePages';
 import Settings from './Settings';
 import Analytics from './Analytics';
 import ProcessingLog from './ProcessingLog';
-import { BookOpen } from 'lucide-react';
 
-type Section = 'dashboard' | 'feeds' | 'posts' | 'blog' | 'analytics' | 'settings' | 'logs';
+type Section = 'dashboard' | 'feeds' | 'posts' | 'blog' | 'pages' | 'analytics' | 'settings' | 'logs';
 
 interface Branding {
     logoUrl: string | null;
@@ -32,7 +32,7 @@ export default function AdminLayout({ initialSection, branding }: AdminLayoutPro
 
     useEffect(() => {
         const section = searchParams.get('section');
-        if (section && ['dashboard', 'feeds', 'posts', 'blog', 'analytics', 'settings', 'logs'].includes(section)) {
+        if (section && ['dashboard', 'feeds', 'posts', 'blog', 'pages', 'analytics', 'settings', 'logs'].includes(section)) {
             setActiveSection(section as Section);
         }
     }, [searchParams]);
@@ -52,6 +52,7 @@ export default function AdminLayout({ initialSection, branding }: AdminLayoutPro
         { id: 'feeds', label: 'RSS Feeds', icon: Rss },
         { id: 'posts', label: 'Opportunities', icon: FileText },
         { id: 'blog', label: 'Blog Posts', icon: BookOpen },
+        { id: 'pages', label: 'Pages', icon: StickyNote },
         { id: 'analytics', label: 'Analytics', icon: BarChart3 },
         { id: 'settings', label: 'Settings', icon: SettingsIcon },
         { id: 'logs', label: 'Processing Log', icon: ScrollText },
@@ -142,6 +143,7 @@ export default function AdminLayout({ initialSection, branding }: AdminLayoutPro
                 )}
                 {activeSection === 'posts' && <ManagePosts />}
                 {activeSection === 'blog' && <ManageBlogPosts />}
+                {activeSection === 'pages' && <ManagePages />}
                 {activeSection === 'analytics' && <Analytics />}
                 {activeSection === 'settings' && <Settings />}
                 {activeSection === 'logs' && <ProcessingLog />}

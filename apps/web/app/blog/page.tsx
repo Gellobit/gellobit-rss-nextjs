@@ -118,7 +118,7 @@ export default async function BlogPage() {
                             return (
                                 <a
                                     key={post.id}
-                                    href={`/blog/${post.slug}`}
+                                    href={`/${post.slug}`}
                                     className="bg-white rounded-3xl overflow-hidden border border-slate-100 hover:shadow-lg transition-all group"
                                 >
                                     {/* Featured Image */}

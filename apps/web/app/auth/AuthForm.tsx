@@ -1,8 +1,8 @@
 "use client";
 
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
-import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { useState, Suspense } from 'react';
 
 interface Branding {
     logoUrl: string | null;
@@ -13,12 +13,16 @@ interface AuthFormProps {
     branding: Branding;
 }
 
-export default function AuthForm({ branding }: AuthFormProps) {
+function AuthFormInner({ branding }: AuthFormProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const searchParams = useSearchParams();
   const supabase = createClientComponentClient();
+
+  // Get redirect URL from query params (default to /account for logged-in users)
+  const redirectUrl = searchParams.get('redirect') || '/account';
 
   const handleSignUp = async () => {
     setLoading(true);
@@ -26,16 +30,15 @@ export default function AuthForm({ branding }: AuthFormProps) {
       email,
       password,
       options: {
-        emailRedirectTo: `${location.origin}/auth/callback`,
+        emailRedirectTo: `${location.origin}/auth/callback?next=/account`,
       },
     });
     setLoading(false);
-    console.log("SignUp Attempt Result:", { data, error }); // DEBUG LOG
     if (error) {
       console.error("SignUp Error:", error);
       alert(error.message);
     } else {
-      alert('Check your email for the confirmation link!');
+      alert('Account created! Check your email for the confirmation link.');
     }
   };
 
@@ -47,7 +50,7 @@ export default function AuthForm({ branding }: AuthFormProps) {
     });
     setLoading(false);
     if (error) alert(error.message);
-    else router.push('/');
+    else router.push(redirectUrl);
   };
 
   return (
@@ -112,5 +115,18 @@ export default function AuthForm({ branding }: AuthFormProps) {
         </div>
       </div>
     </div>
+  );
+}
+
+// Wrap with Suspense for useSearchParams
+export default function AuthForm({ branding }: AuthFormProps) {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-yellow-500"></div>
+      </div>
+    }>
+      <AuthFormInner branding={branding} />
+    </Suspense>
   );
 }

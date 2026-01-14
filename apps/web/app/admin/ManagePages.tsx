@@ -5,7 +5,6 @@ import {
     Plus,
     Edit2,
     Trash2,
-    Eye,
     Search,
     RefreshCw,
     Save,
@@ -16,6 +15,7 @@ import {
     FileText,
     Globe,
     Clock,
+    GripVertical,
 } from 'lucide-react';
 import dynamic from 'next/dynamic';
 
@@ -29,45 +29,51 @@ const WysiwygEditor = dynamic(() => import('@/components/WysiwygEditor'), {
     ),
 });
 
-interface Post {
+interface Page {
     id: string;
     title: string;
     slug: string;
-    excerpt: string | null;
     content: string;
     featured_image_url: string | null;
     meta_title: string | null;
     meta_description: string | null;
     status: 'draft' | 'published' | 'archived';
+    show_in_footer: boolean;
+    show_in_menu: boolean;
+    sort_order: number;
     published_at: string | null;
     created_at: string;
     updated_at: string;
 }
 
-interface PostFormData {
+interface PageFormData {
     title: string;
     slug: string;
-    excerpt: string;
     content: string;
     featured_image_url: string;
     meta_title: string;
     meta_description: string;
     status: 'draft' | 'published' | 'archived';
+    show_in_footer: boolean;
+    show_in_menu: boolean;
+    sort_order: number;
 }
 
-const initialFormData: PostFormData = {
+const initialFormData: PageFormData = {
     title: '',
     slug: '',
-    excerpt: '',
     content: '',
     featured_image_url: '',
     meta_title: '',
     meta_description: '',
     status: 'draft',
+    show_in_footer: true,
+    show_in_menu: true,
+    sort_order: 0,
 };
 
-export default function ManageBlogPosts() {
-    const [posts, setPosts] = useState<Post[]>([]);
+export default function ManagePages() {
+    const [pages, setPages] = useState<Page[]>([]);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [uploading, setUploading] = useState(false);
@@ -79,33 +85,32 @@ export default function ManageBlogPosts() {
 
     // Form state
     const [showForm, setShowForm] = useState(false);
-    const [editingPost, setEditingPost] = useState<Post | null>(null);
-    const [formData, setFormData] = useState<PostFormData>(initialFormData);
+    const [editingPage, setEditingPage] = useState<Page | null>(null);
+    const [formData, setFormData] = useState<PageFormData>(initialFormData);
     const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
     const fileInputRef = useRef<HTMLInputElement>(null);
-    const editorRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
-        fetchPosts();
+        fetchPages();
     }, [statusFilter, searchQuery]);
 
-    const fetchPosts = async () => {
+    const fetchPages = async () => {
         setLoading(true);
         try {
             const params = new URLSearchParams();
             if (statusFilter) params.set('status', statusFilter);
             if (searchQuery) params.set('search', searchQuery);
 
-            const res = await fetch(`/api/admin/posts?${params.toString()}`);
+            const res = await fetch(`/api/admin/pages?${params.toString()}`);
             const data = await res.json();
 
             if (res.ok) {
-                setPosts(data.posts || []);
+                setPages(data.pages || []);
                 setTotal(data.total || 0);
             }
         } catch (error) {
-            console.error('Error fetching posts:', error);
+            console.error('Error fetching pages:', error);
         }
         setLoading(false);
     };
@@ -148,7 +153,7 @@ export default function ManageBlogPosts() {
             const uploadFormData = new FormData();
             uploadFormData.append('file', file);
 
-            const res = await fetch('/api/admin/posts/upload', {
+            const res = await fetch('/api/admin/pages/upload', {
                 method: 'POST',
                 body: uploadFormData,
             });
@@ -181,11 +186,11 @@ export default function ManageBlogPosts() {
         setMessage(null);
 
         try {
-            const url = editingPost
-                ? `/api/admin/posts/${editingPost.id}`
-                : '/api/admin/posts';
+            const url = editingPage
+                ? `/api/admin/pages/${editingPage.id}`
+                : '/api/admin/pages';
 
-            const method = editingPost ? 'PUT' : 'POST';
+            const method = editingPage ? 'PUT' : 'POST';
 
             const res = await fetch(url, {
                 method,
@@ -196,55 +201,57 @@ export default function ManageBlogPosts() {
             const data = await res.json();
 
             if (res.ok) {
-                setMessage({ type: 'success', text: editingPost ? 'Post updated!' : 'Post created!' });
+                setMessage({ type: 'success', text: editingPage ? 'Page updated!' : 'Page created!' });
                 setShowForm(false);
-                setEditingPost(null);
+                setEditingPage(null);
                 setFormData(initialFormData);
-                fetchPosts();
+                fetchPages();
             } else {
-                setMessage({ type: 'error', text: data.error || 'Failed to save post' });
+                setMessage({ type: 'error', text: data.error || 'Failed to save page' });
             }
         } catch (error) {
-            setMessage({ type: 'error', text: 'Failed to save post' });
+            setMessage({ type: 'error', text: 'Failed to save page' });
         }
 
         setSaving(false);
     };
 
-    const handleEdit = (post: Post) => {
-        setEditingPost(post);
+    const handleEdit = (page: Page) => {
+        setEditingPage(page);
         setFormData({
-            title: post.title,
-            slug: post.slug,
-            excerpt: post.excerpt || '',
-            content: post.content,
-            featured_image_url: post.featured_image_url || '',
-            meta_title: post.meta_title || '',
-            meta_description: post.meta_description || '',
-            status: post.status,
+            title: page.title,
+            slug: page.slug,
+            content: page.content,
+            featured_image_url: page.featured_image_url || '',
+            meta_title: page.meta_title || '',
+            meta_description: page.meta_description || '',
+            status: page.status,
+            show_in_footer: page.show_in_footer,
+            show_in_menu: page.show_in_menu,
+            sort_order: page.sort_order,
         });
         setShowForm(true);
         setMessage(null);
     };
 
-    const handleDelete = async (post: Post) => {
-        if (!confirm(`Are you sure you want to delete "${post.title}"?`)) return;
+    const handleDelete = async (page: Page) => {
+        if (!confirm(`Are you sure you want to delete "${page.title}"?`)) return;
 
         try {
-            const res = await fetch(`/api/admin/posts/${post.id}`, {
+            const res = await fetch(`/api/admin/pages/${page.id}`, {
                 method: 'DELETE',
             });
 
             if (res.ok) {
-                fetchPosts();
+                fetchPages();
             }
         } catch (error) {
-            console.error('Error deleting post:', error);
+            console.error('Error deleting page:', error);
         }
     };
 
-    const handleNewPost = () => {
-        setEditingPost(null);
+    const handleNewPage = () => {
+        setEditingPage(null);
         setFormData(initialFormData);
         setShowForm(true);
         setMessage(null);
@@ -269,12 +276,12 @@ export default function ManageBlogPosts() {
                 {/* Header */}
                 <div className="flex items-center justify-between">
                     <h1 className="text-3xl font-black text-[#1a1a1a]">
-                        {editingPost ? 'Edit Post' : 'New Post'}
+                        {editingPage ? 'Edit Page' : 'New Page'}
                     </h1>
                     <button
                         onClick={() => {
                             setShowForm(false);
-                            setEditingPost(null);
+                            setEditingPage(null);
                             setFormData(initialFormData);
                         }}
                         className="text-slate-500 hover:text-slate-700"
@@ -306,7 +313,7 @@ export default function ManageBlogPosts() {
                                 type="text"
                                 value={formData.title}
                                 onChange={(e) => handleTitleChange(e.target.value)}
-                                placeholder="Enter post title..."
+                                placeholder="Enter page title..."
                                 className="w-full border border-slate-300 rounded-lg px-4 py-3 text-lg font-bold focus:outline-none focus:ring-2 focus:ring-blue-500"
                             />
                         </div>
@@ -322,24 +329,10 @@ export default function ManageBlogPosts() {
                                     type="text"
                                     value={formData.slug}
                                     onChange={(e) => setFormData(prev => ({ ...prev, slug: e.target.value }))}
-                                    placeholder="post-slug"
+                                    placeholder="page-slug"
                                     className="flex-1 border border-slate-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                                 />
                             </div>
-                        </div>
-
-                        {/* Excerpt */}
-                        <div className="bg-white rounded-xl p-6 border border-slate-200">
-                            <label className="block text-sm font-bold text-slate-900 mb-2">
-                                Excerpt
-                            </label>
-                            <textarea
-                                value={formData.excerpt}
-                                onChange={(e) => setFormData(prev => ({ ...prev, excerpt: e.target.value }))}
-                                placeholder="Brief description for SEO and previews..."
-                                rows={3}
-                                className="w-full border border-slate-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            />
                         </div>
 
                         {/* Content Editor */}
@@ -353,7 +346,7 @@ export default function ManageBlogPosts() {
                             <WysiwygEditor
                                 value={formData.content}
                                 onChange={(html) => setFormData(prev => ({ ...prev, content: html }))}
-                                placeholder="Start writing your post content..."
+                                placeholder="Start writing your page content..."
                             />
                         </div>
                     </div>
@@ -393,10 +386,50 @@ export default function ManageBlogPosts() {
                                     ) : (
                                         <>
                                             <Save size={16} />
-                                            {editingPost ? 'Update Post' : 'Save Post'}
+                                            {editingPage ? 'Update Page' : 'Save Page'}
                                         </>
                                     )}
                                 </button>
+                            </div>
+                        </div>
+
+                        {/* Display Options */}
+                        <div className="bg-white rounded-xl p-6 border border-slate-200">
+                            <h3 className="font-bold text-lg mb-4">Display Options</h3>
+
+                            <div className="space-y-4">
+                                <label className="flex items-center gap-3 cursor-pointer">
+                                    <input
+                                        type="checkbox"
+                                        checked={formData.show_in_footer}
+                                        onChange={(e) => setFormData(prev => ({ ...prev, show_in_footer: e.target.checked }))}
+                                        className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                                    />
+                                    <span className="text-sm font-medium text-slate-700">Show in Footer</span>
+                                </label>
+
+                                <label className="flex items-center gap-3 cursor-pointer">
+                                    <input
+                                        type="checkbox"
+                                        checked={formData.show_in_menu}
+                                        onChange={(e) => setFormData(prev => ({ ...prev, show_in_menu: e.target.checked }))}
+                                        className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                                    />
+                                    <span className="text-sm font-medium text-slate-700">Show in Mobile Menu</span>
+                                </label>
+
+                                <div>
+                                    <label className="block text-sm font-bold text-slate-700 mb-2">
+                                        Sort Order
+                                    </label>
+                                    <input
+                                        type="number"
+                                        value={formData.sort_order}
+                                        onChange={(e) => setFormData(prev => ({ ...prev, sort_order: parseInt(e.target.value) || 0 }))}
+                                        className="w-full border border-slate-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    />
+                                    <p className="text-xs text-slate-500 mt-1">Lower numbers appear first</p>
+                                </div>
                             </div>
                         </div>
 
@@ -494,17 +527,17 @@ export default function ManageBlogPosts() {
             {/* Header */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-3xl font-black text-[#1a1a1a]">Blog Posts</h1>
+                    <h1 className="text-3xl font-black text-[#1a1a1a]">Pages</h1>
                     <p className="text-slate-500 text-sm mt-1">
-                        Manage public evergreen content
+                        Manage static pages (About, Terms, Privacy, etc.)
                     </p>
                 </div>
                 <button
-                    onClick={handleNewPost}
+                    onClick={handleNewPage}
                     className="bg-blue-600 text-white px-4 py-2 rounded-lg font-bold hover:bg-blue-700 transition-colors flex items-center gap-2"
                 >
                     <Plus size={16} />
-                    New Post
+                    New Page
                 </button>
             </div>
 
@@ -518,7 +551,7 @@ export default function ManageBlogPosts() {
                             type="text"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            placeholder="Search posts..."
+                            placeholder="Search pages..."
                             className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                         />
                     </div>
@@ -537,7 +570,7 @@ export default function ManageBlogPosts() {
 
                     {/* Refresh */}
                     <button
-                        onClick={fetchPosts}
+                        onClick={fetchPages}
                         className="p-2 border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors"
                     >
                         <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
@@ -547,25 +580,25 @@ export default function ManageBlogPosts() {
 
             {/* Stats */}
             <div className="text-sm text-slate-500">
-                Showing {posts.length} of {total} posts
+                Showing {pages.length} of {total} pages
             </div>
 
-            {/* Posts List */}
+            {/* Pages List */}
             {loading ? (
                 <div className="flex items-center justify-center py-12">
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
                 </div>
-            ) : posts.length === 0 ? (
+            ) : pages.length === 0 ? (
                 <div className="bg-white rounded-xl p-12 border border-slate-200 text-center">
                     <FileText className="mx-auto h-12 w-12 text-slate-300 mb-4" />
-                    <h3 className="text-lg font-bold text-slate-700 mb-2">No posts yet</h3>
-                    <p className="text-slate-500 mb-6">Create your first blog post to get started.</p>
+                    <h3 className="text-lg font-bold text-slate-700 mb-2">No pages yet</h3>
+                    <p className="text-slate-500 mb-6">Create your first page to get started.</p>
                     <button
-                        onClick={handleNewPost}
+                        onClick={handleNewPage}
                         className="bg-blue-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-blue-700 transition-colors inline-flex items-center gap-2"
                     >
                         <Plus size={16} />
-                        Create Post
+                        Create Page
                     </button>
                 </div>
             ) : (
@@ -573,20 +606,28 @@ export default function ManageBlogPosts() {
                     <table className="w-full">
                         <thead className="bg-slate-50 border-b border-slate-200">
                             <tr>
-                                <th className="text-left px-6 py-3 text-xs font-bold text-slate-500 uppercase">Post</th>
+                                <th className="text-left px-6 py-3 text-xs font-bold text-slate-500 uppercase">Order</th>
+                                <th className="text-left px-6 py-3 text-xs font-bold text-slate-500 uppercase">Page</th>
                                 <th className="text-left px-6 py-3 text-xs font-bold text-slate-500 uppercase">Status</th>
+                                <th className="text-left px-6 py-3 text-xs font-bold text-slate-500 uppercase">Display</th>
                                 <th className="text-left px-6 py-3 text-xs font-bold text-slate-500 uppercase">Date</th>
                                 <th className="text-right px-6 py-3 text-xs font-bold text-slate-500 uppercase">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100">
-                            {posts.map((post) => (
-                                <tr key={post.id} className="hover:bg-slate-50">
+                            {pages.map((page) => (
+                                <tr key={page.id} className="hover:bg-slate-50">
+                                    <td className="px-6 py-4">
+                                        <div className="flex items-center gap-2 text-slate-400">
+                                            <GripVertical size={16} />
+                                            <span className="font-mono text-sm">{page.sort_order}</span>
+                                        </div>
+                                    </td>
                                     <td className="px-6 py-4">
                                         <div className="flex items-start gap-4">
-                                            {post.featured_image_url ? (
+                                            {page.featured_image_url ? (
                                                 <img
-                                                    src={post.featured_image_url}
+                                                    src={page.featured_image_url}
                                                     alt=""
                                                     className="w-16 h-12 object-cover rounded-lg"
                                                 />
@@ -596,34 +637,44 @@ export default function ManageBlogPosts() {
                                                 </div>
                                             )}
                                             <div>
-                                                <h3 className="font-bold text-slate-900">{post.title}</h3>
-                                                <p className="text-sm text-slate-500">/{post.slug}</p>
+                                                <h3 className="font-bold text-slate-900">{page.title}</h3>
+                                                <p className="text-sm text-slate-500">/{page.slug}</p>
                                             </div>
                                         </div>
                                     </td>
                                     <td className="px-6 py-4">
-                                        {getStatusBadge(post.status)}
+                                        {getStatusBadge(page.status)}
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        <div className="flex gap-2">
+                                            {page.show_in_footer && (
+                                                <span className="px-2 py-1 bg-slate-100 text-slate-600 text-xs font-medium rounded">Footer</span>
+                                            )}
+                                            {page.show_in_menu && (
+                                                <span className="px-2 py-1 bg-slate-100 text-slate-600 text-xs font-medium rounded">Menu</span>
+                                            )}
+                                        </div>
                                     </td>
                                     <td className="px-6 py-4">
                                         <div className="text-sm text-slate-500">
-                                            {post.published_at ? (
+                                            {page.published_at ? (
                                                 <div className="flex items-center gap-1">
                                                     <Globe size={12} />
-                                                    {new Date(post.published_at).toLocaleDateString()}
+                                                    {new Date(page.published_at).toLocaleDateString()}
                                                 </div>
                                             ) : (
                                                 <div className="flex items-center gap-1">
                                                     <Clock size={12} />
-                                                    {new Date(post.created_at).toLocaleDateString()}
+                                                    {new Date(page.created_at).toLocaleDateString()}
                                                 </div>
                                             )}
                                         </div>
                                     </td>
                                     <td className="px-6 py-4">
                                         <div className="flex items-center justify-end gap-2">
-                                            {post.status === 'published' && (
+                                            {page.status === 'published' && (
                                                 <a
-                                                    href={`/${post.slug}`}
+                                                    href={`/${page.slug}`}
                                                     target="_blank"
                                                     rel="noopener noreferrer"
                                                     className="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
@@ -633,14 +684,14 @@ export default function ManageBlogPosts() {
                                                 </a>
                                             )}
                                             <button
-                                                onClick={() => handleEdit(post)}
+                                                onClick={() => handleEdit(page)}
                                                 className="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                                                 title="Edit"
                                             >
                                                 <Edit2 size={16} />
                                             </button>
                                             <button
-                                                onClick={() => handleDelete(post)}
+                                                onClick={() => handleDelete(page)}
                                                 className="p-2 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                                                 title="Delete"
                                             >
