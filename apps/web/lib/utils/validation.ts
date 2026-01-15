@@ -22,7 +22,8 @@ export const createFeedSchema = z.object({
         'scholarship',
         'volunteer',
         'free_training',
-        'promo'
+        'promo',
+        'evergreen'
     ]),
     status: z.enum(['active', 'inactive', 'error']).optional().default('active'),
     enable_scraping: z.boolean().optional().default(true),
@@ -65,7 +66,14 @@ export const createFeedSchema = z.object({
         z.literal('').transform(() => null),
         z.null()
     ]).optional(),
-    allow_republishing: z.boolean().optional().default(false)
+    allow_republishing: z.boolean().optional().default(false),
+    // Scheduling fields (for pg_cron based scheduling)
+    schedule_type: z.enum(['interval', 'daily']).optional().default('interval'),
+    scheduled_hour: z.union([
+        z.number().min(0).max(23),
+        z.null()
+    ]).optional().default(null),
+    scheduled_minute: z.number().min(0).max(59).optional().default(0)
 });
 
 export const updateFeedSchema = createFeedSchema.partial();
@@ -111,7 +119,8 @@ export const createOpportunitySchema = z.object({
         'scholarship',
         'volunteer',
         'free_training',
-        'promo'
+        'promo',
+        'evergreen'
     ]),
     deadline: z.string().datetime().optional().nullable(),
     prize_value: z.string().optional().nullable(),
@@ -145,7 +154,8 @@ export const updatePromptSchema = z.object({
         'scholarship',
         'volunteer',
         'free_training',
-        'promo'
+        'promo',
+        'evergreen'
     ]),
     unified_prompt: z.string().min(1, 'Prompt is required')
 });

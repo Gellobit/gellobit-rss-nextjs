@@ -2,6 +2,119 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.0-alpha.11] - 2026-01-14
+
+### Fixed
+- **AI Provider API Key Logic**: Fixed critical bug where Edge Function used wrong API key
+  - Now correctly retrieves API key based on feed's specific AI provider setting
+  - Falls back to global active provider only when feed has no provider configured
+  - Supports all providers: OpenAI, Anthropic, DeepSeek, Gemini
+
+### Changed
+- **Edge Function `process-queue-item`**: Improved AI settings retrieval
+  - Reads from `ai_settings` table instead of `system_settings`
+  - Per-feed AI provider override now works correctly
+  - Added Gemini and DeepSeek API support
+
+## [1.0.0-alpha.10] - 2026-01-14
+
+### Added
+- **Supabase pg_cron Scheduling System**: Complete redesign of feed scheduling for server-independent processing
+  - Queue-based architecture for processing one item at a time (fits within 60s Edge Function timeout)
+  - Two schedule types: "interval" (existing: every 5min to daily) and "daily" (specific hour)
+  - Per-feed scheduling configuration in ManageFeeds UI
+  - Hour and minute selectors for daily schedule type
+
+- **Supabase Edge Functions**: Two new Edge Functions for autonomous processing
+  - `fetch-rss`: Parses RSS feeds and adds items to processing queue
+  - `process-queue-item`: Processes one queue item (scraping + AI + post creation)
+  - Both functions called by pg_cron every minute
+  - Service role key authentication via Vault secrets
+
+- **Processing Queue System**: New `feed_processing_queue` table
+  - Tracks individual RSS items with status: pending, processing, completed, failed, duplicate
+  - Automatic duplicate detection via unique constraint (feed_id, item_url)
+  - Retry support with attempt counter
+  - Processing timestamps for analytics
+
+- **PostgreSQL Functions**: New database functions for scheduling
+  - `should_feed_run()`: Determines if a feed is due based on schedule type and interval
+  - `get_next_feed_for_rss_check()`: Returns next feed ready for RSS parsing
+  - `get_next_queue_item()`: Gets and locks next pending item for processing
+  - `complete_queue_item()`: Updates item status and feed pending count
+  - `add_items_to_queue()`: Bulk adds RSS items with duplicate handling
+
+- **Queue Management API**: New `/api/admin/queue` endpoint
+  - `GET`: Queue stats and pending items list
+  - `POST`: Manual trigger for Edge Functions (testing)
+  - `DELETE`: Clear completed/failed items
+
+### Changed
+- **ManageFeeds UI**: Enhanced scheduling configuration
+  - New "Schedule Configuration" section in feed form
+  - Schedule type toggle (Interval vs Daily)
+  - Conditional display of interval dropdown or hour/minute selectors
+  - Feed cards show scheduling info (interval label or "Daily at X:XX AM/PM")
+  - Pending items count badge on feed cards
+
+- **Feed Fields**: New columns in `rss_feeds` table
+  - `schedule_type`: 'interval' or 'daily'
+  - `scheduled_hour`: 0-23 for daily schedule
+  - `scheduled_minute`: 0-59 for daily schedule
+  - `items_pending`: Count of pending queue items
+  - `last_rss_check`: When RSS was last parsed
+  - `processing_status`: 'idle', 'fetching', or 'processing'
+
+- **Validation Schema**: Added scheduling fields and 'evergreen' opportunity type
+  - `schedule_type`, `scheduled_hour`, `scheduled_minute` in createFeedSchema
+  - Added 'evergreen' to all opportunity_type enums
+
+### Technical Details
+- New migrations:
+  - `020_feed_scheduling.sql`: Fields, queue table, and PostgreSQL functions
+  - `021_pg_cron_setup.sql`: pg_cron job configuration
+- Edge Functions location: `/supabase/functions/fetch-rss/` and `/supabase/functions/process-queue-item/`
+- Requires pg_cron and pg_net extensions enabled in Supabase
+- Vault secrets needed: `edge_function_url` and `service_role_key`
+- Capacity: ~60-120 posts/hour (sufficient for 11 campaigns x 6 posts = 66 posts/day)
+
+## [1.0.0-alpha.9] - 2026-01-14
+
+### Added
+- **User Management System**: WordPress-style admin panel for managing registered users
+  - New "Users" tab in admin navigation
+  - Stats cards: Total users, Admins, Active, Suspended, Premium
+  - Filterable user table with search by name/email
+  - Filter by role (admin/user), status (active/suspended), and membership type
+  - Pagination support for large user lists
+
+- **User Actions**:
+  - Quick role toggle (make admin / remove admin)
+  - Quick status toggle (suspend / activate user)
+  - Edit modal to update role, status, and membership type
+  - Delete user with confirmation and cascade cleanup
+  - Protection against self-modification (admins cannot modify their own account)
+
+- **User Status Field**: New `status` column in profiles table
+  - Values: `active` (default), `suspended`
+  - Index for efficient status queries
+
+### Technical Details
+- New migration: `019_user_management.sql`
+- New API routes:
+  - `GET /api/admin/users` - List users with filters, pagination, and stats
+  - `GET /api/admin/users/[id]` - Get single user
+  - `PATCH /api/admin/users/[id]` - Update user role/status/membership
+  - `DELETE /api/admin/users/[id]` - Delete user and related data
+- New component: `ManageUsers.tsx` following existing admin patterns
+- User deletion cascades to: favorites, notification settings, read history
+
+### Changed
+- **Admin Header**: Reorganized navigation
+  - Removed "RSS Feeds" and "Settings" from header (accessible via Dashboard buttons)
+  - Renamed "Blog Posts" to "Posts"
+  - Added "Users" section between "Pages" and "Analytics"
+
 ## [1.0.0-alpha.8] - 2026-01-14
 
 ### Added

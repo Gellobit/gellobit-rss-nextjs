@@ -23,6 +23,13 @@ interface Feed {
     last_fetched?: string;
     total_processed?: number;
     total_published?: number;
+    // New scheduling fields
+    schedule_type?: 'interval' | 'daily';
+    scheduled_hour?: number | null;
+    scheduled_minute?: number | null;
+    items_pending?: number;
+    last_rss_check?: string;
+    processing_status?: 'idle' | 'fetching' | 'processing';
 }
 
 interface FeedFormValues {
@@ -40,6 +47,10 @@ interface FeedFormValues {
     cron_interval: string;
     fallback_featured_image_url: string;
     allow_republishing: boolean;
+    // New scheduling fields
+    schedule_type: 'interval' | 'daily';
+    scheduled_hour: number | null;
+    scheduled_minute: number;
 }
 
 const defaultFeedValues: FeedFormValues = {
@@ -56,7 +67,10 @@ const defaultFeedValues: FeedFormValues = {
     priority: 5,
     cron_interval: 'hourly',
     fallback_featured_image_url: '',
-    allow_republishing: false
+    allow_republishing: false,
+    schedule_type: 'interval',
+    scheduled_hour: null,
+    scheduled_minute: 0,
 };
 
 const opportunityTypes = [
@@ -91,6 +105,25 @@ const aiProviders = [
     { value: 'anthropic', label: 'Anthropic (Claude 3.7 Sonnet)', model: 'claude-3-7-sonnet-20250219' },
     { value: 'deepseek', label: 'DeepSeek (DeepSeek-Chat)', model: 'deepseek-chat' },
     { value: 'gemini', label: 'Google (Gemini 2.0 Flash)', model: 'gemini-2.0-flash-exp' },
+];
+
+const scheduleTypes = [
+    { value: 'interval', label: 'Interval-based' },
+    { value: 'daily', label: 'Specific time daily' },
+];
+
+// Generate hour options (0-23)
+const hourOptions = Array.from({ length: 24 }, (_, i) => ({
+    value: i,
+    label: i === 0 ? '12:00 AM' : i < 12 ? `${i}:00 AM` : i === 12 ? '12:00 PM' : `${i - 12}:00 PM`,
+}));
+
+// Generate minute options (0, 15, 30, 45)
+const minuteOptions = [
+    { value: 0, label: ':00' },
+    { value: 15, label: ':15' },
+    { value: 30, label: ':30' },
+    { value: 45, label: ':45' },
 ];
 
 // FeedForm as a separate component to prevent re-render issues
@@ -167,7 +200,7 @@ function FeedForm({
             {/* Feed Settings */}
             <div className="border-t pt-4 space-y-3">
                 <p className="text-sm font-bold text-slate-700">Feed Settings</p>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <div>
                         <label className="block text-xs text-slate-500 mb-1">Quality Threshold</label>
                         <input
@@ -193,18 +226,78 @@ function FeedForm({
                         />
                         <p className="text-xs text-slate-400 mt-1">1-10 (10 = highest)</p>
                     </div>
-                    <div>
-                        <label className="block text-xs text-slate-500 mb-1">Check Interval</label>
-                        <select
-                            className="border p-2 rounded text-sm w-full"
-                            value={values.cron_interval}
-                            onChange={e => onChange('cron_interval', e.target.value)}
-                        >
-                            {cronIntervals.map(i => (
-                                <option key={i.value} value={i.value}>{i.label}</option>
-                            ))}
-                        </select>
+                </div>
+
+                {/* Schedule Configuration */}
+                <div className="bg-slate-50 p-3 rounded-lg space-y-3">
+                    <p className="text-xs font-bold text-slate-600">Schedule Configuration</p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div>
+                            <label className="block text-xs text-slate-500 mb-1">Schedule Type</label>
+                            <select
+                                className="border p-2 rounded text-sm w-full"
+                                value={values.schedule_type}
+                                onChange={e => {
+                                    onChange('schedule_type', e.target.value);
+                                    if (e.target.value === 'daily' && values.scheduled_hour === null) {
+                                        onChange('scheduled_hour', 8); // Default to 8 AM
+                                    }
+                                }}
+                            >
+                                {scheduleTypes.map(t => (
+                                    <option key={t.value} value={t.value}>{t.label}</option>
+                                ))}
+                            </select>
+                        </div>
+
+                        {values.schedule_type === 'interval' ? (
+                            <div>
+                                <label className="block text-xs text-slate-500 mb-1">Check Interval</label>
+                                <select
+                                    className="border p-2 rounded text-sm w-full"
+                                    value={values.cron_interval}
+                                    onChange={e => onChange('cron_interval', e.target.value)}
+                                >
+                                    {cronIntervals.map(i => (
+                                        <option key={i.value} value={i.value}>{i.label}</option>
+                                    ))}
+                                </select>
+                            </div>
+                        ) : (
+                            <div className="flex gap-2">
+                                <div className="flex-1">
+                                    <label className="block text-xs text-slate-500 mb-1">Hour</label>
+                                    <select
+                                        className="border p-2 rounded text-sm w-full"
+                                        value={values.scheduled_hour ?? 8}
+                                        onChange={e => onChange('scheduled_hour', parseInt(e.target.value))}
+                                    >
+                                        {hourOptions.map(h => (
+                                            <option key={h.value} value={h.value}>{h.label}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div className="w-24">
+                                    <label className="block text-xs text-slate-500 mb-1">Minute</label>
+                                    <select
+                                        className="border p-2 rounded text-sm w-full"
+                                        value={values.scheduled_minute}
+                                        onChange={e => onChange('scheduled_minute', parseInt(e.target.value))}
+                                    >
+                                        {minuteOptions.map(m => (
+                                            <option key={m.value} value={m.value}>{m.label}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            </div>
+                        )}
                     </div>
+                    <p className="text-xs text-slate-400">
+                        {values.schedule_type === 'interval'
+                            ? 'Feed will be checked at regular intervals throughout the day'
+                            : `Feed will be checked once daily at the specified time (server timezone)`
+                        }
+                    </p>
                 </div>
                 <div>
                     <label className="block text-xs text-slate-500 mb-1">Fallback Featured Image</label>
@@ -410,7 +503,10 @@ export default function ManageFeeds() {
             priority: feed.priority ?? 5,
             cron_interval: feed.cron_interval || 'hourly',
             fallback_featured_image_url: feed.fallback_featured_image_url || '',
-            allow_republishing: feed.allow_republishing ?? false
+            allow_republishing: feed.allow_republishing ?? false,
+            schedule_type: feed.schedule_type || 'interval',
+            scheduled_hour: feed.scheduled_hour ?? null,
+            scheduled_minute: feed.scheduled_minute ?? 0,
         });
     };
 
@@ -558,7 +654,23 @@ export default function ManageFeeds() {
                                         <span>Last: {feed.last_fetched ? new Date(feed.last_fetched).toLocaleString() : 'Never'}</span>
                                         <span>Processed: {feed.total_processed || 0}</span>
                                         <span>Created: {feed.total_published || 0}</span>
-                                        <span>Interval: {feed.cron_interval || 'hourly'}</span>
+                                        {feed.schedule_type === 'daily' ? (
+                                            <span className="text-indigo-600 font-medium">
+                                                Daily at {(() => {
+                                                    const hour = feed.scheduled_hour;
+                                                    const minute = feed.scheduled_minute ?? 0;
+                                                    if (hour == null) return 'N/A';
+                                                    const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
+                                                    const ampm = hour < 12 ? 'AM' : 'PM';
+                                                    return `${displayHour}:${String(minute).padStart(2, '0')} ${ampm}`;
+                                                })()}
+                                            </span>
+                                        ) : (
+                                            <span>Interval: {cronIntervals.find(i => i.value === feed.cron_interval)?.label || 'Hourly'}</span>
+                                        )}
+                                        {feed.items_pending && feed.items_pending > 0 && (
+                                            <span className="text-amber-600 font-medium">{feed.items_pending} pending</span>
+                                        )}
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-1">

@@ -34,6 +34,20 @@ interface FeedProcessingResult {
 export class RSSProcessorService {
   private static instance: RSSProcessorService;
 
+  /**
+   * Cron interval to milliseconds mapping
+   */
+  private static readonly INTERVAL_MS: Record<string, number> = {
+    'every_5_minutes': 5 * 60 * 1000,
+    'every_15_minutes': 15 * 60 * 1000,
+    'every_30_minutes': 30 * 60 * 1000,
+    'hourly': 60 * 60 * 1000,
+    'every_2_hours': 2 * 60 * 60 * 1000,
+    'every_6_hours': 6 * 60 * 60 * 1000,
+    'every_12_hours': 12 * 60 * 60 * 1000,
+    'daily': 24 * 60 * 60 * 1000,
+  };
+
   private constructor() {}
 
   static getInstance(): RSSProcessorService {
@@ -44,7 +58,26 @@ export class RSSProcessorService {
   }
 
   /**
-   * Process all active RSS feeds
+   * Check if a feed should be processed based on its cron_interval and last_fetched
+   */
+  private shouldProcessFeed(feed: { last_fetched: string | null; cron_interval: string | null }): boolean {
+    // If never fetched, process it
+    if (!feed.last_fetched) {
+      return true;
+    }
+
+    const interval = feed.cron_interval || 'hourly';
+    const intervalMs = RSSProcessorService.INTERVAL_MS[interval] || RSSProcessorService.INTERVAL_MS['hourly'];
+
+    const lastFetched = new Date(feed.last_fetched).getTime();
+    const now = Date.now();
+
+    // Add 1 minute buffer to avoid edge cases
+    return (now - lastFetched) >= (intervalMs - 60000);
+  }
+
+  /**
+   * Process all active RSS feeds that are due for processing
    *
    * @returns Array of processing results
    */
@@ -57,11 +90,12 @@ export class RSSProcessorService {
     try {
       const supabase = createAdminClient();
 
-      // Get all active feeds
+      // Get all active feeds ordered by priority
       const { data: feeds, error } = await supabase
         .from('rss_feeds')
         .select('*')
-        .eq('status', 'active');
+        .eq('status', 'active')
+        .order('priority', { ascending: false });
 
       if (error) {
         throw new Error(`Failed to fetch feeds: ${error.message}`);
@@ -72,10 +106,20 @@ export class RSSProcessorService {
         return [];
       }
 
-      await logger.info(`Processing ${feeds.length} active feeds`);
+      // Filter feeds that are due for processing based on their cron_interval
+      const feedsDue = feeds.filter(feed => this.shouldProcessFeed(feed));
+
+      await logger.info(`Found ${feeds.length} active feeds, ${feedsDue.length} due for processing`);
+
+      if (feedsDue.length === 0) {
+        await logger.info('No feeds due for processing at this time');
+        return [];
+      }
 
       // Process feeds sequentially to avoid overwhelming AI providers
-      for (const feed of feeds) {
+      for (const feed of feedsDue) {
+        await logger.info(`Processing feed: ${feed.name} (interval: ${feed.cron_interval || 'hourly'}, last: ${feed.last_fetched || 'never'})`);
+
         const result = await this.processFeed(feed.id);
         results.push(result);
 
@@ -86,7 +130,8 @@ export class RSSProcessorService {
       const totalTime = Date.now() - startTime;
 
       await logger.info('RSS processing run completed', {
-        total_feeds: feeds.length,
+        active_feeds: feeds.length,
+        feeds_processed: feedsDue.length,
         successful_feeds: results.filter((r) => r.success).length,
         total_opportunities_created: results.reduce(
           (sum, r) => sum + r.opportunitiesCreated,
