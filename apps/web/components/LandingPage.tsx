@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 
 import { useSubscription } from '../context/SubscriptionContext';
+import { useUser } from '../context/UserContext';
 import { AdUnit } from './AdUnit';
 import { FeatureCard } from './FeatureCard';
 import { PricingItem } from './PricingItem';
@@ -100,6 +101,7 @@ const SEARCH_CATEGORIES = [
 export const LandingPage = ({ opportunities = [], branding, heroContent, appSection, footer }: LandingPageProps) => {
     const router = useRouter();
     const { upgradeToPro, isPro } = useSubscription();
+    const { isAuthenticated } = useUser();
 
     // Search state
     const [searchQuery, setSearchQuery] = useState('');
@@ -123,7 +125,15 @@ export const LandingPage = ({ opportunities = [], branding, heroContent, appSect
         if (selectedCategory) params.set('type', selectedCategory);
 
         const queryString = params.toString();
-        router.push(`/opportunities${queryString ? `?${queryString}` : ''}`);
+        const targetUrl = `/opportunities${queryString ? `?${queryString}` : ''}`;
+
+        // If not authenticated, redirect to auth with the target URL
+        if (!isAuthenticated) {
+            router.push(`/auth?mode=signin&redirect=${encodeURIComponent(targetUrl)}`);
+            return;
+        }
+
+        router.push(targetUrl);
     };
 
     const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -210,10 +220,10 @@ export const LandingPage = ({ opportunities = [], branding, heroContent, appSect
                             {heroSubtitle}
                         </p>
                         {/* Search Bar */}
-                        <div className="bg-white py-2 px-2 md:py-3 md:px-3 rounded-full shadow-2xl max-w-3xl mx-auto relative">
+                        <div className="bg-white py-3 px-3 md:py-3 md:px-3 rounded-2xl md:rounded-full shadow-2xl max-w-3xl mx-auto relative">
                             <div className="flex items-center gap-2">
                                 {/* Search Input */}
-                                <div className="flex-1 flex items-center pl-4">
+                                <div className="flex-1 flex items-center pl-2 md:pl-4">
                                     <Search className="text-slate-400 mr-3 flex-shrink-0" size={20} />
                                     <input
                                         type="text"
@@ -270,11 +280,11 @@ export const LandingPage = ({ opportunities = [], branding, heroContent, appSect
                             </div>
 
                             {/* Category Select - Mobile */}
-                            <div className="md:hidden mt-2 px-2">
+                            <div className="md:hidden mt-3 pt-3 border-t border-slate-100">
                                 <select
                                     value={selectedCategory}
                                     onChange={(e) => setSelectedCategory(e.target.value)}
-                                    className="w-full bg-slate-50 border border-slate-200 rounded-full px-4 py-2 text-sm font-medium text-slate-700"
+                                    className="w-full bg-slate-50 border-0 rounded-xl px-4 py-2.5 text-sm font-medium text-slate-700 focus:ring-2 focus:ring-yellow-400"
                                 >
                                     {SEARCH_CATEGORIES.map((category) => (
                                         <option key={category.value} value={category.value}>

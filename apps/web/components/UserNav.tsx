@@ -63,12 +63,12 @@ export default function UserNav({ hideOpportunities = false }: UserNavProps) {
     if (!mounted) {
         return (
             <div className="flex items-center gap-4">
-                <Link href="/auth">
+                <Link href="/auth?mode=signin">
                     <button className="text-sm font-bold text-[#1a1a1a] hover:bg-slate-50 px-4 py-2 rounded-xl transition-all">
                         Sign In
                     </button>
                 </Link>
-                <Link href="/auth">
+                <Link href="/auth?mode=signup">
                     <button className="bg-[#1a1a1a] text-white text-sm font-bold px-6 py-3 rounded-xl hover:bg-slate-800 shadow-lg shadow-slate-200 transition-all">
                         Sign Up Free
                     </button>
@@ -80,12 +80,12 @@ export default function UserNav({ hideOpportunities = false }: UserNavProps) {
     if (!user) {
         return (
             <div className="flex items-center gap-4">
-                <Link href="/auth">
+                <Link href="/auth?mode=signin">
                     <button className="text-sm font-bold text-[#1a1a1a] hover:bg-slate-50 px-4 py-2 rounded-xl transition-all">
                         Sign In
                     </button>
                 </Link>
-                <Link href="/auth">
+                <Link href="/auth?mode=signup">
                     <button className="bg-[#1a1a1a] text-white text-sm font-bold px-6 py-3 rounded-xl hover:bg-slate-800 shadow-lg shadow-slate-200 transition-all">
                         Sign Up Free
                     </button>

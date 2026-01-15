@@ -3,6 +3,7 @@ import { Inter } from 'next/font/google'
 import './globals.css'
 import { UserProvider } from '@/context/UserContext'
 import GoogleAnalytics from '@/components/GoogleAnalytics'
+import GoogleOneTap from '@/components/GoogleOneTap'
 import { createAdminClient } from '@/lib/utils/supabase-admin'
 import { unstable_cache } from 'next/cache'
 
@@ -71,6 +72,7 @@ export default async function RootLayout({
                 )}
                 <GoogleAnalytics gaId={gaId} />
                 <UserProvider>
+                    <GoogleOneTap />
                     {children}
                 </UserProvider>
             </body>
