@@ -329,18 +329,13 @@ export class RSSProcessorService {
             result.aiRejections++;
             await logger.info('Content rejected by AI', {
               feed_id: feedId,
-              item_url: normalized.link,
-              reason: aiContent.reason,
+              feed_name: feed.name,
+              title: scrapedContent.title,
+              source_url: normalized.link,
+              reason: aiContent.reason || 'Content not suitable for processing',
+              opportunity_type: feed.opportunity_type,
+              ai_provider: feed.ai_provider,
             });
-            // Record the rejection for visibility in processing log
-            await opportunityService.createRejection(
-              scrapedContent.title,
-              feed.opportunity_type,
-              normalized.link,
-              feedId,
-              aiContent.reason || 'Content rejected by AI',
-              feed.ai_provider
-            );
             continue;
           }
 
@@ -352,21 +347,17 @@ export class RSSProcessorService {
             aiContent.confidence_score < qualityThreshold
           ) {
             result.aiRejections++;
-            const rejectionReason = `Content below quality threshold (${(aiContent.confidence_score * 100).toFixed(0)}% < ${(qualityThreshold * 100).toFixed(0)}%)`;
-            await logger.info('Content below quality threshold', {
+            await logger.info('Content rejected - below quality threshold', {
               feed_id: feedId,
+              feed_name: feed.name,
+              title: aiContent.title || scrapedContent.title,
+              source_url: normalized.link,
+              reason: `Quality score ${(aiContent.confidence_score * 100).toFixed(0)}% below threshold ${(qualityThreshold * 100).toFixed(0)}%`,
               confidence_score: aiContent.confidence_score,
               threshold: qualityThreshold,
+              opportunity_type: feed.opportunity_type,
+              ai_provider: feed.ai_provider,
             });
-            // Record the rejection for visibility in processing log
-            await opportunityService.createRejection(
-              aiContent.title || scrapedContent.title,
-              feed.opportunity_type,
-              normalized.link,
-              feedId,
-              rejectionReason,
-              feed.ai_provider
-            );
             continue;
           }
 

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Filter, RefreshCw, ExternalLink, CheckCircle, XCircle, AlertCircle, Eye } from 'lucide-react';
+import { Filter, RefreshCw, ExternalLink, CheckCircle, XCircle, AlertCircle, Eye, FileText } from 'lucide-react';
 import Link from 'next/link';
 
 interface LogEntry {
@@ -287,80 +287,72 @@ export default function ProcessingLog() {
                     <table className="w-full">
                         <thead className="bg-slate-50 border-b border-slate-200">
                             <tr>
-                                <th className="px-6 py-3 text-left text-xs font-bold text-slate-600 uppercase">Date</th>
-                                <th className="px-6 py-3 text-left text-xs font-bold text-slate-600 uppercase">Feed</th>
-                                <th className="px-6 py-3 text-left text-xs font-bold text-slate-600 uppercase">Category</th>
-                                <th className="px-6 py-3 text-left text-xs font-bold text-slate-600 uppercase">Provider</th>
-                                <th className="px-6 py-3 text-left text-xs font-bold text-slate-600 uppercase">Title</th>
-                                <th className="px-6 py-3 text-center text-xs font-bold text-slate-600 uppercase">Status</th>
-                                <th className="px-6 py-3 text-left text-xs font-bold text-slate-600 uppercase">Reason</th>
-                                <th className="px-6 py-3 text-center text-xs font-bold text-slate-600 uppercase">Actions</th>
+                                <th className="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Date</th>
+                                <th className="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Feed</th>
+                                <th className="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Type</th>
+                                <th className="px-4 py-3 text-center text-xs font-bold text-slate-600 uppercase" title="Hover over icon to see title">Info</th>
+                                <th className="px-4 py-3 text-center text-xs font-bold text-slate-600 uppercase">Status</th>
+                                <th className="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Reason</th>
+                                <th className="px-4 py-3 text-center text-xs font-bold text-slate-600 uppercase">Source</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-200">
                             {logs.length === 0 ? (
                                 <tr>
-                                    <td colSpan={8} className="px-6 py-12 text-center text-slate-400">
+                                    <td colSpan={7} className="px-4 py-12 text-center text-slate-400">
                                         No log entries found. Process some feeds to see activity here.
                                     </td>
                                 </tr>
                             ) : (
                                 logs.map((log) => (
                                     <tr key={log.id} className="hover:bg-slate-50 transition-colors">
-                                        <td className="px-6 py-4 text-sm text-slate-600 whitespace-nowrap">
+                                        <td className="px-4 py-3 text-sm text-slate-600 whitespace-nowrap">
                                             {new Date(log.date).toLocaleString('en-US', {
-                                                year: 'numeric',
                                                 month: '2-digit',
                                                 day: '2-digit',
                                                 hour: '2-digit',
                                                 minute: '2-digit',
                                             })}
                                         </td>
-                                        <td className="px-6 py-4 text-sm font-bold text-slate-900 max-w-[150px] truncate">
+                                        <td className="px-4 py-3 text-sm font-bold text-slate-900 max-w-[120px] truncate" title={log.feed_name}>
                                             {log.feed_name}
                                         </td>
-                                        <td className="px-6 py-4 text-sm text-slate-600">
+                                        <td className="px-4 py-3 text-sm text-slate-600">
                                             <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs font-bold">
                                                 {categoryLabels[log.category] || log.category}
                                             </span>
                                         </td>
-                                        <td className="px-6 py-4 text-sm text-slate-600 capitalize">
-                                            {log.provider}
+                                        <td className="px-4 py-3 text-center">
+                                            <div
+                                                className="inline-flex items-center justify-center p-2 text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-lg cursor-help transition-colors group relative"
+                                                title={`${log.title}${log.confidence_score !== null ? ` (${(log.confidence_score * 100).toFixed(0)}% confidence)` : ''}${log.provider ? ` - ${log.provider}` : ''}`}
+                                            >
+                                                <FileText size={16} />
+                                            </div>
                                         </td>
-                                        <td className="px-6 py-4 text-sm text-slate-900 max-w-[300px]">
-                                            <div className="truncate font-medium">{log.title}</div>
-                                            {log.confidence_score !== null && (
-                                                <div className="text-xs text-slate-500 mt-1">
-                                                    Confidence: {(log.confidence_score * 100).toFixed(0)}%
-                                                </div>
-                                            )}
-                                        </td>
-                                        <td className="px-6 py-4 text-center">
+                                        <td className="px-4 py-3 text-center">
                                             {getStatusBadge(log.status)}
                                         </td>
-                                        <td className="px-6 py-4 text-sm text-slate-600 max-w-[200px]">
-                                            <span className={log.status === 'rejected' ? 'text-red-600 font-medium' : ''}>
-                                                {log.reason}
+                                        <td className="px-4 py-3 text-sm text-slate-600 max-w-[250px]">
+                                            <span className={`truncate block ${log.status === 'rejected' ? 'text-red-600 font-medium' : ''}`} title={log.reason}>
+                                                {log.reason || '-'}
                                             </span>
                                         </td>
-                                        <td className="px-6 py-4 text-center">
-                                            <div className="flex items-center justify-center gap-2">
-                                                {/* Link to original source */}
+                                        <td className="px-4 py-3 text-center">
+                                            <div className="flex items-center justify-center gap-1">
                                                 <a
                                                     href={log.source_url}
                                                     target="_blank"
                                                     rel="noopener noreferrer"
-                                                    className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                                    className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                                                     title="View Original Source"
                                                 >
                                                     <ExternalLink size={16} />
                                                 </a>
-
-                                                {/* Link to opportunity if published */}
                                                 {log.status === 'published' && log.opportunity_slug && (
                                                     <Link
                                                         href={`/opportunities/${log.opportunity_slug}`}
-                                                        className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                                                        className="p-1.5 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
                                                         title="View Published Post"
                                                     >
                                                         <Eye size={16} />

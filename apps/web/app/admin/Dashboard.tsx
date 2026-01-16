@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { RefreshCw, Settings, Rss, Play, Clock, CheckCircle, AlertCircle, TrendingUp } from 'lucide-react';
+import { RefreshCw, Settings, Rss, Play, Clock, CheckCircle, AlertCircle, TrendingUp, Target, XCircle, FileEdit } from 'lucide-react';
 import Link from 'next/link';
 
 interface DashboardStats {
@@ -15,6 +15,14 @@ interface DashboardStats {
         today: number;
         thisWeek: number;
         total: number;
+    };
+    processing: {
+        successRate: number;
+        published: number;
+        drafts: number;
+        rejected: number;
+        total: number;
+        logLimit: number;
     };
     feeds: Array<{
         id: string;
@@ -185,6 +193,69 @@ export default function Dashboard() {
                     <h3 className="text-sm font-bold text-slate-600 mb-3">Total Posts</h3>
                     <div className="text-4xl font-black text-blue-600 mb-2">{stats.posts.total}</div>
                     <div className="text-xs text-slate-500">All Time</div>
+                </div>
+            </div>
+
+            {/* Processing Success Rate */}
+            <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+                        <Target size={20} className="text-blue-600" />
+                        Processing Success Rate
+                    </h3>
+                    <Link href="/admin?section=logs" className="text-sm text-blue-600 hover:text-blue-700 font-bold">
+                        View Logs
+                    </Link>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+                    {/* Success Rate */}
+                    <div className="text-center p-4 bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl border border-blue-200">
+                        <div className={`text-4xl font-black mb-1 ${
+                            stats.processing?.successRate >= 70 ? 'text-green-600' :
+                            stats.processing?.successRate >= 50 ? 'text-yellow-600' : 'text-red-600'
+                        }`}>
+                            {stats.processing?.successRate || 0}%
+                        </div>
+                        <div className="text-xs font-bold text-slate-600">Success Rate</div>
+                    </div>
+
+                    {/* Published */}
+                    <div className="text-center p-4 bg-green-50 rounded-xl border border-green-200">
+                        <div className="flex items-center justify-center gap-2 mb-1">
+                            <CheckCircle size={16} className="text-green-600" />
+                            <span className="text-2xl font-black text-green-700">{stats.processing?.published || 0}</span>
+                        </div>
+                        <div className="text-xs font-bold text-slate-600">Published</div>
+                    </div>
+
+                    {/* Drafts */}
+                    <div className="text-center p-4 bg-yellow-50 rounded-xl border border-yellow-200">
+                        <div className="flex items-center justify-center gap-2 mb-1">
+                            <FileEdit size={16} className="text-yellow-600" />
+                            <span className="text-2xl font-black text-yellow-700">{stats.processing?.drafts || 0}</span>
+                        </div>
+                        <div className="text-xs font-bold text-slate-600">Drafts</div>
+                    </div>
+
+                    {/* Rejected */}
+                    <div className="text-center p-4 bg-red-50 rounded-xl border border-red-200">
+                        <div className="flex items-center justify-center gap-2 mb-1">
+                            <XCircle size={16} className="text-red-600" />
+                            <span className="text-2xl font-black text-red-700">{stats.processing?.rejected || 0}</span>
+                        </div>
+                        <div className="text-xs font-bold text-slate-600">Rejected</div>
+                    </div>
+
+                    {/* Total Processed */}
+                    <div className="text-center p-4 bg-slate-50 rounded-xl border border-slate-200">
+                        <div className="text-2xl font-black text-slate-700 mb-1">{stats.processing?.total || 0}</div>
+                        <div className="text-xs font-bold text-slate-600">Total Processed</div>
+                    </div>
+                </div>
+
+                <div className="mt-3 text-xs text-slate-500 text-center">
+                    Based on the last {stats.processing?.logLimit || 100} log entries. Adjust in Advanced Settings.
                 </div>
             </div>
 

@@ -40,6 +40,9 @@ export async function GET(request: NextRequest) {
     const opportunity_type = searchParams.get('opportunity_type') || undefined;
     const feed_id = searchParams.get('feed_id') || undefined;
     const search = searchParams.get('search') || undefined;
+    const excludeRejected = searchParams.get('exclude_rejected') === 'true';
+    const dateFrom = searchParams.get('date_from') || undefined;
+    const dateTo = searchParams.get('date_to') || undefined;
 
     // Build query
     let query = adminSupabase
@@ -69,6 +72,9 @@ export async function GET(request: NextRequest) {
       `, { count: 'exact' });
 
     // Apply filters
+    if (excludeRejected) {
+      query = query.neq('status', 'rejected');
+    }
     if (status) {
       query = query.eq('status', status);
     }
@@ -80,6 +86,12 @@ export async function GET(request: NextRequest) {
     }
     if (search) {
       query = query.ilike('title', `%${search}%`);
+    }
+    if (dateFrom) {
+      query = query.gte('created_at', `${dateFrom}T00:00:00`);
+    }
+    if (dateTo) {
+      query = query.lte('created_at', `${dateTo}T23:59:59`);
     }
 
     // Apply pagination and ordering
@@ -95,11 +107,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Get stats (total counts by status)
-    const { count: totalCount } = await adminSupabase
-      .from('opportunities')
-      .select('*', { count: 'exact', head: true });
-
+    // Get stats (total counts by status - excluding rejected)
     const { count: publishedCount } = await adminSupabase
       .from('opportunities')
       .select('*', { count: 'exact', head: true })
@@ -110,10 +118,7 @@ export async function GET(request: NextRequest) {
       .select('*', { count: 'exact', head: true })
       .eq('status', 'draft');
 
-    const { count: rejectedCount } = await adminSupabase
-      .from('opportunities')
-      .select('*', { count: 'exact', head: true })
-      .eq('status', 'rejected');
+    const totalCount = (publishedCount || 0) + (draftCount || 0);
 
     // Transform data to include feed name
     const transformedOpportunities = opportunities?.map((opp) => ({
@@ -125,10 +130,9 @@ export async function GET(request: NextRequest) {
       opportunities: transformedOpportunities,
       total: count || 0,
       stats: {
-        total: totalCount || 0,
+        total: totalCount,
         published: publishedCount || 0,
         draft: draftCount || 0,
-        rejected: rejectedCount || 0,
       }
     });
   } catch (error) {

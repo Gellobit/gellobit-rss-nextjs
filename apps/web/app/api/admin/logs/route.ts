@@ -2,11 +2,27 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createRouteClient } from '@/lib/utils/supabase-route';
 import { createAdminClient } from '@/lib/utils/supabase-admin';
+import { settingsService } from '@/lib/services/settings.service';
 import { logger } from '@/lib/utils/logger';
+
+interface LogEntry {
+  id: string;
+  date: string;
+  feed_name: string;
+  category: string;
+  provider: string;
+  title: string;
+  status: 'published' | 'rejected' | 'draft';
+  reason: string;
+  source_url: string;
+  opportunity_id: string | null;
+  opportunity_slug: string | null;
+  confidence_score: number | null;
+}
 
 /**
  * GET /api/admin/logs
- * Get processing logs showing opportunities created (published/rejected/draft)
+ * Get processing logs showing opportunities created (published/draft) and rejections from processing_logs
  */
 export async function GET(request: NextRequest) {
   try {
@@ -38,75 +54,132 @@ export async function GET(request: NextRequest) {
     const feedId = searchParams.get('feed_id');
     const search = searchParams.get('search');
 
-    // Build query from opportunities table
-    let query = adminSupabase
-      .from('opportunities')
-      .select(`
-        id,
-        title,
-        slug,
-        opportunity_type,
-        status,
-        ai_provider,
-        confidence_score,
-        source_url,
-        created_at,
-        rejection_reason,
-        source_feed_id,
-        rss_feeds!source_feed_id (
+    // Get log limit from settings
+    const logMaxEntries = await settingsService.get('advanced.log_max_entries') || 100;
+
+    const logs: LogEntry[] = [];
+
+    // 1. Get published/draft opportunities (only if not filtering for rejected)
+    if (!status || status === 'all' || status !== 'rejected') {
+      let oppQuery = adminSupabase
+        .from('opportunities')
+        .select(`
           id,
-          name
-        )
-      `)
-      .order('created_at', { ascending: false })
-      .limit(100);
+          title,
+          slug,
+          opportunity_type,
+          status,
+          ai_provider,
+          confidence_score,
+          source_url,
+          created_at,
+          source_feed_id,
+          rss_feeds!source_feed_id (
+            id,
+            name
+          )
+        `)
+        .in('status', ['published', 'draft'])
+        .order('created_at', { ascending: false })
+        .limit(logMaxEntries);
 
-    // Apply filters
-    if (status && status !== 'all') {
-      query = query.eq('status', status);
+      // Apply filters
+      if (status && status !== 'all') {
+        oppQuery = oppQuery.eq('status', status);
+      }
+
+      if (provider && provider !== 'all') {
+        oppQuery = oppQuery.eq('ai_provider', provider);
+      }
+
+      if (feedId && feedId !== 'all') {
+        oppQuery = oppQuery.eq('source_feed_id', feedId);
+      }
+
+      if (search) {
+        oppQuery = oppQuery.ilike('title', `%${search}%`);
+      }
+
+      const { data: opportunities, error: oppError } = await oppQuery;
+
+      if (oppError) {
+        console.error('Error fetching opportunities:', oppError);
+      } else {
+        // Transform opportunities to log entries
+        opportunities?.forEach((opp) => {
+          logs.push({
+            id: opp.id,
+            date: opp.created_at,
+            feed_name: opp.rss_feeds?.name || 'Unknown Feed',
+            category: opp.opportunity_type,
+            provider: opp.ai_provider || 'default',
+            title: opp.title,
+            status: opp.status as 'published' | 'draft',
+            reason: opp.status === 'published' ? 'Published successfully' : 'Awaiting review',
+            source_url: opp.source_url,
+            opportunity_id: opp.status === 'published' ? opp.id : null,
+            opportunity_slug: opp.status === 'published' ? opp.slug : null,
+            confidence_score: opp.confidence_score,
+          });
+        });
+      }
     }
 
-    if (provider && provider !== 'all') {
-      query = query.eq('ai_provider', provider);
+    // 2. Get rejections from processing_logs (only if not filtering for published/draft)
+    if (!status || status === 'all' || status === 'rejected') {
+      let logQuery = adminSupabase
+        .from('processing_logs')
+        .select('*')
+        .or('message.eq.Content rejected by AI,message.eq.Content rejected - below quality threshold')
+        .order('created_at', { ascending: false })
+        .limit(logMaxEntries);
+
+      if (feedId && feedId !== 'all') {
+        logQuery = logQuery.eq('feed_id', feedId);
+      }
+
+      const { data: rejectionLogs, error: logError } = await logQuery;
+
+      if (logError) {
+        console.error('Error fetching rejection logs:', logError);
+      } else {
+        // Transform rejection logs to log entries
+        rejectionLogs?.forEach((log) => {
+          const context = log.context || {};
+
+          // Apply search filter
+          if (search && !context.title?.toLowerCase().includes(search.toLowerCase())) {
+            return;
+          }
+
+          // Apply provider filter
+          if (provider && provider !== 'all' && context.ai_provider?.toLowerCase() !== provider.toLowerCase()) {
+            return;
+          }
+
+          logs.push({
+            id: log.id,
+            date: log.created_at,
+            feed_name: context.feed_name || 'Unknown Feed',
+            category: context.opportunity_type || 'unknown',
+            provider: context.ai_provider || 'default',
+            title: context.title || 'Unknown Title',
+            status: 'rejected',
+            reason: context.reason || log.message || 'Content not suitable',
+            source_url: context.source_url || '',
+            opportunity_id: null,
+            opportunity_slug: null,
+            confidence_score: context.confidence_score || null,
+          });
+        });
+      }
     }
 
-    if (feedId && feedId !== 'all') {
-      query = query.eq('source_feed_id', feedId);
-    }
+    // Sort all logs by date (newest first) and limit
+    logs.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    const limitedLogs = logs.slice(0, logMaxEntries);
 
-    if (search) {
-      query = query.ilike('title', `%${search}%`);
-    }
-
-    const { data: opportunities, error } = await query;
-
-    if (error) {
-      console.error('Error fetching logs:', error);
-      return NextResponse.json(
-        { error: 'Failed to fetch logs', details: error.message },
-        { status: 500 }
-      );
-    }
-
-    // Transform data to match frontend interface
-    const logs = opportunities?.map((opp) => ({
-      id: opp.id,
-      date: opp.created_at,
-      feed_name: opp.rss_feeds?.name || 'Unknown Feed',
-      category: opp.opportunity_type,
-      provider: opp.ai_provider || 'default',
-      title: opp.title,
-      status: opp.status,
-      reason: opp.rejection_reason ||
-             (opp.status === 'published' ? 'Published successfully' :
-              opp.status === 'draft' ? 'Awaiting review' : 'No reason provided'),
-      source_url: opp.source_url,
-      opportunity_id: opp.status === 'published' ? opp.id : null,
-      opportunity_slug: opp.status === 'published' ? opp.slug : null,
-      confidence_score: opp.confidence_score,
-    })) || [];
-
-    return NextResponse.json({ logs });
+    return NextResponse.json({ logs: limitedLogs });
   } catch (error) {
     await logger.error('Error fetching processing logs', {
       error: error instanceof Error ? error.message : 'Unknown error',

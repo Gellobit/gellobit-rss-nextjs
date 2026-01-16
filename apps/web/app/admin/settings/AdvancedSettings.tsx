@@ -1,21 +1,24 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { Save, RefreshCw, Download, Upload, Trash2, AlertTriangle, Rss, ChevronDown, ChevronUp } from 'lucide-react';
+import { Save, RefreshCw, Download, Upload, Trash2, AlertTriangle, Rss, ChevronDown, ChevronUp, Scissors } from 'lucide-react';
 
 interface AdvancedConfig {
     log_retention_days: number;
+    log_max_entries: number;
     debug_mode: boolean;
 }
 
 export default function AdvancedSettings() {
     const [config, setConfig] = useState<AdvancedConfig>({
         log_retention_days: 30,
+        log_max_entries: 100,
         debug_mode: false,
     });
     const [loading, setLoading] = useState(false);
     const [saving, setSaving] = useState(false);
     const [clearing, setClearing] = useState(false);
+    const [trimming, setTrimming] = useState(false);
     const [exporting, setExporting] = useState(false);
     const [sessionExpired, setSessionExpired] = useState(false);
     const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
@@ -96,6 +99,27 @@ export default function AdvancedSettings() {
             setMessage({ type: 'error', text: 'Failed to clear logs' });
         }
         setClearing(false);
+    };
+
+    const handleTrimLogs = async () => {
+        setTrimming(true);
+        setMessage(null);
+        try {
+            const res = await fetch('/api/admin/settings/trim-logs', {
+                method: 'POST',
+            });
+
+            const data = await res.json();
+
+            if (res.ok) {
+                setMessage({ type: 'success', text: data.message });
+            } else {
+                setMessage({ type: 'error', text: data.error || 'Failed to trim logs' });
+            }
+        } catch (error) {
+            setMessage({ type: 'error', text: 'Failed to trim logs' });
+        }
+        setTrimming(false);
     };
 
     const handleExportSettings = async () => {
@@ -292,6 +316,48 @@ export default function AdvancedSettings() {
                 />
                 <p className="text-xs text-slate-500">
                     Automatically delete processing logs older than this many days (default: 30)
+                </p>
+            </div>
+
+            {/* Log Max Entries */}
+            <div className="space-y-2">
+                <label className="block text-sm font-bold text-slate-900">
+                    Maximum Log Entries to Display
+                </label>
+                <div className="flex gap-3">
+                    <select
+                        value={config.log_max_entries}
+                        onChange={(e) => setConfig({ ...config, log_max_entries: Number(e.target.value) })}
+                        className="flex-1 border border-slate-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                        <option value={50}>50 entries</option>
+                        <option value={100}>100 entries</option>
+                        <option value={200}>200 entries</option>
+                        <option value={300}>300 entries</option>
+                        <option value={500}>500 entries</option>
+                        <option value={1000}>1000 entries</option>
+                    </select>
+                    <button
+                        onClick={handleTrimLogs}
+                        disabled={trimming}
+                        className="bg-slate-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-slate-700 transition-colors flex items-center gap-2 disabled:opacity-50 whitespace-nowrap"
+                        title="Remove old logs exceeding the limit"
+                    >
+                        {trimming ? (
+                            <>
+                                <RefreshCw size={14} className="animate-spin" />
+                                Trimming...
+                            </>
+                        ) : (
+                            <>
+                                <Scissors size={14} />
+                                Trim Now
+                            </>
+                        )}
+                    </button>
+                </div>
+                <p className="text-xs text-slate-500">
+                    Maximum number of log entries to display in the Processing Log. This also affects the success rate calculation on the dashboard. Use "Trim Now" to remove old entries exceeding this limit.
                 </p>
             </div>
 

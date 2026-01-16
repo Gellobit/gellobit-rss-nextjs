@@ -89,8 +89,11 @@ export default function ManagePosts() {
         total: 0,
         published: 0,
         draft: 0,
-        rejected: 0
     });
+
+    // Date filter
+    const [dateFrom, setDateFrom] = useState<string>('');
+    const [dateTo, setDateTo] = useState<string>('');
 
     useEffect(() => {
         fetchFeeds();
@@ -99,7 +102,7 @@ export default function ManagePosts() {
 
     useEffect(() => {
         fetchOpportunities();
-    }, [page, statusFilter, typeFilter, feedFilter]);
+    }, [page, statusFilter, typeFilter, feedFilter, dateFrom, dateTo]);
 
     const fetchFeeds = async () => {
         try {
@@ -120,10 +123,13 @@ export default function ManagePosts() {
             const params = new URLSearchParams();
             params.append('limit', limit.toString());
             params.append('offset', ((page - 1) * limit).toString());
+            params.append('exclude_rejected', 'true'); // Always exclude rejected
             if (statusFilter) params.append('status', statusFilter);
             if (typeFilter) params.append('opportunity_type', typeFilter);
             if (feedFilter) params.append('feed_id', feedFilter);
             if (searchQuery) params.append('search', searchQuery);
+            if (dateFrom) params.append('date_from', dateFrom);
+            if (dateTo) params.append('date_to', dateTo);
 
             const res = await fetch(`/api/admin/opportunities?${params.toString()}`);
 
@@ -144,7 +150,6 @@ export default function ManagePosts() {
                     total: data.stats?.total || 0,
                     published: data.stats?.published || 0,
                     draft: data.stats?.draft || 0,
-                    rejected: data.stats?.rejected || 0
                 });
             } else {
                 console.error('Error fetching opportunities:', data.error);
@@ -318,7 +323,7 @@ export default function ManagePosts() {
             </div>
 
             {/* Stats Cards */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-3 gap-4">
                 <div
                     className={`bg-white p-4 rounded-xl shadow-sm border-2 cursor-pointer transition-colors ${statusFilter === '' ? 'border-slate-900' : 'border-slate-200 hover:border-slate-300'}`}
                     onClick={() => { setStatusFilter(''); setPage(1); }}
@@ -340,18 +345,11 @@ export default function ManagePosts() {
                     <div className="text-2xl font-black text-yellow-600">{stats.draft}</div>
                     <div className="text-sm font-bold text-slate-500">Drafts</div>
                 </div>
-                <div
-                    className={`bg-white p-4 rounded-xl shadow-sm border-2 cursor-pointer transition-colors ${statusFilter === 'rejected' ? 'border-red-500' : 'border-slate-200 hover:border-red-200'}`}
-                    onClick={() => { setStatusFilter('rejected'); setPage(1); }}
-                >
-                    <div className="text-2xl font-black text-red-600">{stats.rejected}</div>
-                    <div className="text-sm font-bold text-slate-500">Rejected</div>
-                </div>
             </div>
 
             {/* Filters */}
             <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
                     <select
                         value={typeFilter}
                         onChange={(e) => { setTypeFilter(e.target.value); setPage(1); }}
@@ -381,7 +379,28 @@ export default function ManagePosts() {
                         onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
                         className="border border-slate-200 rounded-lg px-3 py-2 text-sm"
                     />
+                </div>
 
+                {/* Date Filters */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="flex items-center gap-2">
+                        <label className="text-xs font-bold text-slate-500 whitespace-nowrap">From:</label>
+                        <input
+                            type="date"
+                            value={dateFrom}
+                            onChange={(e) => { setDateFrom(e.target.value); setPage(1); }}
+                            className="border border-slate-200 rounded-lg px-3 py-2 text-sm flex-1"
+                        />
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <label className="text-xs font-bold text-slate-500 whitespace-nowrap">To:</label>
+                        <input
+                            type="date"
+                            value={dateTo}
+                            onChange={(e) => { setDateTo(e.target.value); setPage(1); }}
+                            className="border border-slate-200 rounded-lg px-3 py-2 text-sm flex-1"
+                        />
+                    </div>
                     <button
                         onClick={handleSearch}
                         className="bg-blue-600 text-white px-4 py-2 rounded-lg font-bold hover:bg-blue-700 transition-colors flex items-center gap-2 justify-center"
@@ -390,18 +409,6 @@ export default function ManagePosts() {
                         Filter
                     </button>
                 </div>
-
-                {/* Bulk Actions */}
-                {stats.rejected > 0 && (
-                    <div className="flex gap-2 pt-3 border-t border-slate-200">
-                        <button
-                            onClick={() => handleBulkDelete('rejected')}
-                            className="text-xs font-bold text-red-600 hover:text-red-800 hover:bg-red-50 px-3 py-1 rounded transition-colors"
-                        >
-                            Delete All Rejected ({stats.rejected})
-                        </button>
-                    </div>
-                )}
             </div>
 
             {/* Results Info */}
