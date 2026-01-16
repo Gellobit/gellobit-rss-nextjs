@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Save, RefreshCw, BarChart3, DollarSign, Smartphone } from 'lucide-react';
+import { Save, RefreshCw, BarChart3, DollarSign, Smartphone, Image } from 'lucide-react';
 
 interface AnalyticsConfig {
     google_analytics_id: string;
@@ -9,6 +9,10 @@ interface AnalyticsConfig {
     adsense_slot_id: string;
     admob_app_id: string;
     admob_banner_id: string;
+    // Manual banner
+    manual_banner_image_url: string;
+    manual_banner_target_url: string;
+    manual_banner_enabled: boolean;
 }
 
 export default function AnalyticsSettings() {
@@ -18,6 +22,9 @@ export default function AnalyticsSettings() {
         adsense_slot_id: '',
         admob_app_id: '',
         admob_banner_id: '',
+        manual_banner_image_url: '',
+        manual_banner_target_url: '',
+        manual_banner_enabled: false,
     });
     const [loading, setLoading] = useState(false);
     const [saving, setSaving] = useState(false);
@@ -237,6 +244,97 @@ export default function AnalyticsSettings() {
                     <p className="text-sm text-amber-800">
                         <strong>Note:</strong> AdMob is for native mobile apps. For this PWA (Progressive Web App),
                         ads will use Google AdSense which works on both desktop and mobile browsers.
+                    </p>
+                </div>
+            </div>
+
+            {/* Manual Banner Section */}
+            <div className="space-y-4 pb-6 border-b border-slate-200">
+                <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-purple-100 rounded-xl flex items-center justify-center">
+                        <Image className="text-purple-600" size={20} />
+                    </div>
+                    <div>
+                        <h3 className="font-bold text-slate-900">Manual Banner Ad</h3>
+                        <p className="text-xs text-slate-500">Display a custom banner image instead of AdSense (useful for testing or sponsors)</p>
+                    </div>
+                </div>
+
+                <div className="space-y-4 pl-13">
+                    {/* Enable Toggle */}
+                    <div className="flex items-center gap-3">
+                        <button
+                            type="button"
+                            onClick={() => setConfig({ ...config, manual_banner_enabled: !config.manual_banner_enabled })}
+                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                                config.manual_banner_enabled ? 'bg-purple-600' : 'bg-slate-200'
+                            }`}
+                        >
+                            <span
+                                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                                    config.manual_banner_enabled ? 'translate-x-6' : 'translate-x-1'
+                                }`}
+                            />
+                        </button>
+                        <label className="text-sm font-bold text-slate-700">
+                            Enable Manual Banner (overrides AdSense)
+                        </label>
+                    </div>
+
+                    <div className="space-y-2">
+                        <label className="block text-sm font-bold text-slate-700">
+                            Banner Image URL
+                        </label>
+                        <input
+                            type="text"
+                            value={config.manual_banner_image_url}
+                            onChange={(e) => setConfig({ ...config, manual_banner_image_url: e.target.value })}
+                            placeholder="https://example.com/banner.jpg"
+                            className="w-full max-w-lg border border-slate-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                        />
+                        <p className="text-xs text-slate-500">
+                            Recommended size: 728x90 (horizontal) or 300x250 (rectangle). Use a direct image URL.
+                        </p>
+                    </div>
+
+                    <div className="space-y-2">
+                        <label className="block text-sm font-bold text-slate-700">
+                            Target URL (click destination)
+                        </label>
+                        <input
+                            type="text"
+                            value={config.manual_banner_target_url}
+                            onChange={(e) => setConfig({ ...config, manual_banner_target_url: e.target.value })}
+                            placeholder="https://sponsor.com/offer"
+                            className="w-full max-w-lg border border-slate-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                        />
+                        <p className="text-xs text-slate-500">
+                            Where users will be redirected when they click the banner
+                        </p>
+                    </div>
+
+                    {/* Preview */}
+                    {config.manual_banner_image_url && (
+                        <div className="space-y-2">
+                            <label className="block text-sm font-bold text-slate-700">Preview</label>
+                            <div className="border border-slate-200 rounded-lg p-4 bg-slate-50 max-w-lg">
+                                <img
+                                    src={config.manual_banner_image_url}
+                                    alt="Banner preview"
+                                    className="max-w-full h-auto rounded"
+                                    onError={(e) => {
+                                        (e.target as HTMLImageElement).style.display = 'none';
+                                    }}
+                                />
+                            </div>
+                        </div>
+                    )}
+                </div>
+
+                <div className="bg-purple-50 border border-purple-200 rounded-lg p-4 mt-4">
+                    <p className="text-sm text-purple-800">
+                        <strong>Tip:</strong> When enabled, the manual banner will be displayed to all free/basic users
+                        instead of AdSense. Premium and Lifetime members will not see any ads.
                     </p>
                 </div>
             </div>

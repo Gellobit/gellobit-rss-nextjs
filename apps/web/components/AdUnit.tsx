@@ -11,14 +11,25 @@ interface AdUnitProps {
     className?: string;
 }
 
-interface AdSenseConfig {
+interface AdConfig {
+    // AdSense
     clientId: string | null;
     slotId: string | null;
+    // Manual Banner
+    manualBannerEnabled: boolean;
+    manualBannerImageUrl: string | null;
+    manualBannerTargetUrl: string | null;
 }
 
 export const AdUnit: React.FC<AdUnitProps> = ({ slotId, format = 'horizontal', className = '' }) => {
     const { shouldShowAds, loading: membershipLoading } = useShowAds();
-    const [adConfig, setAdConfig] = useState<AdSenseConfig>({ clientId: null, slotId: null });
+    const [adConfig, setAdConfig] = useState<AdConfig>({
+        clientId: null,
+        slotId: null,
+        manualBannerEnabled: false,
+        manualBannerImageUrl: null,
+        manualBannerTargetUrl: null,
+    });
     const [loaded, setLoaded] = useState(false);
     const [configLoaded, setConfigLoaded] = useState(false);
 
@@ -26,7 +37,7 @@ export const AdUnit: React.FC<AdUnitProps> = ({ slotId, format = 'horizontal', c
         // Only fetch config if we should show ads
         if (!shouldShowAds || membershipLoading) return;
 
-        // Fetch AdSense configuration
+        // Fetch ad configuration
         const fetchAdConfig = async () => {
             try {
                 const res = await fetch('/api/analytics');
@@ -35,6 +46,9 @@ export const AdUnit: React.FC<AdUnitProps> = ({ slotId, format = 'horizontal', c
                     setAdConfig({
                         clientId: data.adsense_client_id || null,
                         slotId: slotId || data.adsense_slot_id || null,
+                        manualBannerEnabled: data.manual_banner_enabled === true,
+                        manualBannerImageUrl: data.manual_banner_image_url || null,
+                        manualBannerTargetUrl: data.manual_banner_target_url || null,
                     });
                 }
             } catch (error) {
@@ -47,8 +61,8 @@ export const AdUnit: React.FC<AdUnitProps> = ({ slotId, format = 'horizontal', c
     }, [slotId, shouldShowAds, membershipLoading]);
 
     useEffect(() => {
-        // Initialize ads when config is loaded
-        if (adConfig.clientId && adConfig.slotId && loaded && typeof window !== 'undefined') {
+        // Initialize AdSense ads when config is loaded (only if not using manual banner)
+        if (!adConfig.manualBannerEnabled && adConfig.clientId && adConfig.slotId && loaded && typeof window !== 'undefined') {
             try {
                 // @ts-ignore
                 (window.adsbygoogle = window.adsbygoogle || []).push({});
@@ -63,15 +77,42 @@ export const AdUnit: React.FC<AdUnitProps> = ({ slotId, format = 'horizontal', c
         return null;
     }
 
+    // Don't show anything until config is loaded
+    if (!configLoaded) {
+        return null;
+    }
+
+    // Render manual banner if enabled
+    if (adConfig.manualBannerEnabled && adConfig.manualBannerImageUrl) {
+        return (
+            <div className={`my-6 ${className}`}>
+                <a
+                    href={adConfig.manualBannerTargetUrl || '#'}
+                    target="_blank"
+                    rel="noopener sponsored"
+                    className="block"
+                >
+                    <img
+                        src={adConfig.manualBannerImageUrl}
+                        alt="Advertisement"
+                        className="w-full h-auto rounded-xl hover:opacity-90 transition-opacity"
+                    />
+                </a>
+                <div className="text-center mt-2">
+                    <Link href="/pricing" className="text-[10px] text-gray-400 hover:text-gray-600 transition-colors">
+                        Upgrade to Premium to remove ads
+                    </Link>
+                </div>
+            </div>
+        );
+    }
+
     const effectiveSlotId = slotId || adConfig.slotId;
 
     // If no AdSense config, show placeholder
     if (!adConfig.clientId || !effectiveSlotId) {
         const baseStyles = "bg-gray-100 border border-gray-200 flex items-center justify-center text-gray-400 text-xs uppercase tracking-widest rounded-xl";
         const dimStyles = format === 'horizontal' ? 'w-full h-24' : format === 'rectangle' ? 'w-[300px] h-[250px]' : 'w-full min-h-[100px]';
-
-        // Only show placeholder if config has loaded (avoid flash)
-        if (!configLoaded) return null;
 
         return (
             <div className={`my-6 ${className}`}>

@@ -30,6 +30,10 @@ export async function GET(request: NextRequest) {
         const adsenseSlotId = await settingsService.get('analytics.adsense_slot_id');
         const admobAppId = await settingsService.get('analytics.admob_app_id');
         const admobBannerId = await settingsService.get('analytics.admob_banner_id');
+        // Manual banner settings
+        const manualBannerImageUrl = await settingsService.get('analytics.manual_banner_image_url');
+        const manualBannerTargetUrl = await settingsService.get('analytics.manual_banner_target_url');
+        const manualBannerEnabled = await settingsService.get('analytics.manual_banner_enabled');
 
         const settings = {
             google_analytics_id: googleAnalyticsId || '',
@@ -37,6 +41,9 @@ export async function GET(request: NextRequest) {
             adsense_slot_id: adsenseSlotId || '',
             admob_app_id: admobAppId || '',
             admob_banner_id: admobBannerId || '',
+            manual_banner_image_url: manualBannerImageUrl || '',
+            manual_banner_target_url: manualBannerTargetUrl || '',
+            manual_banner_enabled: manualBannerEnabled === true || manualBannerEnabled === 'true',
         };
 
         return NextResponse.json({ settings });
@@ -88,6 +95,16 @@ export async function POST(request: NextRequest) {
         }
         if ('admob_banner_id' in body) {
             settingsToSave['analytics.admob_banner_id'] = body.admob_banner_id || '';
+        }
+        // Manual banner settings
+        if ('manual_banner_image_url' in body) {
+            settingsToSave['analytics.manual_banner_image_url'] = body.manual_banner_image_url || '';
+        }
+        if ('manual_banner_target_url' in body) {
+            settingsToSave['analytics.manual_banner_target_url'] = body.manual_banner_target_url || '';
+        }
+        if ('manual_banner_enabled' in body) {
+            settingsToSave['analytics.manual_banner_enabled'] = body.manual_banner_enabled || false;
         }
 
         const success = await settingsService.setMany(settingsToSave);
