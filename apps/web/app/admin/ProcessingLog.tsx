@@ -59,7 +59,14 @@ export default function ProcessingLog() {
     const [selectedReason, setSelectedReason] = useState<{ title: string; reason: string } | null>(null);
 
     const [availableFeeds, setAvailableFeeds] = useState<Array<{ id: string; name: string }>>([]);
-    const [availableProviders, setAvailableProviders] = useState<string[]>([]);
+
+    // Available AI providers
+    const availableProviders = [
+        { value: 'openai', label: 'OpenAI' },
+        { value: 'anthropic', label: 'Claude (Anthropic)' },
+        { value: 'deepseek', label: 'DeepSeek' },
+        { value: 'gemini', label: 'Gemini' },
+    ];
 
     useEffect(() => {
         fetchLogs();
@@ -73,17 +80,6 @@ export default function ProcessingLog() {
             const feedsData = await feedsRes.json();
             if (feedsRes.ok) {
                 setAvailableFeeds(feedsData.feeds || []);
-            }
-
-            // Get AI providers
-            const providersRes = await fetch('/api/admin/ai-settings');
-            const providersData = await providersRes.json();
-            if (providersRes.ok && providersData.settings) {
-                const providers = ['Default'];
-                if (providersData.settings.provider) {
-                    providers.push(providersData.settings.provider);
-                }
-                setAvailableProviders(providers);
             }
         } catch (error) {
             console.error('Error fetching filter options:', error);
@@ -254,8 +250,8 @@ export default function ProcessingLog() {
                     >
                         <option value="all">All providers</option>
                         {availableProviders.map((provider) => (
-                            <option key={provider} value={provider.toLowerCase()}>
-                                {provider}
+                            <option key={provider.value} value={provider.value}>
+                                {provider.label}
                             </option>
                         ))}
                     </select>
