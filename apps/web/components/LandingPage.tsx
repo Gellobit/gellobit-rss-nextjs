@@ -5,7 +5,8 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
     Check, ShieldCheck, Zap, Bell, Smartphone, Search,
-    Briefcase, Gift, GraduationCap, Star, Users, ChevronDown, Globe
+    Briefcase, Gift, GraduationCap, Star, Users, ChevronDown, Globe,
+    Trophy, ArrowRight
 } from 'lucide-react';
 
 import { useUser, useShowAds } from '../context/UserContext';
@@ -96,6 +97,21 @@ const SEARCH_CATEGORIES = [
     { value: 'free_training', label: 'Free Training' },
     { value: 'get_paid_to', label: 'Get Paid To' },
 ];
+
+// Category badge colors and labels for opportunities
+const CATEGORY_CONFIG: Record<string, { label: string; bgColor: string; textColor: string }> = {
+    giveaway: { label: 'GIVEAWAY', bgColor: 'bg-yellow-400', textColor: 'text-yellow-900' },
+    contest: { label: 'CONTEST', bgColor: 'bg-orange-400', textColor: 'text-orange-900' },
+    sweepstakes: { label: 'SWEEPSTAKES', bgColor: 'bg-purple-500', textColor: 'text-white' },
+    dream_job: { label: 'JOBS', bgColor: 'bg-slate-900', textColor: 'text-white' },
+    job_fair: { label: 'JOB FAIR', bgColor: 'bg-slate-900', textColor: 'text-white' },
+    scholarship: { label: 'SCHOLARSHIP', bgColor: 'bg-green-500', textColor: 'text-white' },
+    free_training: { label: 'FREE TRAINING', bgColor: 'bg-cyan-500', textColor: 'text-white' },
+    get_paid_to: { label: 'GET PAID', bgColor: 'bg-emerald-500', textColor: 'text-white' },
+    instant_win: { label: 'INSTANT WIN', bgColor: 'bg-red-500', textColor: 'text-white' },
+    volunteer: { label: 'VOLUNTEER', bgColor: 'bg-teal-500', textColor: 'text-white' },
+    promo: { label: 'EXCLUSIVE', bgColor: 'bg-amber-500', textColor: 'text-amber-900' },
+};
 
 export const LandingPage = ({ opportunities = [], branding, heroContent, appSection, footer }: LandingPageProps) => {
     const router = useRouter();
@@ -300,26 +316,123 @@ export const LandingPage = ({ opportunities = [], branding, heroContent, appSect
 
             {/* --- LIST OF OPPORTUNITIES (NEW SECTION) --- */}
             {opportunities.length > 0 && (
-                <section className="py-12 bg-white">
+                <section className="py-16 bg-slate-50">
                     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                        <h2 className="text-3xl font-black text-[#1a1a1a] mb-8">Latest Opportunities</h2>
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                            {opportunities.map((opp) => (
-                                <div key={opp.id} className="border border-slate-100 rounded-2xl p-6 hover:shadow-lg transition-all">
-                                    <div className="flex justify-between items-start mb-4">
-                                        <span className="bg-yellow-100 text-yellow-800 text-xs font-bold px-2 py-1 rounded-lg uppercase">{opp.type}</span>
-                                        <span className="text-slate-400 text-xs">{new Date(opp.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</span>
-                                    </div>
-                                    <h3 className="font-bold text-lg mb-2">{opp.title}</h3>
-                                    <p className="text-slate-500 text-sm mb-4 line-clamp-2">{opp.description}</p>
-                                    <div className="mt-auto">
-                                        {opp.prize_value && <div className="text-sm font-medium text-green-600 mb-2">Value: {opp.prize_value}</div>}
-                                        <a href={opp.source_url} target="_blank" rel="noopener noreferrer" className="block w-full text-center bg-slate-900 text-white py-2.5 rounded-xl font-bold text-sm hover:bg-slate-800 transition-all">
-                                            View Details
-                                        </a>
-                                    </div>
-                                </div>
-                            ))}
+                        {/* Section Header */}
+                        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-10">
+                            <div>
+                                <h2 className="text-3xl font-black text-[#1a1a1a]">Latest Opportunities</h2>
+                                <p className="text-slate-500 mt-1">Updated daily with verified offers.</p>
+                            </div>
+                            <Link
+                                href="/opportunities"
+                                className="text-slate-900 font-bold text-sm hover:text-yellow-600 transition-colors flex items-center gap-1 group"
+                            >
+                                View all offers
+                                <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
+                            </Link>
+                        </div>
+
+                        {/* Desktop Cards Grid */}
+                        <div className="hidden md:grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+                            {opportunities.slice(0, 8).map((opp) => {
+                                const categoryConfig = CATEGORY_CONFIG[opp.type] || { label: opp.type?.toUpperCase() || 'OTHER', bgColor: 'bg-slate-500', textColor: 'text-white' };
+                                return (
+                                    <Link
+                                        key={opp.id}
+                                        href={`/opportunities/${opp.slug}`}
+                                        className="bg-white rounded-2xl overflow-hidden hover:shadow-xl transition-all duration-300 group flex flex-col"
+                                    >
+                                        {/* Image Placeholder */}
+                                        <div className="relative h-40 bg-slate-100 flex items-center justify-center overflow-hidden">
+                                            {opp.featured_image_url ? (
+                                                <img
+                                                    src={opp.featured_image_url}
+                                                    alt={opp.title}
+                                                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                                                />
+                                            ) : (
+                                                <span className="text-slate-300 text-lg font-bold">IMAGE</span>
+                                            )}
+                                            {/* Category Badge */}
+                                            <span className={`absolute top-3 left-3 ${categoryConfig.bgColor} ${categoryConfig.textColor} text-[10px] font-black px-2.5 py-1 rounded-full`}>
+                                                {categoryConfig.label}
+                                            </span>
+                                        </div>
+
+                                        {/* Content */}
+                                        <div className="p-5 flex flex-col flex-1">
+                                            <span className="text-slate-400 text-xs font-bold uppercase tracking-wider mb-2">
+                                                {new Date(opp.created_at).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }).toUpperCase()}
+                                            </span>
+                                            <h3 className="font-bold text-[#1a1a1a] mb-2 line-clamp-2 group-hover:text-yellow-600 transition-colors">
+                                                {opp.title}
+                                            </h3>
+                                            <p className="text-slate-500 text-sm line-clamp-2 mb-4 flex-1">
+                                                {opp.excerpt || opp.description}
+                                            </p>
+                                            <span className="text-slate-900 font-bold text-sm flex items-center gap-1 group-hover:text-yellow-600 transition-colors mt-auto">
+                                                View Details
+                                                <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
+                                            </span>
+                                        </div>
+                                    </Link>
+                                );
+                            })}
+                        </div>
+
+                        {/* Mobile List View */}
+                        <div className="md:hidden space-y-3">
+                            {opportunities.slice(0, 6).map((opp) => {
+                                const categoryConfig = CATEGORY_CONFIG[opp.type] || { label: opp.type?.toUpperCase() || 'OTHER', bgColor: 'bg-slate-500', textColor: 'text-white' };
+                                return (
+                                    <Link
+                                        key={opp.id}
+                                        href={`/opportunities/${opp.slug}`}
+                                        className="bg-white rounded-xl p-4 flex items-start gap-4 hover:shadow-md transition-all active:bg-slate-50"
+                                    >
+                                        {/* Thumbnail */}
+                                        <div className="w-20 h-20 rounded-lg bg-slate-100 flex-shrink-0 overflow-hidden flex items-center justify-center">
+                                            {opp.featured_image_url ? (
+                                                <img
+                                                    src={opp.featured_image_url}
+                                                    alt={opp.title}
+                                                    className="w-full h-full object-cover"
+                                                />
+                                            ) : (
+                                                <Gift className="text-slate-300" size={24} />
+                                            )}
+                                        </div>
+
+                                        {/* Content */}
+                                        <div className="flex-1 min-w-0">
+                                            <div className="flex items-center gap-2 mb-1">
+                                                <span className={`${categoryConfig.bgColor} ${categoryConfig.textColor} text-[9px] font-black px-2 py-0.5 rounded-full`}>
+                                                    {categoryConfig.label}
+                                                </span>
+                                                <span className="text-slate-400 text-[10px] font-bold">
+                                                    {new Date(opp.created_at).toLocaleDateString('en-US', { month: 'short', day: '2-digit' }).toUpperCase()}
+                                                </span>
+                                            </div>
+                                            <h3 className="font-bold text-sm text-[#1a1a1a] line-clamp-2 mb-1">
+                                                {opp.title}
+                                            </h3>
+                                            <span className="text-yellow-600 font-bold text-xs flex items-center gap-1">
+                                                View Details
+                                                <ArrowRight size={12} />
+                                            </span>
+                                        </div>
+                                    </Link>
+                                );
+                            })}
+
+                            {/* View All Button Mobile */}
+                            <Link
+                                href="/opportunities"
+                                className="block w-full text-center bg-slate-900 text-white py-3 rounded-xl font-bold text-sm hover:bg-slate-800 transition-colors"
+                            >
+                                View All Opportunities
+                            </Link>
                         </div>
                     </div>
                 </section>
