@@ -83,7 +83,7 @@ export default async function BlogPage() {
                         ) : (
                             <div className="bg-[#FFDE59] p-2 rounded-xl font-black text-xl shadow-sm">GB</div>
                         )}
-                        <span className="font-black text-2xl tracking-tighter text-[#1a1a1a]">{branding.appName}</span>
+                        <span className="text-sm font-bold text-[#1a1a1a]">{branding.appName}</span>
                     </a>
                     <UserNav />
                 </div>

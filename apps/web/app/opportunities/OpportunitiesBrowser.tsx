@@ -148,7 +148,7 @@ export default function OpportunitiesBrowser({ opportunities, branding, initialS
                             ) : (
                                 <div className="bg-[#FFDE59] p-2 rounded-xl font-black text-xl">GB</div>
                             )}
-                            <span className="font-black text-2xl tracking-tighter">{branding.appName}</span>
+                            <span className="text-sm font-bold text-[#1a1a1a]">{branding.appName}</span>
                         </Link>
                     </div>
                     <UserNav hideOpportunities={true} />
