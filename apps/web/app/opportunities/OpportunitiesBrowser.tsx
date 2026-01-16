@@ -146,11 +146,9 @@ export default function OpportunitiesBrowser({ opportunities, branding, initialS
                             {branding.logoUrl ? (
                                 <img src={branding.logoUrl} alt={branding.appName} className="h-10 object-contain" />
                             ) : (
-                                <>
-                                    <div className="bg-[#FFDE59] p-2 rounded-xl font-black text-xl">GB</div>
-                                    <span className="font-black text-2xl tracking-tighter">{branding.appName}</span>
-                                </>
+                                <div className="bg-[#FFDE59] p-2 rounded-xl font-black text-xl">GB</div>
                             )}
+                            <span className="font-black text-2xl tracking-tighter">{branding.appName}</span>
                         </Link>
                     </div>
                     <UserNav hideOpportunities={true} />

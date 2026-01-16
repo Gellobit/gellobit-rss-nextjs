@@ -117,11 +117,9 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
                                 className="h-10 object-contain"
                             />
                         ) : (
-                            <>
-                                <div className="bg-[#FFDE59] p-2 rounded-xl font-black text-xl shadow-sm">GB</div>
-                                <span className="font-black text-2xl tracking-tighter text-[#1a1a1a]">{branding.appName}</span>
-                            </>
+                            <div className="bg-[#FFDE59] p-2 rounded-xl font-black text-xl shadow-sm">GB</div>
                         )}
+                        <span className="font-black text-2xl tracking-tighter text-[#1a1a1a]">{branding.appName}</span>
                     </a>
                     <UserNav />
                 </div>
