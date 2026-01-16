@@ -309,6 +309,35 @@ export const LandingPage = ({ opportunities = [], branding, heroContent, appSect
                                 </select>
                             </div>
                         </div>
+
+                        {/* Category Quick Links */}
+                        <div className="mt-8 flex flex-wrap justify-center gap-3 md:gap-4">
+                            {[
+                                { type: 'giveaway', label: 'Giveaways', icon: Gift, desc: 'Win prizes & rewards' },
+                                { type: 'contest', label: 'Contests', icon: Trophy, desc: 'Compete to win' },
+                                { type: 'dream_job', label: 'Jobs', icon: Briefcase, desc: 'Find your career' },
+                                { type: 'scholarship', label: 'Scholarships', icon: GraduationCap, desc: 'Fund your education' },
+                                { type: 'volunteer', label: 'Volunteering', icon: Users, desc: 'Give back' },
+                                { type: 'free_training', label: 'Training', icon: Zap, desc: 'Learn new skills' },
+                            ].map((cat) => {
+                                const Icon = cat.icon;
+                                return (
+                                    <Link
+                                        key={cat.type}
+                                        href={isAuthenticated ? `/opportunities?type=${cat.type}` : `/auth?mode=signin&redirect=${encodeURIComponent(`/opportunities?type=${cat.type}`)}`}
+                                        className="bg-white/90 backdrop-blur-sm hover:bg-white px-4 py-3 rounded-xl shadow-md hover:shadow-lg transition-all group flex items-center gap-3 min-w-[140px]"
+                                    >
+                                        <div className="w-10 h-10 bg-yellow-100 rounded-lg flex items-center justify-center group-hover:bg-yellow-200 transition-colors">
+                                            <Icon size={20} className="text-yellow-700" />
+                                        </div>
+                                        <div className="text-left">
+                                            <span className="block text-sm font-bold text-slate-900">{cat.label}</span>
+                                            <span className="block text-[10px] text-slate-500">{cat.desc}</span>
+                                        </div>
+                                    </Link>
+                                );
+                            })}
+                        </div>
                     </div>
                 </div>
                 <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-yellow-400/5 rounded-full blur-3xl -z-10"></div>
