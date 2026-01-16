@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.0-alpha.15] - 2026-01-15
+
+### Added
+- **Media Library in ImageUpload**: Added "Library" button to select from existing uploaded images
+- **Database Migration**: Added `analytics` and `personalization` categories to system_settings
+
+### Changed
+- **Account Sidebar**: Upgrade card now only shows for free/basic users (hidden for premium/lifetime)
+- **Account Page**: Upgrade buttons only visible for non-premium users, now link to /pricing
+- **Membership Logic**: Premium users without expiration date are now treated as active (no ads)
+
+### Fixed
+- **Profile Caching**: Fixed issue where membership changes weren't reflected after re-login
+  - Removed aggressive caching from UserContext
+  - Added no-cache headers to profile API
+- **Analytics Settings**: Fixed settings not saving due to missing `analytics` category in database constraint
+
 ## [1.0.0-alpha.14] - 2026-01-15
 
 ### Added

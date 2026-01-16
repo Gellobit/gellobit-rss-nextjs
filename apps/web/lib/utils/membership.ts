@@ -57,7 +57,9 @@ export function shouldShowAds(
 
     // Premium users don't see ads if membership is active
     if (membershipType === 'premium') {
-        if (!expiresAt) return true; // No expiration date = show ads (safety)
+        // No expiration date = assume active premium (admin granted)
+        if (!expiresAt) return false;
+        // Check if expired
         return new Date(expiresAt) <= new Date(); // Expired = show ads
     }
 

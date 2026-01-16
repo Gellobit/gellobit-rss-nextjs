@@ -5,7 +5,7 @@ import { User, Mail, Camera, Save, RefreshCw, Key, Crown, Calendar, Heart, Bell,
 import { APP_VERSION } from '@/components/LandingPage';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useUser } from '@/context/UserContext';
+import { useUser, useShowAds } from '@/context/UserContext';
 
 interface Profile {
     id: string;
@@ -27,6 +27,7 @@ interface MenuPage {
 export default function AccountPage() {
     const router = useRouter();
     const { profile: contextProfile, loading: contextLoading, updateProfile: updateContextProfile, clearProfile } = useUser();
+    const { shouldShowAds, isPremium } = useShowAds();
     const [profile, setProfile] = useState<Profile | null>(null);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -319,8 +320,9 @@ export default function AccountPage() {
                         <ChevronRight className="text-slate-400" size={20} />
                     </Link>
 
-                    {profile?.membership_type === 'free' && (
-                        <button
+                    {shouldShowAds && !isPremium && (
+                        <Link
+                            href="/pricing"
                             className="w-full flex items-center justify-between px-4 py-4 border-b border-slate-100 hover:bg-slate-50 transition-colors"
                         >
                             <div className="flex items-center gap-3">
@@ -330,7 +332,7 @@ export default function AccountPage() {
                                 <span className="font-medium">Upgrade to Pro</span>
                             </div>
                             <ChevronRight className="text-slate-400" size={20} />
-                        </button>
+                        </Link>
                     )}
 
                     <button
@@ -542,10 +544,13 @@ export default function AccountPage() {
                             </div>
                         </div>
 
-                        {profile?.membership_type === 'free' && (
-                            <button className="bg-[#FFDE59] text-slate-900 px-6 py-3 rounded-xl font-bold hover:bg-yellow-400 transition-colors">
+                        {shouldShowAds && !isPremium && (
+                            <Link
+                                href="/pricing"
+                                className="bg-[#FFDE59] text-slate-900 px-6 py-3 rounded-xl font-bold hover:bg-yellow-400 transition-colors"
+                            >
                                 Upgrade
-                            </button>
+                            </Link>
                         )}
                     </div>
                 </div>

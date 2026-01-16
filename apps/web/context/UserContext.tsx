@@ -28,16 +28,16 @@ const UserContext = createContext<UserContextType | undefined>(undefined);
 export function UserProvider({ children }: { children: ReactNode }) {
     const [profile, setProfile] = useState<UserProfile | null>(null);
     const [loading, setLoading] = useState(true);
-    const [hasFetched, setHasFetched] = useState(false);
 
     const fetchProfile = useCallback(async () => {
-        // Don't re-fetch if we already have data (unless explicitly refreshing)
-        if (hasFetched && profile !== null) {
-            return;
-        }
-
+        setLoading(true);
         try {
-            const res = await fetch('/api/user/profile');
+            const res = await fetch('/api/user/profile', {
+                cache: 'no-store',
+                headers: {
+                    'Cache-Control': 'no-cache',
+                },
+            });
             if (res.ok) {
                 const data = await res.json();
                 setProfile(data.profile);
@@ -48,15 +48,19 @@ export function UserProvider({ children }: { children: ReactNode }) {
             setProfile(null);
         } finally {
             setLoading(false);
-            setHasFetched(true);
         }
-    }, [hasFetched, profile]);
+    }, []);
 
     // Force refresh profile (used after updates)
     const refreshProfile = useCallback(async () => {
         setLoading(true);
         try {
-            const res = await fetch('/api/user/profile');
+            const res = await fetch('/api/user/profile', {
+                cache: 'no-store',
+                headers: {
+                    'Cache-Control': 'no-cache',
+                },
+            });
             if (res.ok) {
                 const data = await res.json();
                 setProfile(data.profile);
@@ -76,12 +80,11 @@ export function UserProvider({ children }: { children: ReactNode }) {
     // Clear profile (on logout)
     const clearProfile = useCallback(() => {
         setProfile(null);
-        setHasFetched(false);
     }, []);
 
     useEffect(() => {
         fetchProfile();
-    }, []);
+    }, [fetchProfile]);
 
     return (
         <UserContext.Provider

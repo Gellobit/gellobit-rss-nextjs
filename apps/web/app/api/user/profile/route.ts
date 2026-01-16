@@ -51,6 +51,11 @@ export async function GET(request: NextRequest) {
                 ...profile,
                 email: user.email,
             }
+        }, {
+            headers: {
+                'Cache-Control': 'no-store, no-cache, must-revalidate',
+                'Pragma': 'no-cache',
+            }
         });
     } catch (error) {
         console.error('Get profile error:', error);

@@ -3,6 +3,7 @@
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { User, Heart, Bell, Settings, LogOut, Crown } from 'lucide-react';
+import { useShowAds } from '@/context/UserContext';
 
 const menuItems = [
     { href: '/account', label: 'My Account', icon: User },
@@ -12,6 +13,7 @@ const menuItems = [
 
 export default function AccountSidebar() {
     const pathname = usePathname();
+    const { shouldShowAds, isPremium } = useShowAds();
 
     const handleLogout = async () => {
         // Client-side logout
@@ -62,19 +64,24 @@ export default function AccountSidebar() {
                 </ul>
             </nav>
 
-            {/* Membership Card */}
-            <div className="mt-4 bg-gradient-to-br from-slate-900 to-slate-800 rounded-2xl p-6 text-white">
-                <div className="flex items-center gap-2 mb-3">
-                    <Crown size={20} className="text-yellow-400" />
-                    <span className="font-bold">Free Plan</span>
+            {/* Membership Card - Only show for free/basic users */}
+            {shouldShowAds && !isPremium && (
+                <div className="mt-4 bg-gradient-to-br from-slate-900 to-slate-800 rounded-2xl p-6 text-white">
+                    <div className="flex items-center gap-2 mb-3">
+                        <Crown size={20} className="text-yellow-400" />
+                        <span className="font-bold">Free Plan</span>
+                    </div>
+                    <p className="text-sm text-slate-400 mb-4">
+                        Upgrade to unlock premium features and get notified first.
+                    </p>
+                    <Link
+                        href="/pricing"
+                        className="block w-full text-center bg-[#FFDE59] text-slate-900 font-bold py-2.5 rounded-xl hover:bg-yellow-400 transition-colors"
+                    >
+                        Upgrade Plan
+                    </Link>
                 </div>
-                <p className="text-sm text-slate-400 mb-4">
-                    Upgrade to unlock premium features and get notified first.
-                </p>
-                <button className="w-full bg-[#FFDE59] text-slate-900 font-bold py-2.5 rounded-xl hover:bg-yellow-400 transition-colors">
-                    Upgrade Plan
-                </button>
-            </div>
+            )}
         </aside>
     );
 }
