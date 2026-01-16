@@ -103,7 +103,7 @@ export default async function Page() {
             .select('*')
             .eq('status', 'published')
             .order('created_at', { ascending: false })
-            .limit(6),
+            .limit(8),
         getHomepageSettings()
     ]);
 
