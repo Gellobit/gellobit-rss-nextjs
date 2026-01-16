@@ -26,7 +26,7 @@ interface User {
     avatar_url: string | null;
     role: 'admin' | 'user';
     status: 'active' | 'suspended' | null;
-    membership_type: 'free' | 'basic' | 'premium' | 'lifetime' | null;
+    membership_type: 'free' | 'premium' | 'lifetime' | null;
     membership_expires_at: string | null;
     created_at: string;
     updated_at: string;
@@ -65,7 +65,7 @@ export default function ManageUsers() {
     const [editForm, setEditForm] = useState({
         role: 'user' as 'admin' | 'user',
         status: 'active' as 'active' | 'suspended',
-        membership_type: 'free' as 'free' | 'basic' | 'premium' | 'lifetime'
+        membership_type: 'free' as 'free' | 'premium' | 'lifetime'
     });
     const [saving, setSaving] = useState(false);
 
@@ -261,7 +261,6 @@ export default function ManageUsers() {
     const getMembershipBadge = (type: string | null) => {
         const badges: Record<string, { bg: string; text: string; label: string }> = {
             free: { bg: 'bg-slate-100', text: 'text-slate-600', label: 'Free' },
-            basic: { bg: 'bg-blue-100', text: 'text-blue-700', label: 'Basic' },
             premium: { bg: 'bg-amber-100', text: 'text-amber-700', label: 'Premium' },
             lifetime: { bg: 'bg-emerald-100', text: 'text-emerald-700', label: 'Lifetime' },
         };
@@ -388,7 +387,6 @@ export default function ManageUsers() {
                     >
                         <option value="">All Memberships</option>
                         <option value="free">Free</option>
-                        <option value="basic">Basic</option>
                         <option value="premium">Premium</option>
                         <option value="lifetime">Lifetime</option>
                     </select>
@@ -630,11 +628,10 @@ export default function ManageUsers() {
                                 <label className="block text-xs font-bold text-slate-500 mb-1">Membership</label>
                                 <select
                                     value={editForm.membership_type}
-                                    onChange={(e) => setEditForm({ ...editForm, membership_type: e.target.value as 'free' | 'basic' | 'premium' | 'lifetime' })}
+                                    onChange={(e) => setEditForm({ ...editForm, membership_type: e.target.value as 'free' | 'premium' | 'lifetime' })}
                                     className="border border-slate-200 p-2 rounded-lg w-full font-bold"
                                 >
                                     <option value="free">Free</option>
-                                    <option value="basic">Basic</option>
                                     <option value="premium">Premium</option>
                                     <option value="lifetime">Lifetime</option>
                                 </select>

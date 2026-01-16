@@ -334,7 +334,7 @@ export default function AnalyticsSettings() {
 
                 <div className="bg-purple-50 border border-purple-200 rounded-lg p-4 mt-4">
                     <p className="text-sm text-purple-800">
-                        <strong>Tip:</strong> When enabled, the manual banner will be displayed to all free/basic users
+                        <strong>Tip:</strong> When enabled, the manual banner will be displayed to all free users
                         instead of AdSense. Premium and Lifetime members will not see any ads.
                     </p>
                 </div>

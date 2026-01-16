@@ -215,7 +215,6 @@ export default function AccountPage() {
     const getMembershipLabel = (type: string) => {
         switch (type) {
             case 'premium': return 'Premium';
-            case 'basic': return 'Basic';
             case 'lifetime': return 'Lifetime';
             default: return 'Free';
         }
@@ -224,7 +223,6 @@ export default function AccountPage() {
     const getMembershipColor = (type: string) => {
         switch (type) {
             case 'premium': return 'bg-purple-100 text-purple-700';
-            case 'basic': return 'bg-blue-100 text-blue-700';
             case 'lifetime': return 'bg-yellow-100 text-yellow-700';
             default: return 'bg-slate-100 text-slate-700';
         }

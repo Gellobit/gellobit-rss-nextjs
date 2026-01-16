@@ -141,8 +141,8 @@ export default function UserNav({ hideOpportunities = false }: UserNavProps) {
                         <p className="text-sm text-slate-500 truncate">{user.email}</p>
                     </div>
 
-                    {/* Upgrade to Pro - Only for non-premium users */}
-                    {!isPremium && (
+                    {/* Upgrade to Pro - Only for non-premium, non-admin users */}
+                    {!isPremium && !isAdmin && (
                         <div className="p-2 border-b border-slate-100">
                             <Link
                                 href="/pricing"

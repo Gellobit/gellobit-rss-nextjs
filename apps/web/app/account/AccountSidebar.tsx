@@ -65,7 +65,7 @@ export default function AccountSidebar() {
                 </ul>
             </nav>
 
-            {/* Membership Card - Only show for free/basic users */}
+            {/* Membership Card - Only show for free users */}
             {shouldShowAds && !isPremium && (
                 <div className="mt-4 bg-gradient-to-br from-slate-900 to-slate-800 rounded-2xl p-6 text-white">
                     <div className="flex items-center gap-2 mb-3">

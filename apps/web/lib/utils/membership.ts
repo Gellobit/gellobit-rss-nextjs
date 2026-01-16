@@ -2,7 +2,7 @@
  * Membership utilities for determining user access levels and ad visibility
  */
 
-export type MembershipType = 'free' | 'basic' | 'premium' | 'lifetime';
+export type MembershipType = 'free' | 'premium' | 'lifetime';
 
 // Tiers that don't see ads
 const PREMIUM_TIERS: MembershipType[] = ['premium', 'lifetime'];
@@ -55,9 +55,6 @@ export function isMembershipActive(
     // Free is always "active" (but not premium)
     if (membershipType === 'free') return true;
 
-    // Basic is always "active" (but not premium)
-    if (membershipType === 'basic') return true;
-
     // For premium, check expiration
     if (!expiresAt) return false;
     return new Date(expiresAt) > new Date();
@@ -74,8 +71,8 @@ export function shouldShowAds(
     // No membership = show ads
     if (!membershipType) return true;
 
-    // Free/basic users see ads
-    if (membershipType === 'free' || membershipType === 'basic') return true;
+    // Free users see ads
+    if (membershipType === 'free') return true;
 
     // Lifetime users never see ads
     if (membershipType === 'lifetime') return false;
@@ -98,7 +95,6 @@ export function shouldShowAds(
 export function getMembershipLabel(membershipType: string | null | undefined): string {
     switch (membershipType) {
         case 'premium': return 'Premium';
-        case 'basic': return 'Basic';
         case 'lifetime': return 'Lifetime';
         case 'free':
         default: return 'Free';
@@ -111,7 +107,6 @@ export function getMembershipLabel(membershipType: string | null | undefined): s
 export function getMembershipBadgeClasses(membershipType: string | null | undefined): string {
     switch (membershipType) {
         case 'premium': return 'bg-purple-100 text-purple-700';
-        case 'basic': return 'bg-blue-100 text-blue-700';
         case 'lifetime': return 'bg-yellow-100 text-yellow-700';
         case 'free':
         default: return 'bg-slate-100 text-slate-700';

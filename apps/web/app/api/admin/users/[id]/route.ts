@@ -101,7 +101,7 @@ export async function PATCH(
         }
 
         // Validate membership_type
-        if (membership_type && !['free', 'basic', 'premium', 'lifetime'].includes(membership_type)) {
+        if (membership_type && !['free', 'premium', 'lifetime'].includes(membership_type)) {
             return NextResponse.json(
                 { error: 'Invalid membership type' },
                 { status: 400 }
