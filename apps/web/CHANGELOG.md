@@ -2,6 +2,35 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.0-alpha.14] - 2026-01-15
+
+### Added
+- **Conditional Ads Based on Membership**: Ads now respect user membership status
+  - Free/Basic users see ads on all content pages
+  - Premium/Lifetime users do not see any ads
+  - Ads automatically reappear when premium membership expires
+- **Manual Banner System**: New admin feature for custom banner ads
+  - Configure custom banner image and target URL in Settings > Analytics
+  - Toggle to enable/disable manual banner (overrides AdSense)
+  - Preview banner in admin panel before saving
+  - Useful for sponsors or testing the membership system
+- **AdContainer Component**: New wrapper component for Server Components
+- **Membership Helper Utilities**: `shouldShowAds()`, `isPremiumMembership()` functions
+
+### Changed
+- **AdUnit Component**: Refactored to use real membership data from Supabase
+  - Now uses `useShowAds` hook from UserContext
+  - Prioritizes manual banner over AdSense when enabled
+  - Shows upgrade CTA linking to /pricing
+- **LandingPage**: Replaced demo upgrade banner with real upgrade link for free users
+- **Homepage**: Removed deprecated SubscriptionProvider wrapper
+
+### Removed
+- **SubscriptionContext**: Removed deprecated context (replaced by UserContext membership)
+
+### Fixed
+- **Ad Visibility**: Ads no longer flash briefly for premium users during page load
+
 ## [1.0.0-alpha.13] - 2026-01-15
 
 ### Fixed
