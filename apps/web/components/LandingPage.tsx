@@ -314,11 +314,13 @@ export const LandingPage = ({ opportunities = [], branding, heroContent, appSect
                         <div className="mt-8 flex flex-wrap justify-center gap-3 md:gap-4">
                             {[
                                 { type: 'giveaway', label: 'Giveaways', icon: Gift, desc: 'Win prizes & rewards' },
-                                { type: 'contest', label: 'Contests', icon: Trophy, desc: 'Compete to win' },
-                                { type: 'dream_job', label: 'Jobs', icon: Briefcase, desc: 'Find your career' },
+                                { type: 'sweepstakes', label: 'Sweepstakes', icon: Trophy, desc: 'Enter to win big' },
                                 { type: 'scholarship', label: 'Scholarships', icon: GraduationCap, desc: 'Fund your education' },
-                                { type: 'volunteer', label: 'Volunteering', icon: Users, desc: 'Give back' },
-                                { type: 'free_training', label: 'Training', icon: Zap, desc: 'Learn new skills' },
+                                { type: 'free_training', label: 'Free Training', icon: Zap, desc: 'Learn new skills' },
+                                { type: 'job_fair', label: 'Job Fairs', icon: Briefcase, desc: 'Meet employers' },
+                                { type: 'get_paid_to', label: 'Get Paid To', icon: Star, desc: 'Earn rewards' },
+                                { type: 'volunteer', label: 'Volunteer', icon: Users, desc: 'Give back' },
+                                { type: 'promo', label: 'Promos', icon: Globe, desc: 'Exclusive deals' },
                             ].map((cat) => {
                                 const Icon = cat.icon;
                                 return (
