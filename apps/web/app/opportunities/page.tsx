@@ -1,5 +1,3 @@
-import { redirect } from 'next/navigation';
-import { createServerClient } from '@/lib/utils/supabase-server';
 import { createAdminClient } from '@/lib/utils/supabase-admin';
 import { unstable_cache } from 'next/cache';
 import OpportunitiesBrowser from './OpportunitiesBrowser';
@@ -56,15 +54,8 @@ interface PageProps {
     searchParams: Promise<{ q?: string; type?: string }>;
 }
 
+// Authentication is handled by middleware
 export default async function OpportunitiesPage({ searchParams }: PageProps) {
-    // Check authentication
-    const supabase = await createServerClient();
-    const { data: { user } } = await supabase.auth.getUser();
-
-    if (!user) {
-        redirect('/auth?redirect=/opportunities');
-    }
-
     const [opportunities, branding] = await Promise.all([
         getOpportunities(),
         getBranding()

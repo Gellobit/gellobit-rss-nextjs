@@ -336,7 +336,8 @@ export const LandingPage = ({ opportunities = [], branding, heroContent, appSect
                         {/* Desktop Cards Grid */}
                         <div className="hidden md:grid md:grid-cols-2 lg:grid-cols-4 gap-6">
                             {opportunities.slice(0, 8).map((opp) => {
-                                const categoryConfig = CATEGORY_CONFIG[opp.type] || { label: opp.type?.toUpperCase() || 'OTHER', bgColor: 'bg-slate-500', textColor: 'text-white' };
+                                const oppType = opp.opportunity_type || opp.type || 'other';
+                                const categoryConfig = CATEGORY_CONFIG[oppType] || { label: oppType?.toUpperCase() || 'OTHER', bgColor: 'bg-slate-500', textColor: 'text-white' };
                                 return (
                                     <Link
                                         key={opp.id}
@@ -384,7 +385,8 @@ export const LandingPage = ({ opportunities = [], branding, heroContent, appSect
                         {/* Mobile List View */}
                         <div className="md:hidden space-y-3">
                             {opportunities.slice(0, 6).map((opp) => {
-                                const categoryConfig = CATEGORY_CONFIG[opp.type] || { label: opp.type?.toUpperCase() || 'OTHER', bgColor: 'bg-slate-500', textColor: 'text-white' };
+                                const oppType = opp.opportunity_type || opp.type || 'other';
+                                const categoryConfig = CATEGORY_CONFIG[oppType] || { label: oppType?.toUpperCase() || 'OTHER', bgColor: 'bg-slate-500', textColor: 'text-white' };
                                 return (
                                     <Link
                                         key={opp.id}
