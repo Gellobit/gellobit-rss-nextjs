@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { createAdminClient } from '@/lib/utils/supabase-admin';
 import { Calendar, MapPin, Gift, ExternalLink, ArrowLeft, Clock, Award, CheckCircle } from 'lucide-react';
+import AdContainer from '@/components/AdContainer';
 import { Metadata } from 'next';
 
 export const dynamic = 'force-dynamic';
@@ -175,6 +176,9 @@ export default async function OpportunityPage({
               className="prose prose-slate max-w-none mb-8"
               dangerouslySetInnerHTML={{ __html: opportunity.content }}
             />
+
+            {/* Ad Unit */}
+            <AdContainer format="horizontal" position="bottom" className="mb-8" />
 
             {/* CTA Button */}
             <div className="border-t border-slate-200 pt-6">

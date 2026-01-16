@@ -5,6 +5,7 @@ import { Metadata } from 'next';
 import { Calendar, Share2, ArrowLeft } from 'lucide-react';
 import { createAdminClient } from '@/lib/utils/supabase-admin';
 import MobileNavBar from '@/components/MobileNavBar';
+import AdContainer from '@/components/AdContainer';
 
 // Revalidate page every 60 seconds
 export const revalidate = 60;
@@ -229,6 +230,9 @@ export default async function ContentPage({ params }: { params: Promise<{ slug: 
                             className="prose prose-slate max-w-none prose-headings:font-bold prose-headings:text-[#1a1a1a] prose-a:text-yellow-600 prose-strong:text-slate-900 prose-img:rounded-2xl"
                             dangerouslySetInnerHTML={{ __html: content.content }}
                         />
+
+                        {/* Ad Unit */}
+                        <AdContainer format="horizontal" position="bottom" className="mt-8" />
                     </div>
                 </article>
 

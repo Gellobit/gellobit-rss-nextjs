@@ -1,5 +1,4 @@
 import { createServerSupabaseClient } from '../utils/supabase-server';
-import { SubscriptionProvider } from '../context/SubscriptionContext';
 import { LandingPage } from '../components/LandingPage';
 import { unstable_cache } from 'next/cache';
 import { createAdminClient } from '@/lib/utils/supabase-admin';
@@ -115,14 +114,12 @@ export default async function Page() {
     }
 
     return (
-        <SubscriptionProvider>
-            <LandingPage
-                opportunities={opportunities || []}
-                branding={settings.branding}
-                heroContent={settings.heroContent}
-                appSection={settings.appSection}
-                footer={settings.footer}
-            />
-        </SubscriptionProvider>
+        <LandingPage
+            opportunities={opportunities || []}
+            branding={settings.branding}
+            heroContent={settings.heroContent}
+            appSection={settings.appSection}
+            footer={settings.footer}
+        />
     );
 }

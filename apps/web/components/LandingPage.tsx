@@ -8,8 +8,7 @@ import {
     Briefcase, Gift, GraduationCap, Star, Users, ChevronDown, Globe
 } from 'lucide-react';
 
-import { useSubscription } from '../context/SubscriptionContext';
-import { useUser } from '../context/UserContext';
+import { useUser, useShowAds } from '../context/UserContext';
 import { AdUnit } from './AdUnit';
 import { FeatureCard } from './FeatureCard';
 import { PricingItem } from './PricingItem';
@@ -100,7 +99,7 @@ const SEARCH_CATEGORIES = [
 
 export const LandingPage = ({ opportunities = [], branding, heroContent, appSection, footer }: LandingPageProps) => {
     const router = useRouter();
-    const { upgradeToPro, isPro } = useSubscription();
+    const { shouldShowAds } = useShowAds();
     const { isAuthenticated } = useUser();
 
     // Search state
@@ -166,11 +165,11 @@ export const LandingPage = ({ opportunities = [], branding, heroContent, appSect
 
     return (
         <div className="min-h-screen bg-white font-sans text-slate-900 selection:bg-yellow-200 pb-20 md:pb-0">
-            {/* Sticky Banner for Demo */}
-            {!isPro && (
-                <div className="bg-black text-white text-xs text-center py-2 font-bold cursor-pointer hover:bg-gray-900" onClick={upgradeToPro}>
-                    DEMO: Click here to simulate upgrading to PRO (Removes Ads)
-                </div>
+            {/* Upgrade Banner for Free Users */}
+            {shouldShowAds && (
+                <Link href="/pricing" className="block bg-gradient-to-r from-yellow-400 to-yellow-500 text-black text-xs text-center py-2 font-bold hover:from-yellow-500 hover:to-yellow-600 transition-all">
+                    Upgrade to Premium for an ad-free experience and exclusive features
+                </Link>
             )}
             {/* Navigation - Hidden on mobile */}
             <nav className={`hidden md:block fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${

@@ -21,6 +21,7 @@ import {
 import BottomSheet from '@/components/BottomSheet';
 import MobileNavBar from '@/components/MobileNavBar';
 import FavoriteButton from '@/components/FavoriteButton';
+import { AdUnit } from '@/components/AdUnit';
 
 interface Opportunity {
     id: string;
@@ -254,6 +255,11 @@ export default function OpportunitiesBrowser({ opportunities, branding, initialS
             {/* Results Count */}
             <div className="max-w-7xl mx-auto px-4 py-3 text-sm text-slate-500">
                 {filteredOpportunities.length} {filteredOpportunities.length === 1 ? 'opportunity' : 'opportunities'} found
+            </div>
+
+            {/* Ad Unit */}
+            <div className="max-w-7xl mx-auto px-4">
+                <AdUnit format="horizontal" className="mb-4" />
             </div>
 
             {/* Opportunities Grid */}

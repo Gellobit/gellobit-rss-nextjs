@@ -3,6 +3,7 @@ import { unstable_cache } from 'next/cache';
 import { Metadata } from 'next';
 import { Calendar } from 'lucide-react';
 import { createAdminClient } from '@/lib/utils/supabase-admin';
+import AdContainer from '@/components/AdContainer';
 
 // Revalidate page every 60 seconds
 export const revalidate = 60;
@@ -99,6 +100,9 @@ export default async function BlogPage() {
                         Latest articles, guides, and updates
                     </p>
                 </div>
+
+                {/* Ad Unit */}
+                <AdContainer format="horizontal" position="top" className="mb-8" />
 
                 {/* Posts Grid */}
                 {posts.length === 0 ? (

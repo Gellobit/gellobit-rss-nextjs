@@ -1,6 +1,7 @@
 'use client';
 
-import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, useMemo, ReactNode } from 'react';
+import { shouldShowAds as checkShouldShowAds } from '@/lib/utils/membership';
 
 interface UserProfile {
     id: string;
@@ -112,5 +113,28 @@ export function useUserAvatar() {
     return {
         avatarUrl: profile?.avatar_url || null,
         loading,
+    };
+}
+
+// Hook to determine if ads should be shown based on membership
+export function useShowAds() {
+    const { profile, loading } = useUser();
+
+    const shouldShowAds = useMemo(() => {
+        // Don't show ads while loading (prevents flash)
+        if (loading) return false;
+
+        // Not authenticated = show ads
+        if (!profile) return true;
+
+        // Check membership
+        return checkShouldShowAds(profile.membership_type, profile.membership_expires_at);
+    }, [profile, loading]);
+
+    return {
+        shouldShowAds,
+        loading,
+        membershipType: profile?.membership_type || 'free',
+        isPremium: profile?.membership_type === 'premium' || profile?.membership_type === 'lifetime',
     };
 }
