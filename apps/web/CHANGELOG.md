@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.0-alpha.16] - 2026-01-15
+
+### Added
+- **UserNav Across All Pages**: Unified user menu with avatar and dropdown on all pages
+  - Blog page now shows full UserNav instead of simple text links
+  - Opportunity detail pages (`/p/[slug]`, `/opportunities/[slug]`) now include UserNav
+  - Blog post detail pages (`/[slug]`) now include UserNav
+  - OpportunitiesBrowser shows UserNav with `hideOpportunities` prop
+- **Blog Link in UserNav**: Added "Blog" link with FileText icon to user dropdown menu
+
+### Changed
+- **App Name Display**: App name now consistently displayed next to logo on all page headers
+  - Previously only shown when no custom logo was set
+  - Now always visible regardless of custom logo configuration
+- **App Name Font Size**: Unified font styling across all headers
+  - All pages now use `text-sm font-bold` matching the home page
+  - Replaced inconsistent `text-2xl font-black` styling
+
 ## [1.0.0-alpha.15] - 2026-01-15
 
 ### Added
