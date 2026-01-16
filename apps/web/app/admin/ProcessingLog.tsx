@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Filter, RefreshCw, ExternalLink, CheckCircle, XCircle, AlertCircle, Eye, FileText } from 'lucide-react';
+import { Filter, RefreshCw, ExternalLink, CheckCircle, XCircle, AlertCircle, Eye, FileText, Gift, Trophy, Briefcase, GraduationCap, X, Bot } from 'lucide-react';
 import Link from 'next/link';
 
 interface LogEntry {
@@ -24,7 +24,24 @@ interface LogFilters {
     provider: string;
     feed: string;
     search: string;
+    dateFrom: string;
+    dateTo: string;
 }
+
+// Opportunity type icons and colors
+const opportunityTypeConfig: Record<string, { icon: any; color: string; label: string }> = {
+    giveaway: { icon: Gift, label: 'Giveaway', color: 'bg-pink-100 text-pink-700' },
+    contest: { icon: Trophy, label: 'Contest', color: 'bg-yellow-100 text-yellow-700' },
+    sweepstakes: { icon: Gift, label: 'Sweepstakes', color: 'bg-purple-100 text-purple-700' },
+    dream_job: { icon: Briefcase, label: 'Dream Job', color: 'bg-blue-100 text-blue-700' },
+    get_paid_to: { icon: Briefcase, label: 'Get Paid To', color: 'bg-green-100 text-green-700' },
+    instant_win: { icon: Trophy, label: 'Instant Win', color: 'bg-orange-100 text-orange-700' },
+    job_fair: { icon: Briefcase, label: 'Job Fair', color: 'bg-indigo-100 text-indigo-700' },
+    scholarship: { icon: GraduationCap, label: 'Scholarship', color: 'bg-cyan-100 text-cyan-700' },
+    volunteer: { icon: Briefcase, label: 'Volunteer', color: 'bg-teal-100 text-teal-700' },
+    free_training: { icon: GraduationCap, label: 'Free Training', color: 'bg-emerald-100 text-emerald-700' },
+    promo: { icon: Gift, label: 'Promo', color: 'bg-red-100 text-red-700' },
+};
 
 export default function ProcessingLog() {
     const [logs, setLogs] = useState<LogEntry[]>([]);
@@ -36,7 +53,10 @@ export default function ProcessingLog() {
         provider: 'all',
         feed: 'all',
         search: '',
+        dateFrom: '',
+        dateTo: '',
     });
+    const [selectedReason, setSelectedReason] = useState<{ title: string; reason: string } | null>(null);
 
     const [availableFeeds, setAvailableFeeds] = useState<Array<{ id: string; name: string }>>([]);
     const [availableProviders, setAvailableProviders] = useState<string[]>([]);
@@ -79,6 +99,8 @@ export default function ProcessingLog() {
             if (filters.provider !== 'all') params.append('provider', filters.provider);
             if (filters.feed !== 'all') params.append('feed_id', filters.feed);
             if (filters.search) params.append('search', filters.search);
+            if (filters.dateFrom) params.append('date_from', filters.dateFrom);
+            if (filters.dateTo) params.append('date_to', filters.dateTo);
 
             const res = await fetch(`/api/admin/logs?${params.toString()}`);
 
@@ -113,8 +135,23 @@ export default function ProcessingLog() {
             provider: 'all',
             feed: 'all',
             search: '',
+            dateFrom: '',
+            dateTo: '',
         });
         setTimeout(() => fetchLogs(), 100);
+    };
+
+    const getTypeIcon = (category: string) => {
+        const config = opportunityTypeConfig[category] || { icon: FileText, label: category, color: 'bg-slate-100 text-slate-700' };
+        const Icon = config.icon;
+        return (
+            <div
+                className={`inline-flex items-center justify-center p-1.5 rounded-lg cursor-help ${config.color}`}
+                title={config.label}
+            >
+                <Icon size={14} />
+            </div>
+        );
     };
 
     const getStatusBadge = (status: string) => {
@@ -150,20 +187,7 @@ export default function ProcessingLog() {
         );
     };
 
-    const categoryLabels: Record<string, string> = {
-        giveaway: 'Giveaway',
-        contest: 'Contest',
-        sweepstakes: 'Sweepstakes',
-        dream_job: 'Dream Job',
-        get_paid_to: 'Get Paid To',
-        instant_win: 'Instant Win',
-        job_fair: 'Job Fair',
-        scholarship: 'Scholarship',
-        volunteer: 'Volunteering',
-        free_training: 'Free Training',
-        promo: 'Promo',
-    };
-
+    
     if (sessionExpired) {
         return (
             <div className="flex items-center justify-center min-h-[400px]">
@@ -258,6 +282,28 @@ export default function ProcessingLog() {
                     />
                 </div>
 
+                {/* Date Filters */}
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+                    <div>
+                        <label className="block text-xs font-bold text-slate-500 mb-1">From Date</label>
+                        <input
+                            type="date"
+                            value={filters.dateFrom}
+                            onChange={(e) => setFilters({ ...filters, dateFrom: e.target.value })}
+                            className="w-full border border-slate-200 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-xs font-bold text-slate-500 mb-1">To Date</label>
+                        <input
+                            type="date"
+                            value={filters.dateTo}
+                            onChange={(e) => setFilters({ ...filters, dateTo: e.target.value })}
+                            className="w-full border border-slate-200 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                    </div>
+                </div>
+
                 <div className="flex gap-3">
                     <button
                         onClick={handleFilter}
@@ -287,26 +333,27 @@ export default function ProcessingLog() {
                     <table className="w-full">
                         <thead className="bg-slate-50 border-b border-slate-200">
                             <tr>
-                                <th className="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Date</th>
-                                <th className="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Feed</th>
-                                <th className="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Type</th>
-                                <th className="px-4 py-3 text-center text-xs font-bold text-slate-600 uppercase" title="Hover over icon to see title">Info</th>
-                                <th className="px-4 py-3 text-center text-xs font-bold text-slate-600 uppercase">Status</th>
-                                <th className="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Reason</th>
-                                <th className="px-4 py-3 text-center text-xs font-bold text-slate-600 uppercase">Source</th>
+                                <th className="px-3 py-3 text-left text-xs font-bold text-slate-600 uppercase">Date</th>
+                                <th className="px-3 py-3 text-left text-xs font-bold text-slate-600 uppercase">Feed</th>
+                                <th className="px-3 py-3 text-center text-xs font-bold text-slate-600 uppercase" title="Opportunity Type">Type</th>
+                                <th className="px-3 py-3 text-center text-xs font-bold text-slate-600 uppercase" title="Hover over icon to see title">Info</th>
+                                <th className="px-3 py-3 text-center text-xs font-bold text-slate-600 uppercase" title="AI Provider">AI</th>
+                                <th className="px-3 py-3 text-center text-xs font-bold text-slate-600 uppercase">Status</th>
+                                <th className="px-3 py-3 text-left text-xs font-bold text-slate-600 uppercase">Reason</th>
+                                <th className="px-3 py-3 text-center text-xs font-bold text-slate-600 uppercase">Source</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-200">
                             {logs.length === 0 ? (
                                 <tr>
-                                    <td colSpan={7} className="px-4 py-12 text-center text-slate-400">
+                                    <td colSpan={8} className="px-4 py-12 text-center text-slate-400">
                                         No log entries found. Process some feeds to see activity here.
                                     </td>
                                 </tr>
                             ) : (
                                 logs.map((log) => (
                                     <tr key={log.id} className="hover:bg-slate-50 transition-colors">
-                                        <td className="px-4 py-3 text-sm text-slate-600 whitespace-nowrap">
+                                        <td className="px-3 py-3 text-sm text-slate-600 whitespace-nowrap">
                                             {new Date(log.date).toLocaleString('en-US', {
                                                 month: '2-digit',
                                                 day: '2-digit',
@@ -314,48 +361,64 @@ export default function ProcessingLog() {
                                                 minute: '2-digit',
                                             })}
                                         </td>
-                                        <td className="px-4 py-3 text-sm font-bold text-slate-900 max-w-[120px] truncate" title={log.feed_name}>
+                                        <td className="px-3 py-3 text-sm font-bold text-slate-900 max-w-[100px] truncate" title={log.feed_name}>
                                             {log.feed_name}
                                         </td>
-                                        <td className="px-4 py-3 text-sm text-slate-600">
-                                            <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs font-bold">
-                                                {categoryLabels[log.category] || log.category}
-                                            </span>
+                                        <td className="px-3 py-3 text-center">
+                                            {getTypeIcon(log.category)}
                                         </td>
-                                        <td className="px-4 py-3 text-center">
+                                        <td className="px-3 py-3 text-center">
                                             <div
-                                                className="inline-flex items-center justify-center p-2 text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-lg cursor-help transition-colors group relative"
-                                                title={`${log.title}${log.confidence_score !== null ? ` (${(log.confidence_score * 100).toFixed(0)}% confidence)` : ''}${log.provider ? ` - ${log.provider}` : ''}`}
+                                                className="inline-flex items-center justify-center p-1.5 text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-lg cursor-help transition-colors"
+                                                title={`${log.title}${log.confidence_score !== null ? ` (${(log.confidence_score * 100).toFixed(0)}% confidence)` : ''}`}
                                             >
-                                                <FileText size={16} />
+                                                <FileText size={14} />
                                             </div>
                                         </td>
-                                        <td className="px-4 py-3 text-center">
+                                        <td className="px-3 py-3 text-center">
+                                            <div
+                                                className="inline-flex items-center justify-center p-1.5 bg-slate-100 text-slate-600 rounded-lg cursor-help"
+                                                title={log.provider || 'Default'}
+                                            >
+                                                <Bot size={14} />
+                                            </div>
+                                        </td>
+                                        <td className="px-3 py-3 text-center">
                                             {getStatusBadge(log.status)}
                                         </td>
-                                        <td className="px-4 py-3 text-sm text-slate-600 max-w-[250px]">
-                                            <span className={`truncate block ${log.status === 'rejected' ? 'text-red-600 font-medium' : ''}`} title={log.reason}>
-                                                {log.reason || '-'}
-                                            </span>
-                                        </td>
-                                        <td className="px-4 py-3 text-center">
-                                            <div className="flex items-center justify-center gap-1">
-                                                <a
-                                                    href={log.source_url}
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
-                                                    className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                                                    title="View Original Source"
+                                        <td className="px-3 py-3 text-sm text-slate-600 max-w-[200px]">
+                                            {log.reason ? (
+                                                <button
+                                                    onClick={() => setSelectedReason({ title: log.title, reason: log.reason })}
+                                                    className={`text-left truncate block w-full hover:underline ${log.status === 'rejected' ? 'text-red-600 font-medium' : ''}`}
+                                                    title="Click to view full reason"
                                                 >
-                                                    <ExternalLink size={16} />
-                                                </a>
+                                                    {log.reason}
+                                                </button>
+                                            ) : (
+                                                <span className="text-slate-400">-</span>
+                                            )}
+                                        </td>
+                                        <td className="px-3 py-3 text-center">
+                                            <div className="flex items-center justify-center gap-1">
+                                                {log.source_url && (
+                                                    <a
+                                                        href={log.source_url}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                                        title="View Original Source"
+                                                    >
+                                                        <ExternalLink size={14} />
+                                                    </a>
+                                                )}
                                                 {log.status === 'published' && log.opportunity_slug && (
                                                     <Link
                                                         href={`/opportunities/${log.opportunity_slug}`}
                                                         className="p-1.5 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
                                                         title="View Published Post"
                                                     >
-                                                        <Eye size={16} />
+                                                        <Eye size={14} />
                                                     </Link>
                                                 )}
                                             </div>
@@ -371,7 +434,44 @@ export default function ProcessingLog() {
             {/* Pagination Info */}
             {logs.length > 0 && (
                 <div className="text-sm text-slate-500 text-center">
-                    Showing most recent 100 entries. Use filters to narrow down results.
+                    Showing most recent entries. Adjust limit in Advanced Settings.
+                </div>
+            )}
+
+            {/* Reason Modal */}
+            {selectedReason && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[80vh] overflow-hidden">
+                        <div className="flex items-center justify-between p-4 border-b border-slate-200">
+                            <h3 className="text-lg font-bold text-slate-900">Processing Details</h3>
+                            <button
+                                onClick={() => setSelectedReason(null)}
+                                className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
+                            >
+                                <X size={20} />
+                            </button>
+                        </div>
+                        <div className="p-6 space-y-4 overflow-y-auto max-h-[60vh]">
+                            <div>
+                                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Title</label>
+                                <p className="text-sm text-slate-900">{selectedReason.title}</p>
+                            </div>
+                            <div>
+                                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Reason / Status</label>
+                                <p className="text-sm text-slate-700 whitespace-pre-wrap bg-slate-50 p-4 rounded-lg border border-slate-200">
+                                    {selectedReason.reason}
+                                </p>
+                            </div>
+                        </div>
+                        <div className="p-4 border-t border-slate-200 bg-slate-50">
+                            <button
+                                onClick={() => setSelectedReason(null)}
+                                className="w-full bg-slate-900 text-white px-4 py-2 rounded-lg font-bold hover:bg-slate-800 transition-colors"
+                            >
+                                Close
+                            </button>
+                        </div>
+                    </div>
                 </div>
             )}
         </div>

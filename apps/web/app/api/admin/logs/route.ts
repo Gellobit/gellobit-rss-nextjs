@@ -53,6 +53,8 @@ export async function GET(request: NextRequest) {
     const provider = searchParams.get('provider');
     const feedId = searchParams.get('feed_id');
     const search = searchParams.get('search');
+    const dateFrom = searchParams.get('date_from');
+    const dateTo = searchParams.get('date_to');
 
     // Get log limit from settings
     const logMaxEntries = await settingsService.get('advanced.log_max_entries') || 100;
@@ -100,6 +102,14 @@ export async function GET(request: NextRequest) {
         oppQuery = oppQuery.ilike('title', `%${search}%`);
       }
 
+      if (dateFrom) {
+        oppQuery = oppQuery.gte('created_at', `${dateFrom}T00:00:00`);
+      }
+
+      if (dateTo) {
+        oppQuery = oppQuery.lte('created_at', `${dateTo}T23:59:59`);
+      }
+
       const { data: opportunities, error: oppError } = await oppQuery;
 
       if (oppError) {
@@ -136,6 +146,14 @@ export async function GET(request: NextRequest) {
 
       if (feedId && feedId !== 'all') {
         logQuery = logQuery.eq('feed_id', feedId);
+      }
+
+      if (dateFrom) {
+        logQuery = logQuery.gte('created_at', `${dateFrom}T00:00:00`);
+      }
+
+      if (dateTo) {
+        logQuery = logQuery.lte('created_at', `${dateTo}T23:59:59`);
       }
 
       const { data: rejectionLogs, error: logError } = await logQuery;
