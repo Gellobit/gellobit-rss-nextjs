@@ -11,6 +11,7 @@ All notable changes to this project will be documented in this file.
   - Ads automatically reappear when premium membership expires
 - **Manual Banner System**: New admin feature for custom banner ads
   - Configure custom banner image and target URL in Settings > Analytics
+  - **Image upload support**: Upload banner images directly or paste URL
   - Toggle to enable/disable manual banner (overrides AdSense)
   - Preview banner in admin panel before saving
   - Useful for sponsors or testing the membership system

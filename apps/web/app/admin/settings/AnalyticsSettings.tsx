@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Save, RefreshCw, BarChart3, DollarSign, Smartphone, Image } from 'lucide-react';
+import ImageUpload from '@/components/ImageUpload';
 
 interface AnalyticsConfig {
     google_analytics_id: string;
@@ -283,17 +284,17 @@ export default function AnalyticsSettings() {
 
                     <div className="space-y-2">
                         <label className="block text-sm font-bold text-slate-700">
-                            Banner Image URL
+                            Banner Image
                         </label>
-                        <input
-                            type="text"
+                        <ImageUpload
                             value={config.manual_banner_image_url}
-                            onChange={(e) => setConfig({ ...config, manual_banner_image_url: e.target.value })}
-                            placeholder="https://example.com/banner.jpg"
-                            className="w-full max-w-lg border border-slate-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                            onChange={(url) => setConfig({ ...config, manual_banner_image_url: url })}
+                            folder="banners"
+                            entityType="setting"
+                            placeholder="Upload banner image or paste URL"
                         />
                         <p className="text-xs text-slate-500">
-                            Recommended size: 728x90 (horizontal) or 300x250 (rectangle). Use a direct image URL.
+                            Recommended size: 728x90 (horizontal) or 300x250 (rectangle)
                         </p>
                     </div>
 
