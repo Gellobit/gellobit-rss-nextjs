@@ -55,16 +55,19 @@ export default function FavoriteButton({
             return;
         }
 
-        setLoading(true);
+        // Optimistic update - change UI immediately
+        const previousValue = isFavorite;
+        setIsFavorite(!isFavorite);
 
         try {
-            if (isFavorite) {
+            if (previousValue) {
                 // Remove from favorites
                 const res = await fetch(`/api/user/favorites?opportunity_id=${opportunityId}`, {
                     method: 'DELETE',
                 });
-                if (res.ok) {
-                    setIsFavorite(false);
+                if (!res.ok) {
+                    // Revert on error
+                    setIsFavorite(previousValue);
                 }
             } else {
                 // Add to favorites
@@ -73,32 +76,42 @@ export default function FavoriteButton({
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ opportunity_id: opportunityId }),
                 });
-                if (res.ok) {
-                    setIsFavorite(true);
+                if (!res.ok) {
+                    // Revert on error
+                    setIsFavorite(previousValue);
                 }
             }
         } catch (error) {
             console.error('Error toggling favorite:', error);
+            // Revert on error
+            setIsFavorite(previousValue);
         }
-
-        setLoading(false);
     };
+
+    // Show skeleton while checking initial status
+    if (loading) {
+        return (
+            <div className={`inline-flex items-center gap-2 ${className}`}>
+                <Heart size={size} className="text-slate-200 animate-pulse" />
+                {showLabel && <span className="text-sm text-slate-200">...</span>}
+            </div>
+        );
+    }
 
     return (
         <button
             onClick={toggleFavorite}
-            disabled={loading}
-            className={`inline-flex items-center gap-2 transition-colors ${
+            className={`inline-flex items-center gap-2 transition-all duration-150 ${
                 isFavorite
-                    ? 'text-red-500 hover:text-red-600'
+                    ? 'text-red-500 hover:text-red-600 scale-100'
                     : 'text-slate-400 hover:text-red-500'
-            } ${loading ? 'opacity-50' : ''} ${className}`}
+            } ${className}`}
             title={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
         >
             <Heart
                 size={size}
                 fill={isFavorite ? 'currentColor' : 'none'}
-                className={loading ? 'animate-pulse' : ''}
+                className={`transition-transform duration-150 ${isFavorite ? 'scale-110' : 'scale-100'}`}
             />
             {showLabel && (
                 <span className="text-sm font-medium">

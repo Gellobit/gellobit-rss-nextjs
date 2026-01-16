@@ -164,9 +164,9 @@ export default function OpportunitiesBrowser({ opportunities, branding, initialS
                 <div className="flex items-center justify-between px-4 h-14 md:hidden">
                     <Link href="/" className="flex items-center gap-2">
                         {branding.logoUrl ? (
-                            <img src={branding.logoUrl} alt={branding.appName} className="h-8 object-contain" />
+                            <img src={branding.logoUrl} alt={branding.appName} className="app-logo h-8 object-contain" />
                         ) : (
-                            <div className="bg-[#FFDE59] p-1.5 rounded-lg font-black text-sm">GB</div>
+                            <div className="app-logo bg-[#FFDE59] p-1.5 rounded-lg font-black text-sm">GB</div>
                         )}
                     </Link>
                     <h1 className="font-bold text-lg">Explore</h1>
@@ -178,11 +178,11 @@ export default function OpportunitiesBrowser({ opportunities, branding, initialS
                     <div className="flex items-center gap-4">
                         <Link href="/" className="flex items-center gap-2">
                             {branding.logoUrl ? (
-                                <img src={branding.logoUrl} alt={branding.appName} className="h-10 object-contain" />
+                                <img src={branding.logoUrl} alt={branding.appName} className="app-logo h-10 object-contain" />
                             ) : (
-                                <div className="bg-[#FFDE59] p-2 rounded-xl font-black text-xl">GB</div>
+                                <div className="app-logo bg-[#FFDE59] p-2 rounded-xl font-black text-xl">GB</div>
                             )}
-                            <span className="text-sm font-bold text-[#1a1a1a]">{branding.appName}</span>
+                            <span className="app-name text-sm font-bold text-[#1a1a1a]">{branding.appName}</span>
                         </Link>
                     </div>
                     <UserNav hideOpportunities={true} />

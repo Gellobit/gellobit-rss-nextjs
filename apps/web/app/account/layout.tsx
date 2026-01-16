@@ -57,14 +57,12 @@ export default async function AccountLayout({
                             <img
                                 src={branding.logoUrl}
                                 alt={branding.appName}
-                                className="h-8 object-contain"
+                                className="app-logo h-8 md:h-10 object-contain"
                             />
                         ) : (
-                            <>
-                                <div className="bg-[#FFDE59] p-1.5 rounded-lg font-black text-sm md:text-lg shadow-sm">GB</div>
-                                <span className="hidden md:inline font-black text-xl tracking-tighter text-[#1a1a1a]">{branding.appName}</span>
-                            </>
+                            <div className="app-logo bg-[#FFDE59] p-1.5 md:p-2 rounded-lg md:rounded-xl font-black text-sm md:text-xl shadow-sm">GB</div>
                         )}
+                        <span className="app-name hidden md:inline text-sm font-bold text-[#1a1a1a]">{branding.appName}</span>
                     </Link>
                     <h1 className="md:hidden font-bold text-lg">Account</h1>
                     <div className="hidden md:block">

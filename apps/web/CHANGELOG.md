@@ -2,6 +2,80 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.0-alpha.20] - 2026-01-16
+
+### Added
+- **Complete Notification System**: Three-tier notification system implementation
+  - **In-App Notifications**: Bell icon with unread count in header
+    - Dropdown showing recent notifications
+    - Mark as read/unread functionality
+    - Delete individual notifications
+    - Links to related opportunities
+  - **Email Notifications**: Resend integration for transactional emails
+    - New opportunity alerts
+    - Weekly digest (cron job every Monday 9am ET)
+    - Favorite expiring reminders
+    - Membership updates
+    - Admin settings panel for Resend API configuration
+    - Test email functionality
+  - **Push Notifications Infrastructure** (requires debugging)
+    - Web Push API with VAPID keys
+    - Service Worker for receiving push
+    - Admin panel to generate/configure VAPID keys
+    - User subscription management
+    - Database tables for push subscriptions
+
+- **Mobile Notifications Inbox**: New `/account/notifications/inbox` page
+  - Full-page notification list for mobile users
+  - Bell icon in mobile bottom navbar with unread badge
+  - Mark all as read functionality
+  - Pagination with "Load more"
+  - Links to notification settings
+
+- **Favorite Button on Opportunity Detail Page**: Save button in two locations
+  - Top right corner next to type badge
+  - Bottom next to "Visit Original Source" CTA
+
+- **Database Migrations**:
+  - `025_in_app_notifications.sql`: Notifications table with RLS policies
+  - `026_add_email_category.sql`: Email and push categories for system_settings
+  - `027_push_subscriptions.sql`: Push subscription storage
+
+### Changed
+- **FavoriteButton Performance**: Optimistic UI updates
+  - Heart icon changes instantly on click (no 2-second delay)
+  - API call happens in background
+  - Reverts automatically on error
+  - Small scale animation on toggle
+
+- **Mobile Navigation Bar**: Added notifications icon
+  - Bell icon with unread count badge
+  - Links to notifications inbox page
+
+### Technical Details
+- New services: `NotificationService`, `EmailService`, `PushService`
+- New API routes:
+  - `/api/notifications` - List user notifications
+  - `/api/notifications/count` - Get unread count
+  - `/api/notifications/[id]` - Mark read/delete
+  - `/api/notifications/read-all` - Mark all as read
+  - `/api/admin/settings/email` - Email configuration
+  - `/api/admin/settings/email/test` - Send test email
+  - `/api/admin/settings/push` - Push configuration
+  - `/api/admin/settings/push/test` - Send test push
+  - `/api/push/public-key` - Get VAPID public key
+  - `/api/user/push-subscription` - Manage push subscriptions
+  - `/api/cron/send-digest` - Weekly digest cron endpoint
+- New components: `NotificationBell`, `EmailSettings`, `PushSettings`
+- Dependencies: `resend`, `web-push`
+
+### Known Issues
+- **Push Notifications**: Service Worker not displaying notifications
+  - Subscriptions save correctly to database
+  - Push messages sent successfully (status 201)
+  - Service Worker registered but notifications not appearing
+  - See `TODO.md` for debugging notes
+
 ## [1.0.0-alpha.19] - 2026-01-16
 
 ### Added

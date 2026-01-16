@@ -66,13 +66,13 @@ export default function AdminLayout({ initialSection, branding }: AdminLayoutPro
                                 <img
                                     src={branding.logoUrl}
                                     alt={branding.appName}
-                                    className="h-10 object-contain"
+                                    className="app-logo h-10 object-contain"
                                 />
                             ) : (
                                 <>
-                                    <div className="bg-[#FFDE59] p-2 rounded-xl font-black text-xl shadow-sm">GB</div>
+                                    <div className="app-logo bg-[#FFDE59] p-2 rounded-xl font-black text-xl shadow-sm">GB</div>
                                     <div>
-                                        <div className="font-black text-xl tracking-tighter text-[#1a1a1a]">{branding.appName}</div>
+                                        <div className="app-name font-black text-xl tracking-tighter text-[#1a1a1a]">{branding.appName}</div>
                                         <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Admin Panel</div>
                                     </div>
                                 </>

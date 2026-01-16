@@ -1,5 +1,6 @@
 import { createAdminClient } from '../utils/supabase-admin';
 import { logger } from '../utils/logger';
+import { notificationService } from './notification.service';
 import type { AIGeneratedContent } from '../types/ai.types';
 import type { OpportunityType, OpportunityStatus } from '../types/database.types';
 
@@ -127,6 +128,20 @@ export class OpportunityService {
         feed_id: data.source_feed_id,
       });
 
+      // Send in-app and email notifications if opportunity is published
+      if (data.status === 'published') {
+        this.sendNewOpportunityNotifications(
+          opportunity.id,
+          data.title,
+          data.opportunity_type,
+          data.slug,
+          data.excerpt,
+          data.deadline,
+          data.prize_value,
+          data.featured_image_url
+        );
+      }
+
       return opportunity.id;
     } catch (error) {
       await logger.error('Error creating opportunity', {
@@ -134,6 +149,47 @@ export class OpportunityService {
         error: error instanceof Error ? error.message : 'Unknown error',
       });
       return null;
+    }
+  }
+
+  /**
+   * Send notifications to users about a new opportunity
+   * Runs asynchronously to not block opportunity creation
+   */
+  private async sendNewOpportunityNotifications(
+    opportunityId: string,
+    title: string,
+    opportunityType: OpportunityType,
+    slug: string,
+    excerpt?: string,
+    deadline?: string | null,
+    prizeValue?: string | null,
+    featuredImageUrl?: string | null
+  ): Promise<void> {
+    try {
+      const count = await notificationService.notifyUsersAboutNewOpportunity({
+        opportunityId,
+        opportunityTitle: title,
+        opportunityType,
+        opportunitySlug: slug,
+        opportunityExcerpt: excerpt,
+        opportunityDeadline: deadline,
+        opportunityPrizeValue: prizeValue,
+        opportunityImageUrl: featuredImageUrl,
+      });
+
+      if (count > 0) {
+        await logger.info('Notifications sent for new opportunity', {
+          opportunity_id: opportunityId,
+          notifications_sent: count,
+        });
+      }
+    } catch (error) {
+      // Don't let notification errors affect opportunity creation
+      await logger.error('Error sending opportunity notifications', {
+        opportunity_id: opportunityId,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
     }
   }
 
@@ -233,6 +289,15 @@ export class OpportunityService {
     try {
       const supabase = createAdminClient();
 
+      // Get current opportunity to check if status is changing to published
+      const { data: currentOpp } = await supabase
+        .from('opportunities')
+        .select('status, title, opportunity_type, slug, excerpt, deadline, prize_value, featured_image_url')
+        .eq('id', opportunityId)
+        .single();
+
+      const wasNotPublished = currentOpp?.status !== 'published';
+
       const { error } = await supabase
         .from('opportunities')
         .update({ status })
@@ -244,6 +309,20 @@ export class OpportunityService {
         opportunity_id: opportunityId,
         new_status: status,
       });
+
+      // Send notifications if status changed to published
+      if (status === 'published' && wasNotPublished && currentOpp) {
+        this.sendNewOpportunityNotifications(
+          opportunityId,
+          currentOpp.title,
+          currentOpp.opportunity_type,
+          currentOpp.slug,
+          currentOpp.excerpt,
+          currentOpp.deadline,
+          currentOpp.prize_value,
+          currentOpp.featured_image_url
+        );
+      }
 
       return { success: true };
     } catch (error) {

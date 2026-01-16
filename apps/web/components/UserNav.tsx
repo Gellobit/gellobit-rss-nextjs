@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { User, Settings, Heart, Bell, LogOut, Shield, ChevronDown, Briefcase, FileText, Crown, Sparkles } from 'lucide-react';
+import NotificationBell from './NotificationBell';
 
 interface UserProfile {
     id: string;
@@ -109,6 +110,10 @@ export default function UserNav({ hideOpportunities = false }: UserNavProps) {
                     Opportunities
                 </Link>
             )}
+
+            {/* Notification Bell */}
+            <NotificationBell />
+
             <div className="relative" ref={menuRef}>
             <button
                 onClick={() => setMenuOpen(!menuOpen)}

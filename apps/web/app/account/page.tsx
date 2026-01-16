@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { User, Mail, Camera, Save, RefreshCw, Key, Crown, Calendar, Heart, Bell, LogOut, ChevronRight, ChevronDown, Settings, FileText, Info, Briefcase } from 'lucide-react';
+import { User, Mail, Camera, Save, RefreshCw, Key, Crown, Calendar, Heart, Bell, LogOut, ChevronRight, ChevronDown, Settings, FileText, Info, Briefcase, BookOpen, CreditCard } from 'lucide-react';
 import { APP_VERSION } from '@/components/LandingPage';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -318,35 +318,31 @@ export default function AccountPage() {
                         <ChevronRight className="text-slate-400" size={20} />
                     </Link>
 
-                    {shouldShowAds && !isPremium && (
-                        <Link
-                            href="/pricing"
-                            className="w-full flex items-center justify-between px-4 py-4 border-b border-slate-100 hover:bg-slate-50 transition-colors"
-                        >
-                            <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 bg-yellow-100 rounded-xl flex items-center justify-center">
-                                    <Crown className="text-yellow-600" size={20} />
-                                </div>
-                                <span className="font-medium">Upgrade to Pro</span>
-                            </div>
-                            <ChevronRight className="text-slate-400" size={20} />
-                        </Link>
-                    )}
-
-                    <button
-                        onClick={handleSignOut}
-                        disabled={signingOut}
-                        className="w-full flex items-center justify-between px-4 py-4 hover:bg-slate-50 transition-colors text-left"
+                    <Link
+                        href="/account/membership"
+                        className="flex items-center justify-between px-4 py-4 border-b border-slate-100 hover:bg-slate-50 transition-colors"
                     >
                         <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 bg-red-50 rounded-xl flex items-center justify-center">
-                                <LogOut className="text-red-500" size={20} />
+                            <div className="w-10 h-10 bg-yellow-100 rounded-xl flex items-center justify-center">
+                                <CreditCard className="text-yellow-600" size={20} />
                             </div>
-                            <span className="font-medium text-red-600">
-                                {signingOut ? 'Signing out...' : 'Sign Out'}
-                            </span>
+                            <span className="font-medium">Membership</span>
                         </div>
-                    </button>
+                        <ChevronRight className="text-slate-400" size={20} />
+                    </Link>
+
+                    <Link
+                        href="/blog"
+                        className="flex items-center justify-between px-4 py-4 hover:bg-slate-50 transition-colors"
+                    >
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center">
+                                <BookOpen className="text-green-600" size={20} />
+                            </div>
+                            <span className="font-medium">Blog</span>
+                        </div>
+                        <ChevronRight className="text-slate-400" size={20} />
+                    </Link>
                 </div>
 
                 {/* Pages Section - Collapsible */}
@@ -386,6 +382,24 @@ export default function AccountPage() {
                         )}
                     </div>
                 )}
+
+                {/* Sign Out - At the end */}
+                <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden">
+                    <button
+                        onClick={handleSignOut}
+                        disabled={signingOut}
+                        className="w-full flex items-center justify-between px-4 py-4 hover:bg-slate-50 transition-colors text-left"
+                    >
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-red-50 rounded-xl flex items-center justify-center">
+                                <LogOut className="text-red-500" size={20} />
+                            </div>
+                            <span className="font-medium text-red-600">
+                                {signingOut ? 'Signing out...' : 'Sign Out'}
+                            </span>
+                        </div>
+                    </button>
+                </div>
 
                 {/* Version Info */}
                 <div className="text-center py-4">

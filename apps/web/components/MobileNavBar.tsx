@@ -2,12 +2,37 @@
 
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { Home, Search, Heart, User } from 'lucide-react';
-import { useUserAvatar } from '@/context/UserContext';
+import { Home, Search, Heart, User, Bell } from 'lucide-react';
+import { useUserAvatar, useUser } from '@/context/UserContext';
+import { useState, useEffect } from 'react';
 
 export default function MobileNavBar() {
     const pathname = usePathname();
     const { avatarUrl } = useUserAvatar();
+    const { isAuthenticated } = useUser();
+    const [unreadCount, setUnreadCount] = useState(0);
+
+    // Fetch unread notification count
+    useEffect(() => {
+        if (!isAuthenticated) return;
+
+        const fetchCount = async () => {
+            try {
+                const res = await fetch('/api/notifications/count');
+                if (res.ok) {
+                    const data = await res.json();
+                    setUnreadCount(data.count);
+                }
+            } catch (error) {
+                // Silently fail
+            }
+        };
+
+        fetchCount();
+        // Poll every 60 seconds
+        const interval = setInterval(fetchCount, 60000);
+        return () => clearInterval(interval);
+    }, [isAuthenticated]);
 
     // Don't show on admin pages
     if (pathname.startsWith('/admin')) {
@@ -18,6 +43,7 @@ export default function MobileNavBar() {
         { href: '/', label: 'Home', icon: Home },
         { href: '/opportunities', label: 'Explore', icon: Search },
         { href: '/saved', label: 'Saved', icon: Heart },
+        { href: '/account/notifications/inbox', label: 'Alerts', icon: Bell, showBadge: true },
         { href: '/account', label: 'Account', icon: null }, // Special handling for account
     ];
 
@@ -68,11 +94,18 @@ export default function MobileNavBar() {
                                 isActive ? 'text-slate-900' : 'text-slate-400'
                             }`}
                         >
-                            <Icon
-                                size={22}
-                                strokeWidth={isActive ? 2.5 : 2}
-                                fill={isActive && item.icon === Heart ? 'currentColor' : 'none'}
-                            />
+                            <div className="relative">
+                                <Icon
+                                    size={22}
+                                    strokeWidth={isActive ? 2.5 : 2}
+                                    fill={isActive && item.icon === Heart ? 'currentColor' : 'none'}
+                                />
+                                {item.showBadge && unreadCount > 0 && (
+                                    <span className="absolute -top-1 -right-1.5 min-w-[16px] h-[16px] bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center px-1">
+                                        {unreadCount > 99 ? '99+' : unreadCount}
+                                    </span>
+                                )}
+                            </div>
                             <span className={`text-[10px] font-medium ${isActive ? 'font-bold' : ''}`}>
                                 {item.label}
                             </span>

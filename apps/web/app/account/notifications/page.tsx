@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Bell, Mail, Smartphone, Monitor, Save, RefreshCw } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { Bell, Mail, Smartphone, Monitor, Save, RefreshCw, AlertCircle } from 'lucide-react';
 
 interface NotificationSettings {
     email_new_opportunities: boolean;
@@ -15,6 +15,13 @@ interface NotificationSettings {
     app_favorites_expiring: boolean;
     opportunity_types: string[];
     min_prize_value: number | null;
+}
+
+interface PushStatus {
+    supported: boolean;
+    permission: NotificationPermission | 'unsupported';
+    subscribed: boolean;
+    loading: boolean;
 }
 
 const opportunityTypes = [
@@ -36,10 +43,54 @@ export default function NotificationsPage() {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+    const [pushStatus, setPushStatus] = useState<PushStatus>({
+        supported: false,
+        permission: 'unsupported',
+        subscribed: false,
+        loading: true,
+    });
+
+    // Check push notification support and status
+    const checkPushStatus = useCallback(async () => {
+        if (typeof window === 'undefined') return;
+
+        const supported = 'serviceWorker' in navigator && 'PushManager' in window;
+
+        if (!supported) {
+            setPushStatus({
+                supported: false,
+                permission: 'unsupported',
+                subscribed: false,
+                loading: false,
+            });
+            return;
+        }
+
+        const permission = Notification.permission;
+        let subscribed = false;
+
+        if (permission === 'granted') {
+            try {
+                const registration = await navigator.serviceWorker.ready;
+                const subscription = await registration.pushManager.getSubscription();
+                subscribed = !!subscription;
+            } catch (e) {
+                console.error('Error checking push subscription:', e);
+            }
+        }
+
+        setPushStatus({
+            supported: true,
+            permission,
+            subscribed,
+            loading: false,
+        });
+    }, []);
 
     useEffect(() => {
         fetchSettings();
-    }, []);
+        checkPushStatus();
+    }, [checkPushStatus]);
 
     const fetchSettings = async () => {
         try {
@@ -93,6 +144,143 @@ export default function NotificationsPage() {
             ? currentTypes.filter(t => t !== type)
             : [...currentTypes, type];
         setSettings(prev => prev ? { ...prev, opportunity_types: newTypes } : null);
+    };
+
+    // Register service worker and subscribe to push
+    const enablePushNotifications = async () => {
+        setPushStatus(prev => ({ ...prev, loading: true }));
+        setMessage(null);
+
+        try {
+            console.log('[Push] Starting push notification setup...');
+
+            // Request permission
+            const permission = await Notification.requestPermission();
+            console.log('[Push] Permission result:', permission);
+
+            if (permission !== 'granted') {
+                setPushStatus(prev => ({ ...prev, permission, loading: false }));
+                setMessage({ type: 'error', text: 'Push notification permission denied' });
+                return;
+            }
+
+            // Register service worker
+            console.log('[Push] Registering service worker...');
+            const registration = await navigator.serviceWorker.register('/sw.js');
+            console.log('[Push] Service worker registered:', registration);
+            await navigator.serviceWorker.ready;
+            console.log('[Push] Service worker ready');
+
+            // Get VAPID public key from server
+            console.log('[Push] Fetching VAPID public key...');
+            const keyRes = await fetch('/api/push/public-key');
+            if (!keyRes.ok) {
+                const errData = await keyRes.json().catch(() => ({}));
+                console.error('[Push] Failed to get public key:', errData);
+                throw new Error(errData.error || 'Push notifications not configured on server');
+            }
+            const { publicKey } = await keyRes.json();
+            console.log('[Push] Got public key:', publicKey?.substring(0, 20) + '...');
+
+            // Convert VAPID key to Uint8Array
+            const urlBase64ToUint8Array = (base64String: string) => {
+                const padding = '='.repeat((4 - base64String.length % 4) % 4);
+                const base64 = (base64String + padding)
+                    .replace(/-/g, '+')
+                    .replace(/_/g, '/');
+                const rawData = window.atob(base64);
+                const outputArray = new Uint8Array(rawData.length);
+                for (let i = 0; i < rawData.length; ++i) {
+                    outputArray[i] = rawData.charCodeAt(i);
+                }
+                return outputArray;
+            };
+
+            // Subscribe to push
+            console.log('[Push] Subscribing to push manager...');
+            const subscription = await registration.pushManager.subscribe({
+                userVisibleOnly: true,
+                applicationServerKey: urlBase64ToUint8Array(publicKey),
+            });
+            console.log('[Push] Subscribed successfully:', subscription.endpoint.substring(0, 50) + '...');
+
+            // Send subscription to server
+            console.log('[Push] Saving subscription to server...');
+            const subRes = await fetch('/api/user/push-subscription', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    subscription: subscription.toJSON(),
+                    deviceName: navigator.userAgent.includes('Mobile') ? 'Mobile' : 'Desktop',
+                }),
+            });
+
+            if (!subRes.ok) {
+                const errData = await subRes.json().catch(() => ({}));
+                console.error('[Push] Failed to save subscription:', errData);
+                throw new Error(errData.error || 'Failed to save subscription');
+            }
+            console.log('[Push] Subscription saved successfully!');
+
+            setPushStatus({
+                supported: true,
+                permission: 'granted',
+                subscribed: true,
+                loading: false,
+            });
+
+            // Update local settings
+            if (settings) {
+                setSettings({ ...settings, push_enabled: true });
+            }
+
+            setMessage({ type: 'success', text: 'Push notifications enabled!' });
+        } catch (error) {
+            console.error('[Push] Error enabling push:', error);
+            setPushStatus(prev => ({ ...prev, loading: false }));
+            setMessage({
+                type: 'error',
+                text: error instanceof Error ? error.message : 'Failed to enable push notifications',
+            });
+        }
+    };
+
+    // Unsubscribe from push
+    const disablePushNotifications = async () => {
+        setPushStatus(prev => ({ ...prev, loading: true }));
+        setMessage(null);
+
+        try {
+            const registration = await navigator.serviceWorker.ready;
+            const subscription = await registration.pushManager.getSubscription();
+
+            if (subscription) {
+                // Unsubscribe locally
+                await subscription.unsubscribe();
+
+                // Remove from server
+                await fetch(`/api/user/push-subscription?endpoint=${encodeURIComponent(subscription.endpoint)}`, {
+                    method: 'DELETE',
+                });
+            }
+
+            setPushStatus(prev => ({
+                ...prev,
+                subscribed: false,
+                loading: false,
+            }));
+
+            // Update local settings
+            if (settings) {
+                setSettings({ ...settings, push_enabled: false });
+            }
+
+            setMessage({ type: 'success', text: 'Push notifications disabled' });
+        } catch (error) {
+            console.error('Error disabling push:', error);
+            setPushStatus(prev => ({ ...prev, loading: false }));
+            setMessage({ type: 'error', text: 'Failed to disable push notifications' });
+        }
     };
 
     const Toggle = ({ checked, onChange, disabled = false }: { checked: boolean; onChange: () => void; disabled?: boolean }) => (
@@ -215,43 +403,85 @@ export default function NotificationsPage() {
                 </div>
             </div>
 
-            {/* Push Notifications (for future mobile app) */}
+            {/* Push Notifications */}
             <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden">
                 <div className="p-6 border-b border-slate-100 flex items-center justify-between">
                     <div className="flex items-center gap-3">
                         <Smartphone className="text-slate-500" size={20} />
                         <h2 className="font-bold text-lg">Push Notifications</h2>
                     </div>
-                    <Toggle
-                        checked={settings.push_enabled}
-                        onChange={() => handleToggle('push_enabled')}
-                    />
+                    {pushStatus.supported ? (
+                        pushStatus.loading ? (
+                            <RefreshCw size={20} className="animate-spin text-slate-400" />
+                        ) : pushStatus.subscribed ? (
+                            <button
+                                onClick={disablePushNotifications}
+                                className="px-4 py-1.5 bg-red-100 text-red-700 rounded-lg text-sm font-medium hover:bg-red-200 transition-colors"
+                            >
+                                Disable
+                            </button>
+                        ) : (
+                            <button
+                                onClick={enablePushNotifications}
+                                className="px-4 py-1.5 bg-green-600 text-white rounded-lg text-sm font-bold hover:bg-green-700 transition-colors"
+                            >
+                                Enable
+                            </button>
+                        )
+                    ) : (
+                        <span className="text-sm text-slate-400">Not supported</span>
+                    )}
                 </div>
 
-                <div className="divide-y divide-slate-100">
-                    <div className="p-6 flex items-center justify-between">
-                        <div>
-                            <p className="font-medium text-slate-900">New Opportunities</p>
-                            <p className="text-sm text-slate-500">Push notifications for new opportunities</p>
-                        </div>
-                        <Toggle
-                            checked={settings.push_new_opportunities}
-                            onChange={() => handleToggle('push_new_opportunities')}
-                            disabled={!settings.push_enabled}
-                        />
+                {/* Browser support / permission status */}
+                {!pushStatus.supported && (
+                    <div className="p-4 bg-amber-50 border-b border-amber-100 flex items-center gap-3">
+                        <AlertCircle size={18} className="text-amber-600" />
+                        <p className="text-sm text-amber-800">
+                            Push notifications are not supported in this browser.
+                        </p>
                     </div>
-                    <div className="p-6 flex items-center justify-between">
-                        <div>
-                            <p className="font-medium text-slate-900">Favorites Expiring</p>
-                            <p className="text-sm text-slate-500">Push alerts for expiring favorites</p>
-                        </div>
-                        <Toggle
-                            checked={settings.push_favorites_expiring}
-                            onChange={() => handleToggle('push_favorites_expiring')}
-                            disabled={!settings.push_enabled}
-                        />
+                )}
+
+                {pushStatus.supported && pushStatus.permission === 'denied' && (
+                    <div className="p-4 bg-red-50 border-b border-red-100 flex items-center gap-3">
+                        <AlertCircle size={18} className="text-red-600" />
+                        <p className="text-sm text-red-800">
+                            Push notifications are blocked. Please enable them in your browser settings.
+                        </p>
                     </div>
-                </div>
+                )}
+
+                {pushStatus.supported && pushStatus.subscribed && (
+                    <div className="divide-y divide-slate-100">
+                        <div className="p-6 flex items-center justify-between">
+                            <div>
+                                <p className="font-medium text-slate-900">New Opportunities</p>
+                                <p className="text-sm text-slate-500">Push notifications for new opportunities</p>
+                            </div>
+                            <Toggle
+                                checked={settings.push_new_opportunities}
+                                onChange={() => handleToggle('push_new_opportunities')}
+                            />
+                        </div>
+                        <div className="p-6 flex items-center justify-between">
+                            <div>
+                                <p className="font-medium text-slate-900">Favorites Expiring</p>
+                                <p className="text-sm text-slate-500">Push alerts for expiring favorites</p>
+                            </div>
+                            <Toggle
+                                checked={settings.push_favorites_expiring}
+                                onChange={() => handleToggle('push_favorites_expiring')}
+                            />
+                        </div>
+                    </div>
+                )}
+
+                {pushStatus.supported && !pushStatus.subscribed && pushStatus.permission !== 'denied' && (
+                    <div className="p-6 text-center text-slate-500 text-sm">
+                        Click &quot;Enable&quot; above to receive push notifications on this device.
+                    </div>
+                )}
             </div>
 
             {/* In-App Notifications */}

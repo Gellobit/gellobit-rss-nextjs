@@ -200,12 +200,12 @@ export const LandingPage = ({ opportunities = [], branding, heroContent, appSect
                                 <img
                                     src={branding.logoUrl}
                                     alt={branding.appName}
-                                    className="h-10 object-contain"
+                                    className="app-logo h-10 object-contain"
                                 />
                             ) : (
-                                <div className="bg-[#FFDE59] p-2 rounded-xl font-black text-xl shadow-sm">GB</div>
+                                <div className="app-logo bg-[#FFDE59] p-2 rounded-xl font-black text-xl shadow-sm">GB</div>
                             )}
-                            <span className="text-sm font-bold text-[#1a1a1a]">{branding.appName}</span>
+                            <span className="app-name text-sm font-bold text-[#1a1a1a]">{branding.appName}</span>
                         </Link>
                         <div className="hidden md:flex items-center gap-8">
                             <a href="#features" className="text-sm font-bold text-slate-600 hover:text-[#1a1a1a] transition-colors">Features</a>
@@ -311,7 +311,7 @@ export const LandingPage = ({ opportunities = [], branding, heroContent, appSect
                         </div>
 
                         {/* Category Quick Links */}
-                        <div className="mt-8 flex flex-wrap justify-center gap-3 md:gap-4">
+                        <div className="mt-8 grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 max-w-4xl mx-auto">
                             {[
                                 { type: 'giveaway', label: 'Giveaways', icon: Gift, desc: 'Win prizes & rewards' },
                                 { type: 'sweepstakes', label: 'Sweepstakes', icon: Trophy, desc: 'Enter to win big' },
@@ -327,14 +327,14 @@ export const LandingPage = ({ opportunities = [], branding, heroContent, appSect
                                     <Link
                                         key={cat.type}
                                         href={isAuthenticated ? `/opportunities?type=${cat.type}` : `/auth?mode=signin&redirect=${encodeURIComponent(`/opportunities?type=${cat.type}`)}`}
-                                        className="bg-white/90 backdrop-blur-sm hover:bg-white px-4 py-3 rounded-xl shadow-md hover:shadow-lg transition-all group flex items-center gap-3 min-w-[140px]"
+                                        className="bg-[#FFF9E6] hover:bg-[#FFF3CC] border border-[#F5E6B8] px-4 py-3 rounded-xl hover:shadow-md transition-all group flex items-center gap-3"
                                     >
-                                        <div className="w-10 h-10 bg-yellow-100 rounded-lg flex items-center justify-center group-hover:bg-yellow-200 transition-colors">
-                                            <Icon size={20} className="text-yellow-700" />
+                                        <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center group-hover:bg-yellow-50 transition-colors flex-shrink-0">
+                                            <Icon size={20} className="text-yellow-600" />
                                         </div>
-                                        <div className="text-left">
-                                            <span className="block text-sm font-bold text-slate-900">{cat.label}</span>
-                                            <span className="block text-[10px] text-slate-500">{cat.desc}</span>
+                                        <div className="text-left min-w-0">
+                                            <span className="block text-sm font-bold text-slate-900 truncate">{cat.label}</span>
+                                            <span className="block text-[10px] text-slate-500 truncate">{cat.desc}</span>
                                         </div>
                                     </Link>
                                 );
@@ -682,18 +682,18 @@ export const LandingPage = ({ opportunities = [], branding, heroContent, appSect
                                     <img
                                         src={branding.footerLogoUrl}
                                         alt={branding.appName}
-                                        className="h-10 object-contain"
+                                        className="app-logo h-10 object-contain"
                                     />
                                 ) : branding.logoUrl ? (
                                     <img
                                         src={branding.logoUrl}
                                         alt={branding.appName}
-                                        className="h-10 object-contain"
+                                        className="app-logo h-10 object-contain"
                                     />
                                 ) : (
                                     <>
-                                        <div className="bg-[#FFDE59] p-2 rounded-xl font-black text-xl text-[#1a1a1a]">GB</div>
-                                        <span className="font-black text-2xl tracking-tighter">{branding.appName}</span>
+                                        <div className="app-logo bg-[#FFDE59] p-2 rounded-xl font-black text-xl text-[#1a1a1a]">GB</div>
+                                        <span className="app-name font-black text-2xl tracking-tighter">{branding.appName}</span>
                                     </>
                                 )}
                             </Link>

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Settings as SettingsIcon, Sparkles, FileText, Globe, Wrench, Image as ImageIcon, Palette, BarChart3, Crown } from 'lucide-react';
+import { Settings as SettingsIcon, Sparkles, FileText, Globe, Wrench, Image as ImageIcon, Palette, BarChart3, Crown, Mail, Bell } from 'lucide-react';
 import GeneralSettings from './settings/GeneralSettings';
 import AISettings from './settings/AISettings';
 import PromptsSettings from './settings/PromptsSettings';
@@ -11,8 +11,10 @@ import MediaSettings from './settings/MediaSettings';
 import PersonalizationSettings from './settings/PersonalizationSettings';
 import AnalyticsSettings from './settings/AnalyticsSettings';
 import MembershipSettings from './settings/MembershipSettings';
+import EmailSettings from './settings/EmailSettings';
+import PushSettings from './settings/PushSettings';
 
-type SettingsTab = 'general' | 'ai' | 'prompts' | 'scraping' | 'media' | 'personalization' | 'membership' | 'analytics' | 'advanced';
+type SettingsTab = 'general' | 'ai' | 'prompts' | 'scraping' | 'media' | 'personalization' | 'membership' | 'email' | 'push' | 'analytics' | 'advanced';
 
 export default function Settings() {
     const [activeTab, setActiveTab] = useState<SettingsTab>('general');
@@ -25,6 +27,8 @@ export default function Settings() {
         { id: 'media', label: 'Media', icon: ImageIcon },
         { id: 'personalization', label: 'Personalization', icon: Palette },
         { id: 'membership', label: 'Membership', icon: Crown },
+        { id: 'email', label: 'Email', icon: Mail },
+        { id: 'push', label: 'Push', icon: Bell },
         { id: 'analytics', label: 'Analytics & Ads', icon: BarChart3 },
         { id: 'advanced', label: 'Advanced', icon: Wrench },
     ] as const;
@@ -66,6 +70,8 @@ export default function Settings() {
                     {activeTab === 'media' && <MediaSettings />}
                     {activeTab === 'personalization' && <PersonalizationSettings />}
                     {activeTab === 'membership' && <MembershipSettings />}
+                    {activeTab === 'email' && <EmailSettings />}
+                    {activeTab === 'push' && <PushSettings />}
                     {activeTab === 'analytics' && <AnalyticsSettings />}
                     {activeTab === 'advanced' && <AdvancedSettings />}
                 </div>

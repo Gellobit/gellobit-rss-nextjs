@@ -31,14 +31,14 @@ export default function AppHeader({
                         <img
                             src={branding.logoUrl}
                             alt={branding.appName}
-                            className="h-8 md:h-10 object-contain"
+                            className="app-logo h-8 md:h-10 object-contain"
                         />
                     ) : (
-                        <div className="bg-[#FFDE59] p-1.5 md:p-2 rounded-lg md:rounded-xl font-black text-sm md:text-xl shadow-sm">
+                        <div className="app-logo bg-[#FFDE59] p-1.5 md:p-2 rounded-lg md:rounded-xl font-black text-sm md:text-xl shadow-sm">
                             GB
                         </div>
                     )}
-                    <span className="hidden md:inline text-sm font-bold text-[#1a1a1a]">
+                    <span className="app-name hidden md:inline text-sm font-bold text-[#1a1a1a]">
                         {branding.appName}
                     </span>
                 </Link>

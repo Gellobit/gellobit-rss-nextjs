@@ -151,12 +151,12 @@ export default async function ContentPage({ params }: { params: Promise<{ slug: 
                             <img
                                 src={branding.logoUrl}
                                 alt={branding.appName}
-                                className="h-10 object-contain"
+                                className="app-logo h-10 object-contain"
                             />
                         ) : (
-                            <div className="bg-[#FFDE59] p-2 rounded-xl font-black text-xl shadow-sm">GB</div>
+                            <div className="app-logo bg-[#FFDE59] p-2 rounded-xl font-black text-xl shadow-sm">GB</div>
                         )}
-                        <span className="text-sm font-bold text-[#1a1a1a]">{branding.appName}</span>
+                        <span className="app-name text-sm font-bold text-[#1a1a1a]">{branding.appName}</span>
                     </a>
                     <UserNav />
                 </div>
@@ -170,12 +170,12 @@ export default async function ContentPage({ params }: { params: Promise<{ slug: 
                             <img
                                 src={branding.logoUrl}
                                 alt={branding.appName}
-                                className="h-8 object-contain"
+                                className="app-logo h-8 object-contain"
                             />
                         ) : (
-                            <div className="bg-[#FFDE59] p-1.5 rounded-lg font-black text-sm shadow-sm">GB</div>
+                            <div className="app-logo bg-[#FFDE59] p-1.5 rounded-lg font-black text-sm shadow-sm">GB</div>
                         )}
-                        <span className="font-black text-lg tracking-tighter text-[#1a1a1a]">{branding.appName}</span>
+                        <span className="app-name font-black text-lg tracking-tighter text-[#1a1a1a]">{branding.appName}</span>
                     </a>
                 </div>
             </div>

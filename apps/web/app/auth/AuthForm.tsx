@@ -79,10 +79,10 @@ function AuthFormInner({ branding }: AuthFormProps) {
             <img
               src={branding.logoUrl}
               alt={branding.appName}
-              className="h-12 object-contain mx-auto mb-4"
+              className="app-logo h-12 object-contain mx-auto mb-4"
             />
           ) : (
-            <div className="inline-block bg-[#FFDE59] p-3 rounded-2xl font-black text-2xl shadow-sm mb-4">GB</div>
+            <div className="app-logo inline-block bg-[#FFDE59] p-3 rounded-2xl font-black text-2xl shadow-sm mb-4">GB</div>
           )}
           <h2 className="text-3xl font-black text-[#1a1a1a]">
             {isSignUp ? 'Create Account' : 'Welcome Back'}

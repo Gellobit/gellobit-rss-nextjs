@@ -1,6 +1,6 @@
 {
     "name": "web",
-    "version": "1.0.0-alpha.19",
+    "version": "1.0.0-alpha.20",
     "private": true,
     "scripts": {
         "dev": "next dev",
@@ -31,8 +31,10 @@
         "openai": "^4.24.0",
         "react": "^19.0.0",
         "react-dom": "^19.0.0",
+        "resend": "^6.7.0",
         "rss-parser": "^3.13.0",
         "tailwind-merge": "^1.14.0",
+        "web-push": "^3.6.7",
         "zod": "^4.3.5"
     },
     "devDependencies": {

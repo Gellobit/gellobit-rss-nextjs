@@ -4,6 +4,7 @@ import { createAdminClient } from '@/lib/utils/supabase-admin';
 import { Calendar, MapPin, Gift, ExternalLink, ArrowLeft, Clock, Award, CheckCircle } from 'lucide-react';
 import AdContainer from '@/components/AdContainer';
 import UserNav from '@/components/UserNav';
+import FavoriteButton from '@/components/FavoriteButton';
 import { Metadata } from 'next';
 
 export const dynamic = 'force-dynamic';
@@ -116,10 +117,18 @@ export default async function OpportunityPage({
 
           {/* Content */}
           <div className="p-6 lg:p-8">
-            {/* Type Badge */}
-            <span className="inline-block px-3 py-1 rounded-full text-xs font-bold bg-blue-100 text-blue-700 mb-4 uppercase">
-              {opportunity.opportunity_type.replace('_', ' ')}
-            </span>
+            {/* Type Badge & Save Button */}
+            <div className="flex items-start justify-between gap-4 mb-4">
+              <span className="inline-block px-3 py-1 rounded-full text-xs font-bold bg-blue-100 text-blue-700 uppercase">
+                {opportunity.opportunity_type.replace('_', ' ')}
+              </span>
+              <FavoriteButton
+                opportunityId={opportunity.id}
+                size={24}
+                showLabel={true}
+                className="flex-shrink-0"
+              />
+            </div>
 
             {/* Title */}
             <h1 className="text-2xl lg:text-3xl font-black text-[#1a1a1a] mb-4">
@@ -184,17 +193,25 @@ export default async function OpportunityPage({
             {/* Ad Unit */}
             <AdContainer format="horizontal" position="bottom" className="mb-8" />
 
-            {/* CTA Button */}
+            {/* CTA Buttons */}
             <div className="border-t border-slate-200 pt-6">
-              <a
-                href={opportunity.source_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 px-6 py-3 bg-[#FFDE59] text-[#1a1a1a] font-black rounded-lg hover:bg-yellow-400 transition-colors"
-              >
-                Visit Original Source
-                <ExternalLink size={18} />
-              </a>
+              <div className="flex flex-wrap items-center gap-3">
+                <a
+                  href={opportunity.source_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 px-6 py-3 bg-[#FFDE59] text-[#1a1a1a] font-black rounded-lg hover:bg-yellow-400 transition-colors"
+                >
+                  Visit Original Source
+                  <ExternalLink size={18} />
+                </a>
+                <FavoriteButton
+                  opportunityId={opportunity.id}
+                  size={20}
+                  showLabel={true}
+                  className="px-4 py-3 bg-slate-100 hover:bg-slate-200 rounded-lg"
+                />
+              </div>
               <p className="text-xs text-slate-400 mt-3">
                 Published {opportunity.published_at
                   ? new Date(opportunity.published_at).toLocaleDateString()
