@@ -1,4 +1,5 @@
 import { redirect } from 'next/navigation';
+import Link from 'next/link';
 import { createServerClient } from '@/lib/utils/supabase-server';
 import { unstable_cache } from 'next/cache';
 import { createAdminClient } from '@/lib/utils/supabase-admin';
@@ -51,7 +52,7 @@ export default async function AccountLayout({
             {/* Navigation */}
             <nav className="bg-white border-b border-slate-100 sticky top-0 z-50">
                 <div className="max-w-7xl mx-auto px-4 h-14 md:h-16 flex items-center justify-between">
-                    <a href="/" className="flex items-center gap-2">
+                    <Link href="/" className="flex items-center gap-2">
                         {branding.logoUrl ? (
                             <img
                                 src={branding.logoUrl}
@@ -64,7 +65,7 @@ export default async function AccountLayout({
                                 <span className="hidden md:inline font-black text-xl tracking-tighter text-[#1a1a1a]">{branding.appName}</span>
                             </>
                         )}
-                    </a>
+                    </Link>
                     <h1 className="md:hidden font-bold text-lg">Account</h1>
                     <div className="hidden md:block">
                         <UserNav />

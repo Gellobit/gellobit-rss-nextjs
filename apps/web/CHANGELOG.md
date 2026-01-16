@@ -2,6 +2,59 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.0-alpha.17] - 2026-01-16
+
+### Added
+- **Membership Monetization System**: Complete freemium model with configurable limits
+  - New admin panel section: Settings > Membership
+  - Configure content access percentage for free users (default: 60%)
+  - Configure delay hours for new content (default: 24h)
+  - Configure favorites limit for free users (default: 5)
+  - Toggle locked content display with padlock icons
+  - Toggle blur effect for locked content
+  - Pricing configuration (monthly/annual)
+  - PayPal integration settings (Client ID, Plan IDs)
+  - Notification limits for free users
+
+- **Locked Content UI in Opportunities Browser**
+  - Padlock icons on premium-only opportunities
+  - Blur effect on locked titles/excerpts (configurable)
+  - Upgrade modal when clicking locked content
+  - "Upgrade to unlock" CTA buttons on locked cards
+
+- **New API Endpoints**
+  - `GET/POST /api/admin/settings/membership` - Admin membership configuration
+  - `GET /api/membership/limits` - Public endpoint for membership limits (cached)
+
+- **New Components**
+  - `AppHeader` - Reusable header component with branding support
+  - `MembershipSettings` - Admin panel for membership configuration
+
+- **New Hooks**
+  - `useMembershipAccess()` - Get user's membership status and content limits
+
+- **New Utility Functions**
+  - `hasFullContentAccess()` - Check if user has premium access
+  - `isWithinDelayPeriod()` - Check if content is within delay period
+  - `canAddFavorite()` - Check if user can add more favorites
+  - `getRemainingFavorites()` - Get remaining favorites count
+
+- **Database Migration** (023_membership_settings.sql)
+  - Added 'membership' category to system_settings
+  - Default settings for freemium model
+
+### Changed
+- **Layout Restructure**: Created route group `(main)` for shared header
+  - Blog and Saved pages now share common layout
+  - Header no longer reloads when navigating between these pages
+  - Opportunities keeps its own header (has search bar)
+
+### Fixed
+- **Navigation**: Changed `<a href>` to `<Link href>` in multiple places
+  - Account layout logo
+  - Blog page logo and post cards
+  - Enables client-side navigation (no full page reload)
+
 ## [1.0.0-alpha.16] - 2026-01-15
 
 ### Added

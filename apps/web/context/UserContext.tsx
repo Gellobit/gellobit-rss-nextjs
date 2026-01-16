@@ -1,7 +1,12 @@
 'use client';
 
 import { createContext, useContext, useState, useEffect, useCallback, useMemo, ReactNode } from 'react';
-import { shouldShowAds as checkShouldShowAds } from '@/lib/utils/membership';
+import {
+    shouldShowAds as checkShouldShowAds,
+    hasFullContentAccess,
+    MembershipLimits,
+    DEFAULT_MEMBERSHIP_LIMITS
+} from '@/lib/utils/membership';
 
 interface UserProfile {
     id: string;
@@ -139,5 +144,44 @@ export function useShowAds() {
         loading,
         membershipType: profile?.membership_type || 'free',
         isPremium: profile?.membership_type === 'premium' || profile?.membership_type === 'lifetime',
+    };
+}
+
+// Hook to get membership limits and user access status
+export function useMembershipAccess() {
+    const { profile, loading: profileLoading } = useUser();
+    const [limits, setLimits] = useState<MembershipLimits>(DEFAULT_MEMBERSHIP_LIMITS);
+    const [limitsLoading, setLimitsLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchLimits = async () => {
+            try {
+                const res = await fetch('/api/membership/limits');
+                if (res.ok) {
+                    const data = await res.json();
+                    setLimits(data);
+                }
+            } catch (error) {
+                console.error('Error fetching membership limits:', error);
+            }
+            setLimitsLoading(false);
+        };
+
+        fetchLimits();
+    }, []);
+
+    const hasFullAccess = useMemo(() => {
+        if (profileLoading) return false;
+        if (!profile) return false;
+        return hasFullContentAccess(profile.membership_type, profile.membership_expires_at);
+    }, [profile, profileLoading]);
+
+    return {
+        profile,
+        limits,
+        loading: profileLoading || limitsLoading,
+        hasFullAccess,
+        membershipType: profile?.membership_type || 'free',
+        membershipExpiresAt: profile?.membership_expires_at || null,
     };
 }

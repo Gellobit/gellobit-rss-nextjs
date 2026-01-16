@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Settings as SettingsIcon, Sparkles, FileText, Globe, Wrench, Image as ImageIcon, Palette, BarChart3 } from 'lucide-react';
+import { Settings as SettingsIcon, Sparkles, FileText, Globe, Wrench, Image as ImageIcon, Palette, BarChart3, Crown } from 'lucide-react';
 import GeneralSettings from './settings/GeneralSettings';
 import AISettings from './settings/AISettings';
 import PromptsSettings from './settings/PromptsSettings';
@@ -10,8 +10,9 @@ import AdvancedSettings from './settings/AdvancedSettings';
 import MediaSettings from './settings/MediaSettings';
 import PersonalizationSettings from './settings/PersonalizationSettings';
 import AnalyticsSettings from './settings/AnalyticsSettings';
+import MembershipSettings from './settings/MembershipSettings';
 
-type SettingsTab = 'general' | 'ai' | 'prompts' | 'scraping' | 'media' | 'personalization' | 'analytics' | 'advanced';
+type SettingsTab = 'general' | 'ai' | 'prompts' | 'scraping' | 'media' | 'personalization' | 'membership' | 'analytics' | 'advanced';
 
 export default function Settings() {
     const [activeTab, setActiveTab] = useState<SettingsTab>('general');
@@ -23,6 +24,7 @@ export default function Settings() {
         { id: 'scraping', label: 'Scraping', icon: Globe },
         { id: 'media', label: 'Media', icon: ImageIcon },
         { id: 'personalization', label: 'Personalization', icon: Palette },
+        { id: 'membership', label: 'Membership', icon: Crown },
         { id: 'analytics', label: 'Analytics & Ads', icon: BarChart3 },
         { id: 'advanced', label: 'Advanced', icon: Wrench },
     ] as const;
@@ -63,6 +65,7 @@ export default function Settings() {
                     {activeTab === 'scraping' && <ScrapingSettings />}
                     {activeTab === 'media' && <MediaSettings />}
                     {activeTab === 'personalization' && <PersonalizationSettings />}
+                    {activeTab === 'membership' && <MembershipSettings />}
                     {activeTab === 'analytics' && <AnalyticsSettings />}
                     {activeTab === 'advanced' && <AdvancedSettings />}
                 </div>

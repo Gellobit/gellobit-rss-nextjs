@@ -1,10 +1,10 @@
 import React from 'react';
+import Link from 'next/link';
 import { unstable_cache } from 'next/cache';
 import { Metadata } from 'next';
 import { Calendar } from 'lucide-react';
 import { createAdminClient } from '@/lib/utils/supabase-admin';
 import AdContainer from '@/components/AdContainer';
-import UserNav from '@/components/UserNav';
 
 // Revalidate page every 60 seconds
 export const revalidate = 60;
@@ -13,32 +13,6 @@ export const metadata: Metadata = {
     title: 'Blog',
     description: 'Latest articles and guides',
 };
-
-// Cached function to fetch branding settings
-const getBranding = unstable_cache(
-    async () => {
-        const supabase = createAdminClient();
-
-        const { data: logoSetting } = await supabase
-            .from('system_settings')
-            .select('value')
-            .eq('key', 'personalization.app_logo_url')
-            .maybeSingle();
-
-        const { data: nameSetting } = await supabase
-            .from('system_settings')
-            .select('value')
-            .eq('key', 'personalization.app_name')
-            .maybeSingle();
-
-        return {
-            logoUrl: logoSetting?.value || null,
-            appName: nameSetting?.value || 'GelloBit',
-        };
-    },
-    ['branding'],
-    { revalidate: 300, tags: ['branding'] }
-);
 
 // Cached function to fetch published posts
 const getPosts = unstable_cache(
@@ -63,32 +37,10 @@ const getPosts = unstable_cache(
 );
 
 export default async function BlogPage() {
-    const [posts, branding] = await Promise.all([
-        getPosts(),
-        getBranding()
-    ]);
+    const posts = await getPosts();
 
     return (
-        <div className="min-h-screen bg-slate-50 font-sans text-slate-900">
-            {/* Navigation */}
-            <nav className="bg-white border-b border-slate-100 sticky top-0 z-50">
-                <div className="max-w-7xl mx-auto px-4 h-20 flex items-center justify-between">
-                    <a href="/" className="flex items-center gap-2">
-                        {branding.logoUrl ? (
-                            <img
-                                src={branding.logoUrl}
-                                alt={branding.appName}
-                                className="h-10 object-contain"
-                            />
-                        ) : (
-                            <div className="bg-[#FFDE59] p-2 rounded-xl font-black text-xl shadow-sm">GB</div>
-                        )}
-                        <span className="text-sm font-bold text-[#1a1a1a]">{branding.appName}</span>
-                    </a>
-                    <UserNav />
-                </div>
-            </nav>
-
+        <>
             <main className="max-w-7xl mx-auto px-4 py-12">
                 {/* Header */}
                 <div className="text-center mb-12">
@@ -117,7 +69,7 @@ export default async function BlogPage() {
                             });
 
                             return (
-                                <a
+                                <Link
                                     key={post.id}
                                     href={`/${post.slug}`}
                                     className="bg-white rounded-3xl overflow-hidden border border-slate-100 hover:shadow-lg transition-all group"
@@ -161,19 +113,12 @@ export default async function BlogPage() {
                                             Read more &rarr;
                                         </div>
                                     </div>
-                                </a>
+                                </Link>
                             );
                         })}
                     </div>
                 )}
             </main>
-
-            {/* Footer */}
-            <footer className="bg-white border-t border-slate-100 py-8 mt-12">
-                <div className="max-w-7xl mx-auto px-4 text-center text-sm text-slate-500">
-                    <p>&copy; {new Date().getFullYear()} {branding.appName}. All rights reserved.</p>
-                </div>
-            </footer>
-        </div>
+        </>
     );
 }

@@ -17,12 +17,16 @@ import {
     ChevronLeft,
     LayoutGrid,
     Table2,
+    Lock,
+    Crown,
 } from 'lucide-react';
 import BottomSheet from '@/components/BottomSheet';
 import MobileNavBar from '@/components/MobileNavBar';
 import FavoriteButton from '@/components/FavoriteButton';
 import { AdUnit } from '@/components/AdUnit';
 import UserNav from '@/components/UserNav';
+import { useMembershipAccess } from '@/context/UserContext';
+import { isWithinDelayPeriod } from '@/lib/utils/membership';
 
 interface Opportunity {
     id: string;
@@ -70,10 +74,14 @@ export default function OpportunitiesBrowser({ opportunities, branding, initialS
     const [isFilterOpen, setIsFilterOpen] = useState(false);
     const [tempSelectedTypes, setTempSelectedTypes] = useState<string[]>(initialType ? [initialType] : []);
     const [viewMode, setViewMode] = useState<'table' | 'card'>('table');
+    const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
-    // Filter opportunities
+    // Get membership access info
+    const { hasFullAccess, limits, loading: membershipLoading } = useMembershipAccess();
+
+    // Filter opportunities and add locked status
     const filteredOpportunities = useMemo(() => {
-        return opportunities.filter((opp) => {
+        const filtered = opportunities.filter((opp) => {
             // Search filter
             if (searchQuery) {
                 const query = searchQuery.toLowerCase();
@@ -91,7 +99,33 @@ export default function OpportunitiesBrowser({ opportunities, branding, initialS
 
             return true;
         });
-    }, [opportunities, searchQuery, selectedTypes]);
+
+        // Calculate which opportunities are locked for free users
+        const totalCount = filtered.length;
+        const accessibleCount = Math.floor(totalCount * (limits.freeContentPercentage / 100));
+
+        return filtered.map((opp, index) => {
+            // Check if this opportunity is locked
+            let isLocked = false;
+
+            if (!hasFullAccess) {
+                // Check delay period (newest opportunities within delay period are locked)
+                const withinDelay = isWithinDelayPeriod(opp.published_at, limits.freeDelayHours);
+                if (withinDelay) {
+                    isLocked = true;
+                }
+
+                // Check percentage-based access (oldest X% are accessible)
+                // Index 0 = newest, so check if this is in the "locked" portion
+                const lockedCount = totalCount - accessibleCount;
+                if (index < lockedCount) {
+                    isLocked = true;
+                }
+            }
+
+            return { ...opp, isLocked };
+        });
+    }, [opportunities, searchQuery, selectedTypes, hasFullAccess, limits]);
 
     const openFilters = () => {
         setTempSelectedTypes([...selectedTypes]);
@@ -296,31 +330,59 @@ export default function OpportunitiesBrowser({ opportunities, branding, initialS
                                 {filteredOpportunities.map((opp) => {
                                     const config = getTypeConfig(opp.opportunity_type);
                                     const Icon = config.icon;
+                                    const showLocked = opp.isLocked && limits.showLockedContent;
+
+                                    // Handler for locked items
+                                    const handleLockedClick = (e: React.MouseEvent) => {
+                                        if (showLocked) {
+                                            e.preventDefault();
+                                            setShowUpgradeModal(true);
+                                        }
+                                    };
 
                                     return (
-                                        <tr key={opp.id} className="group hover:bg-slate-50 transition-colors">
+                                        <tr key={opp.id} className={`group hover:bg-slate-50 transition-colors ${showLocked ? 'opacity-75' : ''}`}>
                                             <td className="px-3 md:px-4 py-3">
-                                                <Link href={`/opportunities/${opp.slug}`} className="flex items-center gap-2 md:gap-3">
+                                                <Link
+                                                    href={showLocked ? '#' : `/opportunities/${opp.slug}`}
+                                                    onClick={handleLockedClick}
+                                                    className="flex items-center gap-2 md:gap-3"
+                                                >
                                                     {/* Thumbnail */}
-                                                    <div className="w-12 h-10 md:w-16 md:h-12 rounded-lg overflow-hidden flex-shrink-0 bg-slate-100">
+                                                    <div className="w-12 h-10 md:w-16 md:h-12 rounded-lg overflow-hidden flex-shrink-0 bg-slate-100 relative">
                                                         {opp.featured_image_url ? (
                                                             <img
                                                                 src={opp.featured_image_url}
                                                                 alt=""
-                                                                className="w-full h-full object-cover"
+                                                                className={`w-full h-full object-cover ${showLocked && limits.lockedContentBlur ? 'blur-sm' : ''}`}
                                                             />
                                                         ) : (
                                                             <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100">
                                                                 <Icon className="w-5 h-5 md:w-6 md:h-6 text-slate-300" />
                                                             </div>
                                                         )}
+                                                        {/* Lock overlay */}
+                                                        {showLocked && (
+                                                            <div className="absolute inset-0 flex items-center justify-center bg-black/30 rounded-lg">
+                                                                <Lock className="w-4 h-4 text-white" />
+                                                            </div>
+                                                        )}
                                                     </div>
                                                     <div className="min-w-0 flex-1">
-                                                        <h3 className="font-bold text-xs md:text-sm text-slate-900 line-clamp-1 group-hover:text-yellow-600 transition-colors">
-                                                            {opp.title}
-                                                        </h3>
+                                                        <div className="flex items-center gap-1.5">
+                                                            {showLocked && <Lock className="w-3 h-3 text-purple-500 flex-shrink-0" />}
+                                                            <h3 className={`font-bold text-xs md:text-sm line-clamp-1 transition-colors ${
+                                                                showLocked
+                                                                    ? (limits.lockedContentBlur ? 'blur-sm text-slate-600' : 'text-slate-600')
+                                                                    : 'text-slate-900 group-hover:text-yellow-600'
+                                                            }`}>
+                                                                {opp.title}
+                                                            </h3>
+                                                        </div>
                                                         {opp.excerpt && (
-                                                            <p className="text-[10px] md:text-xs text-slate-500 line-clamp-1">{opp.excerpt}</p>
+                                                            <p className={`text-[10px] md:text-xs text-slate-500 line-clamp-1 ${showLocked && limits.lockedContentBlur ? 'blur-sm' : ''}`}>
+                                                                {opp.excerpt}
+                                                            </p>
                                                         )}
                                                     </div>
                                                 </Link>
@@ -380,20 +442,37 @@ export default function OpportunitiesBrowser({ opportunities, branding, initialS
                         {filteredOpportunities.map((opp) => {
                             const config = getTypeConfig(opp.opportunity_type);
                             const Icon = config.icon;
+                            const showLocked = opp.isLocked && limits.showLockedContent;
+
+                            // Handler for locked items
+                            const handleLockedClick = (e: React.MouseEvent) => {
+                                if (showLocked) {
+                                    e.preventDefault();
+                                    setShowUpgradeModal(true);
+                                }
+                            };
 
                             return (
                                 <div
                                     key={opp.id}
-                                    className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden group flex flex-col sm:flex-row"
+                                    className={`bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden group flex flex-col sm:flex-row ${showLocked ? 'opacity-75' : ''}`}
                                 >
                                     {/* Image - 50% width on desktop */}
-                                    <Link href={`/opportunities/${opp.slug}`} className="sm:w-1/2 flex-shrink-0">
+                                    <Link
+                                        href={showLocked ? '#' : `/opportunities/${opp.slug}`}
+                                        onClick={handleLockedClick}
+                                        className="sm:w-1/2 flex-shrink-0"
+                                    >
                                         <div className="aspect-[4/3] sm:aspect-auto sm:h-full bg-slate-100 relative overflow-hidden">
                                             {opp.featured_image_url ? (
                                                 <img
                                                     src={opp.featured_image_url}
                                                     alt=""
-                                                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                                                    className={`w-full h-full object-cover transition-transform duration-300 ${
+                                                        showLocked
+                                                            ? (limits.lockedContentBlur ? 'blur-sm' : '')
+                                                            : 'group-hover:scale-105'
+                                                    }`}
                                                 />
                                             ) : (
                                                 <div className="w-full h-full min-h-[160px] flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100">
@@ -403,19 +482,48 @@ export default function OpportunitiesBrowser({ opportunities, branding, initialS
                                             <span className={`absolute top-3 left-3 px-2.5 py-1 rounded-lg text-xs font-bold ${config.color}`}>
                                                 {config.label}
                                             </span>
+                                            {/* Lock overlay */}
+                                            {showLocked && (
+                                                <div className="absolute inset-0 flex items-center justify-center bg-black/30">
+                                                    <div className="bg-white/90 rounded-full p-3">
+                                                        <Lock className="w-6 h-6 text-purple-600" />
+                                                    </div>
+                                                </div>
+                                            )}
                                         </div>
                                     </Link>
 
                                     {/* Content - 50% width on desktop */}
                                     <div className="p-4 sm:w-1/2 flex flex-col justify-between">
                                         <div>
-                                            <Link href={`/opportunities/${opp.slug}`}>
-                                                <h3 className="font-bold text-base text-slate-900 mb-2 line-clamp-2 group-hover:text-yellow-600 transition-colors">
-                                                    {opp.title}
-                                                </h3>
+                                            <Link
+                                                href={showLocked ? '#' : `/opportunities/${opp.slug}`}
+                                                onClick={handleLockedClick}
+                                            >
+                                                <div className="flex items-start gap-2 mb-2">
+                                                    {showLocked && <Lock className="w-4 h-4 text-purple-500 flex-shrink-0 mt-0.5" />}
+                                                    <h3 className={`font-bold text-base line-clamp-2 transition-colors ${
+                                                        showLocked
+                                                            ? (limits.lockedContentBlur ? 'blur-sm text-slate-600' : 'text-slate-600')
+                                                            : 'text-slate-900 group-hover:text-yellow-600'
+                                                    }`}>
+                                                        {opp.title}
+                                                    </h3>
+                                                </div>
                                             </Link>
                                             {opp.excerpt && (
-                                                <p className="text-sm text-slate-500 line-clamp-3 mb-3">{opp.excerpt}</p>
+                                                <p className={`text-sm text-slate-500 line-clamp-3 mb-3 ${showLocked && limits.lockedContentBlur ? 'blur-sm' : ''}`}>
+                                                    {opp.excerpt}
+                                                </p>
+                                            )}
+                                            {showLocked && (
+                                                <button
+                                                    onClick={() => setShowUpgradeModal(true)}
+                                                    className="text-xs font-bold text-purple-600 hover:text-purple-700 flex items-center gap-1"
+                                                >
+                                                    <Crown size={12} />
+                                                    Upgrade to unlock
+                                                </button>
                                             )}
                                         </div>
 
@@ -435,7 +543,7 @@ export default function OpportunitiesBrowser({ opportunities, branding, initialS
                                                     </span>
                                                 )}
                                             </div>
-                                            <FavoriteButton opportunityId={opp.id} size={18} />
+                                            {!showLocked && <FavoriteButton opportunityId={opp.id} size={18} />}
                                         </div>
                                     </div>
                                 </div>
@@ -500,6 +608,72 @@ export default function OpportunitiesBrowser({ opportunities, branding, initialS
                     </div>
                 </div>
             </BottomSheet>
+
+            {/* Upgrade Modal */}
+            {showUpgradeModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+                    <div className="bg-white rounded-2xl max-w-md w-full p-6 relative animate-in fade-in zoom-in duration-200">
+                        <button
+                            onClick={() => setShowUpgradeModal(false)}
+                            className="absolute top-4 right-4 text-slate-400 hover:text-slate-600"
+                        >
+                            <X size={20} />
+                        </button>
+
+                        <div className="text-center">
+                            <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <Crown className="w-8 h-8 text-purple-600" />
+                            </div>
+
+                            <h3 className="text-xl font-black text-slate-900 mb-2">
+                                Unlock Premium Opportunities
+                            </h3>
+
+                            <p className="text-slate-600 mb-6">
+                                This opportunity is exclusive to Premium members. Upgrade now to get instant access to all opportunities!
+                            </p>
+
+                            <div className="bg-slate-50 rounded-xl p-4 mb-6 text-left">
+                                <h4 className="font-bold text-sm text-slate-900 mb-2">Premium Benefits:</h4>
+                                <ul className="space-y-2 text-sm text-slate-600">
+                                    <li className="flex items-center gap-2">
+                                        <Check size={16} className="text-green-500" />
+                                        Access to 100% of opportunities
+                                    </li>
+                                    <li className="flex items-center gap-2">
+                                        <Check size={16} className="text-green-500" />
+                                        Instant access (no delay)
+                                    </li>
+                                    <li className="flex items-center gap-2">
+                                        <Check size={16} className="text-green-500" />
+                                        Unlimited saved favorites
+                                    </li>
+                                    <li className="flex items-center gap-2">
+                                        <Check size={16} className="text-green-500" />
+                                        No ads
+                                    </li>
+                                </ul>
+                            </div>
+
+                            <div className="flex gap-3">
+                                <button
+                                    onClick={() => setShowUpgradeModal(false)}
+                                    className="flex-1 px-4 py-3 border-2 border-slate-200 rounded-xl font-bold text-slate-600 hover:bg-slate-50 transition-colors"
+                                >
+                                    Maybe later
+                                </button>
+                                <Link
+                                    href="/account/settings#membership"
+                                    className="flex-1 px-4 py-3 bg-purple-600 text-white rounded-xl font-bold hover:bg-purple-700 transition-colors flex items-center justify-center gap-2"
+                                >
+                                    <Crown size={16} />
+                                    Upgrade
+                                </Link>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Mobile Navigation Bar */}
             <MobileNavBar />
