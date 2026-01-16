@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import { Upload, X, Image as ImageIcon, Loader2 } from 'lucide-react';
+import { Upload, X, Image as ImageIcon, Loader2, FolderOpen } from 'lucide-react';
+import MediaModal from './MediaModal';
 
 interface ImageUploadProps {
   value?: string;
@@ -11,6 +12,7 @@ interface ImageUploadProps {
   entityId?: string;
   placeholder?: string;
   className?: string;
+  showLibrary?: boolean;
 }
 
 export default function ImageUpload({
@@ -20,12 +22,14 @@ export default function ImageUpload({
   entityType = 'setting',
   entityId,
   placeholder = 'Upload an image or paste URL',
-  className = ''
+  className = '',
+  showLibrary = true
 }: ImageUploadProps) {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [mode, setMode] = useState<'upload' | 'url'>('upload');
+  const [mode, setMode] = useState<'upload' | 'url' | 'library'>('upload');
   const [urlInput, setUrlInput] = useState('');
+  const [mediaModalOpen, setMediaModalOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -102,7 +106,7 @@ export default function ImageUpload({
         </div>
       )}
 
-      {/* Upload/URL Toggle */}
+      {/* Upload/URL/Library Toggle */}
       {!value && (
         <div className="flex gap-2 mb-2">
           <button
@@ -127,6 +131,16 @@ export default function ImageUpload({
           >
             Paste URL
           </button>
+          {showLibrary && (
+            <button
+              type="button"
+              onClick={() => setMediaModalOpen(true)}
+              className="px-3 py-1 text-xs font-bold rounded bg-slate-100 text-slate-600 hover:bg-slate-200 flex items-center gap-1"
+            >
+              <FolderOpen size={12} />
+              Library
+            </button>
+          )}
         </div>
       )}
 
@@ -192,6 +206,19 @@ export default function ImageUpload({
       {/* Error */}
       {error && (
         <p className="text-xs text-red-500">{error}</p>
+      )}
+
+      {/* Media Modal */}
+      {showLibrary && (
+        <MediaModal
+          isOpen={mediaModalOpen}
+          onClose={() => setMediaModalOpen(false)}
+          onSelect={(url) => {
+            onChange(url);
+            setMediaModalOpen(false);
+          }}
+          title="Select Banner Image"
+        />
       )}
     </div>
   );
