@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import { createAdminClient } from '@/lib/utils/supabase-admin';
 import { Calendar, MapPin, Gift, ExternalLink, ArrowLeft, Clock, Award, CheckCircle } from 'lucide-react';
 import AdContainer from '@/components/AdContainer';
+import UserNav from '@/components/UserNav';
 import { Metadata } from 'next';
 
 export const dynamic = 'force-dynamic';
@@ -85,7 +86,7 @@ export default async function OpportunityPage({
     <div className="min-h-screen bg-slate-50">
       {/* Header */}
       <header className="bg-white border-b border-slate-200">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
           <Link
             href="/opportunities"
             className="inline-flex items-center gap-2 text-sm font-bold text-slate-600 hover:text-slate-900"
@@ -93,6 +94,9 @@ export default async function OpportunityPage({
             <ArrowLeft size={16} />
             Back to Opportunities
           </Link>
+          <div className="hidden md:block">
+            <UserNav hideOpportunities={true} />
+          </div>
         </div>
       </header>
 

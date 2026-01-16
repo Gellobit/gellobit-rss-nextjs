@@ -6,6 +6,7 @@ import { Calendar, Share2, ArrowLeft } from 'lucide-react';
 import { createAdminClient } from '@/lib/utils/supabase-admin';
 import MobileNavBar from '@/components/MobileNavBar';
 import AdContainer from '@/components/AdContainer';
+import UserNav from '@/components/UserNav';
 
 // Revalidate page every 60 seconds
 export const revalidate = 60;
@@ -159,10 +160,7 @@ export default async function ContentPage({ params }: { params: Promise<{ slug: 
                             </>
                         )}
                     </a>
-                    <a href={isPost ? "/blog" : "/"} className="text-sm font-bold text-slate-500 hover:text-[#1a1a1a] flex items-center gap-2">
-                        <ArrowLeft size={16} />
-                        {isPost ? 'Back to Blog' : 'Back to Home'}
-                    </a>
+                    <UserNav />
                 </div>
             </nav>
 

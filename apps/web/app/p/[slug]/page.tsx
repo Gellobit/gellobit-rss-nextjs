@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { createAdminClient } from '@/lib/utils/supabase-admin';
 import FavoriteButton from '@/components/FavoriteButton';
+import UserNav from '@/components/UserNav';
 
 // Revalidate page every 60 seconds
 export const revalidate = 60;
@@ -122,7 +123,7 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
                             </>
                         )}
                     </a>
-                    <a href="/" className="text-sm font-bold text-slate-500 hover:text-[#1a1a1a]">Back to Feed</a>
+                    <UserNav />
                 </div>
             </nav>
 

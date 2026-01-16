@@ -4,6 +4,7 @@ import { Metadata } from 'next';
 import { Calendar } from 'lucide-react';
 import { createAdminClient } from '@/lib/utils/supabase-admin';
 import AdContainer from '@/components/AdContainer';
+import UserNav from '@/components/UserNav';
 
 // Revalidate page every 60 seconds
 export const revalidate = 60;
@@ -86,9 +87,7 @@ export default async function BlogPage() {
                             </>
                         )}
                     </a>
-                    <a href="/" className="text-sm font-bold text-slate-500 hover:text-[#1a1a1a]">
-                        Back to Home
-                    </a>
+                    <UserNav />
                 </div>
             </nav>
 

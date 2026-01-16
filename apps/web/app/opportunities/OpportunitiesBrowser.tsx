@@ -22,6 +22,7 @@ import BottomSheet from '@/components/BottomSheet';
 import MobileNavBar from '@/components/MobileNavBar';
 import FavoriteButton from '@/components/FavoriteButton';
 import { AdUnit } from '@/components/AdUnit';
+import UserNav from '@/components/UserNav';
 
 interface Opportunity {
     id: string;
@@ -152,11 +153,7 @@ export default function OpportunitiesBrowser({ opportunities, branding, initialS
                             )}
                         </Link>
                     </div>
-                    <nav className="flex items-center gap-6">
-                        <Link href="/" className="text-sm font-bold text-slate-600 hover:text-slate-900">Home</Link>
-                        <Link href="/blog" className="text-sm font-bold text-slate-600 hover:text-slate-900">Blog</Link>
-                        <Link href="/account" className="text-sm font-bold text-slate-600 hover:text-slate-900">Account</Link>
-                    </nav>
+                    <UserNav hideOpportunities={true} />
                 </div>
 
                 {/* Search and Filter Bar */}

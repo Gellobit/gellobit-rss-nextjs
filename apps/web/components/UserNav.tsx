@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { User, Settings, Heart, Bell, LogOut, Shield, ChevronDown, Briefcase } from 'lucide-react';
+import { User, Settings, Heart, Bell, LogOut, Shield, ChevronDown, Briefcase, FileText } from 'lucide-react';
 
 interface UserProfile {
     id: string;
@@ -149,6 +149,15 @@ export default function UserNav({ hideOpportunities = false }: UserNavProps) {
                             <Briefcase size={18} />
                             Browse Opportunities
                         </Link>
+                        <Link
+                            href="/blog"
+                            onClick={() => setMenuOpen(false)}
+                            className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50 rounded-xl transition-colors"
+                        >
+                            <FileText size={18} />
+                            Blog
+                        </Link>
+                        <div className="h-px bg-slate-100 my-2"></div>
                         <Link
                             href="/account"
                             onClick={() => setMenuOpen(false)}
