@@ -125,7 +125,10 @@ export async function POST(request: NextRequest) {
 
         if (uploadError) {
             console.error('Upload error:', uploadError);
-            return NextResponse.json({ error: 'Failed to upload file' }, { status: 500 });
+            return NextResponse.json({
+                error: `Upload failed: ${uploadError.message}`,
+                details: uploadError
+            }, { status: 500 });
         }
 
         // Get public URL
@@ -144,7 +147,7 @@ export async function POST(request: NextRequest) {
                 file_size: file.size,
                 mime_type: file.type,
                 bucket: 'images',
-                entity_type: 'media'
+                entity_type: 'setting'  // Use 'setting' for general media uploads
             })
             .select()
             .single();
@@ -153,7 +156,11 @@ export async function POST(request: NextRequest) {
             console.error('Database error:', dbError);
             // Try to delete uploaded file
             await adminSupabase.storage.from('images').remove([filePath]);
-            return NextResponse.json({ error: 'Failed to save media record' }, { status: 500 });
+            return NextResponse.json({
+                error: `Database error: ${dbError.message}`,
+                code: dbError.code,
+                details: dbError.details
+            }, { status: 500 });
         }
 
         return NextResponse.json({

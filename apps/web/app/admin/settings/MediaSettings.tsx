@@ -100,9 +100,16 @@ export default function MediaSettings() {
                 if (res.ok) {
                     successCount++;
                 } else {
+                    const errorData = await res.json().catch(() => ({}));
+                    console.error('Upload error:', errorData);
                     errorCount++;
+                    // Show specific error message for first failure
+                    if (errorCount === 1 && errorData.error) {
+                        setMessage({ type: 'error', text: errorData.error });
+                    }
                 }
             } catch (err) {
+                console.error('Upload exception:', err);
                 errorCount++;
             }
         }
