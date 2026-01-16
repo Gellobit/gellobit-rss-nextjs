@@ -7,6 +7,7 @@ import { useShowAds } from '@/context/UserContext';
 
 const menuItems = [
     { href: '/account', label: 'My Account', icon: User },
+    { href: '/account/membership', label: 'Membership', icon: Crown },
     { href: '/account/favorites', label: 'Favorites', icon: Heart },
     { href: '/account/notifications', label: 'Notifications', icon: Bell },
 ];

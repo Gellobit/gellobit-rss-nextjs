@@ -99,7 +99,7 @@ const SEARCH_CATEGORIES = [
 
 export const LandingPage = ({ opportunities = [], branding, heroContent, appSection, footer }: LandingPageProps) => {
     const router = useRouter();
-    const { shouldShowAds } = useShowAds();
+    const { shouldShowAds, isPremium } = useShowAds();
     const { isAuthenticated } = useUser();
 
     // Search state
@@ -373,61 +373,69 @@ export const LandingPage = ({ opportunities = [], branding, heroContent, appSect
                 </div>
             </section>
 
-            {/* --- PRICING SECTION --- */}
-            <section id="pricing" className="py-24">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="text-center mb-16">
-                        <h2 className="text-4xl font-black text-[#1a1a1a] mb-4">Plans for every level.</h2>
-                        <p className="text-lg text-slate-500">Start for free or upgrade to Pro to accelerate your results.</p>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-                        {/* Free Plan */}
-                        <div className="bg-white p-8 rounded-[40px] border border-slate-100 shadow-xl flex flex-col">
-                            <div className="mb-8">
-                                <h3 className="text-xl font-bold mb-2">Gellobit Free</h3>
-                                <div className="flex items-baseline gap-1">
-                                    <span className="text-4xl font-black">$0</span>
-                                    <span className="text-slate-400 text-sm">/ forever</span>
-                                </div>
-                            </div>
-                            <ul className="space-y-4 mb-10 flex-1">
-                                <PricingItem text="Full feed access" />
-                                <PricingItem text="Delayed notifications" />
-                                <PricingItem text="Ad-supported" />
-                                <PricingItem text="Max 10 favorites" />
-                            </ul>
-                            <button className="w-full py-4 rounded-2xl font-bold bg-slate-50 text-slate-400 hover:bg-slate-100 transition-all">
-                                Current Plan
-                            </button>
+            {/* --- PRICING SECTION --- Only show for non-premium users */}
+            {!isPremium && (
+                <section id="pricing" className="py-24">
+                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                        <div className="text-center mb-16">
+                            <h2 className="text-4xl font-black text-[#1a1a1a] mb-4">Plans for every level.</h2>
+                            <p className="text-lg text-slate-500">Start for free or upgrade to Pro to accelerate your results.</p>
                         </div>
 
-                        {/* Pro Plan */}
-                        <div className="bg-[#1a1a1a] p-8 rounded-[40px] shadow-2xl relative overflow-hidden flex flex-col transform hover:scale-[1.02] transition-transform">
-                            <div className="absolute top-0 right-0 bg-[#FFDE59] px-6 py-2 rounded-bl-3xl text-xs font-black uppercase tracking-widest text-[#1a1a1a]">
-                                Recommended
-                            </div>
-                            <div className="mb-8 text-white">
-                                <h3 className="text-xl font-bold mb-2">Gellobit Pro</h3>
-                                <div className="flex items-baseline gap-1">
-                                    <span className="text-4xl font-black">$4.99</span>
-                                    <span className="text-slate-500 text-sm">/ month</span>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+                            {/* Free Plan */}
+                            <div className="bg-white p-8 rounded-[40px] border border-slate-100 shadow-xl flex flex-col">
+                                <div className="mb-8">
+                                    <h3 className="text-xl font-bold mb-2">Gellobit Free</h3>
+                                    <div className="flex items-baseline gap-1">
+                                        <span className="text-4xl font-black">$0</span>
+                                        <span className="text-slate-400 text-sm">/ forever</span>
+                                    </div>
                                 </div>
+                                <ul className="space-y-4 mb-10 flex-1">
+                                    <PricingItem text="Full feed access" />
+                                    <PricingItem text="Delayed notifications" />
+                                    <PricingItem text="Ad-supported" />
+                                    <PricingItem text="Max 10 favorites" />
+                                </ul>
+                                <Link
+                                    href="/auth?mode=signup"
+                                    className="w-full py-4 rounded-2xl font-bold bg-slate-50 text-slate-400 hover:bg-slate-100 transition-all text-center block"
+                                >
+                                    Start Free
+                                </Link>
                             </div>
-                            <ul className="space-y-4 mb-10 flex-1">
-                                <PricingItem text="Instant Notifications" dark />
-                                <PricingItem text="Zero Ads (Ad-free)" dark />
-                                <PricingItem text="Unlimited favorites" dark />
-                                <PricingItem text="Access to VIP Giveaways" dark />
-                                <PricingItem text="24/7 Priority Support" dark />
-                            </ul>
-                            <button className="w-full py-4 rounded-2xl font-black bg-[#FFDE59] text-[#1a1a1a] hover:bg-yellow-400 transition-all shadow-xl shadow-yellow-900/20">
-                                Get Pro Now
-                            </button>
+
+                            {/* Pro Plan */}
+                            <div className="bg-[#1a1a1a] p-8 rounded-[40px] shadow-2xl relative overflow-hidden flex flex-col transform hover:scale-[1.02] transition-transform">
+                                <div className="absolute top-0 right-0 bg-[#FFDE59] px-6 py-2 rounded-bl-3xl text-xs font-black uppercase tracking-widest text-[#1a1a1a]">
+                                    Recommended
+                                </div>
+                                <div className="mb-8 text-white">
+                                    <h3 className="text-xl font-bold mb-2">Gellobit Pro</h3>
+                                    <div className="flex items-baseline gap-1">
+                                        <span className="text-4xl font-black">$4.99</span>
+                                        <span className="text-slate-500 text-sm">/ month</span>
+                                    </div>
+                                </div>
+                                <ul className="space-y-4 mb-10 flex-1">
+                                    <PricingItem text="Instant Notifications" dark />
+                                    <PricingItem text="Zero Ads (Ad-free)" dark />
+                                    <PricingItem text="Unlimited favorites" dark />
+                                    <PricingItem text="Access to VIP Giveaways" dark />
+                                    <PricingItem text="24/7 Priority Support" dark />
+                                </ul>
+                                <Link
+                                    href="/pricing"
+                                    className="w-full py-4 rounded-2xl font-black bg-[#FFDE59] text-[#1a1a1a] hover:bg-yellow-400 transition-all shadow-xl shadow-yellow-900/20 text-center block"
+                                >
+                                    Get Pro Now
+                                </Link>
+                            </div>
                         </div>
                     </div>
-                </div>
-            </section>
+                </section>
+            )}
 
             {/* --- APP DOWNLOAD SECTION --- */}
             <section className="bg-[#FFDE59] py-20 overflow-hidden relative">

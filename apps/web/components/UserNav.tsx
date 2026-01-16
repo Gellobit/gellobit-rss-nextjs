@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { User, Settings, Heart, Bell, LogOut, Shield, ChevronDown, Briefcase, FileText } from 'lucide-react';
+import { User, Settings, Heart, Bell, LogOut, Shield, ChevronDown, Briefcase, FileText, Crown, Sparkles } from 'lucide-react';
 
 interface UserProfile {
     id: string;
@@ -10,6 +10,7 @@ interface UserProfile {
     display_name: string | null;
     avatar_url: string | null;
     role: string;
+    membership_type?: string;
 }
 
 interface UserNavProps {
@@ -95,6 +96,7 @@ export default function UserNav({ hideOpportunities = false }: UserNavProps) {
     }
 
     const isAdmin = user.role === 'admin';
+    const isPremium = user.membership_type === 'premium' || user.membership_type === 'lifetime';
 
     return (
         <div className="flex items-center gap-4">
@@ -138,6 +140,23 @@ export default function UserNav({ hideOpportunities = false }: UserNavProps) {
                         </p>
                         <p className="text-sm text-slate-500 truncate">{user.email}</p>
                     </div>
+
+                    {/* Upgrade to Pro - Only for non-premium users */}
+                    {!isPremium && (
+                        <div className="p-2 border-b border-slate-100">
+                            <Link
+                                href="/pricing"
+                                onClick={() => setMenuOpen(false)}
+                                className="flex items-center justify-between gap-3 px-4 py-3 bg-gradient-to-r from-amber-400 to-orange-500 text-white font-bold rounded-xl hover:from-amber-500 hover:to-orange-600 transition-all shadow-md"
+                            >
+                                <div className="flex items-center gap-2">
+                                    <Crown size={18} />
+                                    <span>Upgrade to Pro</span>
+                                </div>
+                                <Sparkles size={16} />
+                            </Link>
+                        </div>
+                    )}
 
                     {/* Menu Items */}
                     <div className="p-2">
