@@ -15,6 +15,7 @@ declare global {
                         auto_select?: boolean;
                         cancel_on_tap_outside?: boolean;
                         itp_support?: boolean;
+                        use_fedcm_for_prompt?: boolean;
                     }) => void;
                     prompt: (callback?: (notification: {
                         isNotDisplayed: () => boolean;
@@ -78,14 +79,15 @@ export default function GoogleOneTap() {
                 window.google.accounts.id.initialize({
                     client_id: clientId,
                     callback: handleCredentialResponse,
-                    auto_select: true,
-                    cancel_on_tap_outside: false,
+                    auto_select: false, // Disable auto-select to avoid FedCM issues
+                    cancel_on_tap_outside: true,
                     itp_support: true,
+                    use_fedcm_for_prompt: true,
                 });
 
                 window.google.accounts.id.prompt();
-            } catch {
-                // Silently fail - One Tap is not critical
+            } catch (err) {
+                console.error('[One Tap] Init error:', err);
             }
         };
 

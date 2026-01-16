@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.0-alpha.13] - 2026-01-15
+
+### Fixed
+- **Google One Tap Login**: Fixed FedCM compatibility issues
+  - Added `use_fedcm_for_prompt: true` for mandatory FedCM support in Chrome
+  - Simplified initialization to avoid deprecated status methods
+  - One Tap now works correctly with proper Google Cloud Console origin configuration
+
+### Changed
+- **GoogleOneTap Component**: Updated configuration for 2026 FedCM requirements
+  - Disabled auto_select to improve reliability
+  - Added proper error logging for debugging
+
 ## [1.0.0-alpha.11] - 2026-01-14
 
 ### Fixed
