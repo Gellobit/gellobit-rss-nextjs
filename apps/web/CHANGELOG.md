@@ -2,6 +2,55 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.0-alpha.19] - 2026-01-16
+
+### Added
+- **Category Quick Links on Home Page**: 8 clickable category icons below the search bar
+  - Giveaways, Sweepstakes, Scholarships, Free Training, Job Fairs, Get Paid To, Volunteer, Promos
+  - Each links to opportunities page filtered by that category
+  - Responsive design with icons, labels, and short descriptions
+
+- **Latest Opportunities Section Redesign**: New card-based layout on home page
+  - Desktop: 4-column grid with featured images, category badges, dates, excerpts
+  - Mobile: Compact list view with thumbnails
+  - Category badges with distinct colors for each opportunity type
+  - "View Details" links to individual opportunity pages
+
+- **Processing Log Improvements**:
+  - AI Provider column with Bot icon (hover to see provider name)
+  - Date range filters (From/To)
+  - Opportunity type icons with tooltips instead of text
+  - Click on reason to view full rejection details in modal
+  - All AI providers shown in filter dropdown (OpenAI, Anthropic, DeepSeek, Gemini)
+
+- **Success Rate Dashboard**: New card showing published vs rejected ratio
+  - Percentage display with visual indicator
+  - Breakdown of published, drafts, and rejected counts
+
+- **Log Retention Settings**: New option in Advanced Settings
+  - Configure max log entries (50-1000)
+  - "Trim Now" button to cleanup old logs
+
+### Changed
+- **Color Scheme Update**: Changed blue (#2563EB) buttons to dark slate (#0F172A)
+  - All admin panel buttons updated
+  - Pricing page premium card now uses black gradient
+  - Membership page premium badge uses black gradient
+  - Consistent with app brand colors (yellow #FFDD57 and black #0F172A)
+
+- **Home Page Opportunities**: Now displays 8 opportunities instead of 6
+  - Fills the 4-column desktop grid properly (2 rows)
+
+- **Authentication**: Moved from page-level redirects to middleware
+  - Protected routes: /opportunities, /saved, /account, /admin
+  - Fixes NEXT_REDIRECT error in Next.js 15 when navigating back
+
+### Fixed
+- **Opportunity Type Badge**: Now correctly shows category (giveaway, contest, etc.) instead of "OTHER"
+  - Uses `opportunity_type` field with proper fallback
+- **NEXT_REDIRECT Error**: Fixed error when navigating back from opportunity detail page
+- **AI Providers Dropdown**: Now shows all available providers instead of just "Default"
+
 ## [1.0.0-alpha.17] - 2026-01-16
 
 ### Added

@@ -85,7 +85,7 @@ const SOCIAL_ICONS: Record<string, string> = {
     website: 'W',
 };
 
-const APP_VERSION = 'v1.0.0-alpha.7';
+const APP_VERSION = 'v1.0.0-alpha.19';
 
 const SEARCH_CATEGORIES = [
     { value: '', label: 'All Categories' },
