@@ -356,7 +356,7 @@ export default function ManageBlogPosts() {
                                 <button
                                     onClick={handleSubmit}
                                     disabled={saving}
-                                    className="w-full bg-blue-600 text-white px-4 py-3 rounded-lg font-bold hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                                    className="w-full bg-slate-900 text-white px-4 py-3 rounded-lg font-bold hover:bg-slate-800 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
                                 >
                                     {saving ? (
                                         <>
@@ -466,7 +466,7 @@ export default function ManageBlogPosts() {
                 </div>
                 <button
                     onClick={handleNewPost}
-                    className="bg-blue-600 text-white px-4 py-2 rounded-lg font-bold hover:bg-blue-700 transition-colors flex items-center gap-2"
+                    className="bg-slate-900 text-white px-4 py-2 rounded-lg font-bold hover:bg-slate-800 transition-colors flex items-center gap-2"
                 >
                     <Plus size={16} />
                     New Post
@@ -543,7 +543,7 @@ export default function ManageBlogPosts() {
                     <p className="text-slate-500 mb-6">Create your first blog post to get started.</p>
                     <button
                         onClick={handleNewPost}
-                        className="bg-blue-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-blue-700 transition-colors inline-flex items-center gap-2"
+                        className="bg-slate-900 text-white px-6 py-2 rounded-lg font-bold hover:bg-slate-800 transition-colors inline-flex items-center gap-2"
                     >
                         <Plus size={16} />
                         Create Post

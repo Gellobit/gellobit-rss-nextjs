@@ -278,7 +278,7 @@ export default function MediaModal({ isOpen, onClose, onSelect, title = 'Select 
 
                                             {/* Selection indicator */}
                                             {selectedId === item.id && (
-                                                <div className="absolute top-2 left-2 w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center">
+                                                <div className="absolute top-2 left-2 w-6 h-6 bg-slate-900 rounded-full flex items-center justify-center">
                                                     <Check size={14} className="text-white" />
                                                 </div>
                                             )}
@@ -350,7 +350,7 @@ export default function MediaModal({ isOpen, onClose, onSelect, title = 'Select 
                                     <p className="text-slate-400 text-sm mb-4">or</p>
                                     <button
                                         onClick={() => fileInputRef.current?.click()}
-                                        className="bg-blue-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-blue-700 transition-colors"
+                                        className="bg-slate-900 text-white px-6 py-2 rounded-lg font-bold hover:bg-slate-800 transition-colors"
                                     >
                                         Browse Files
                                     </button>
@@ -378,7 +378,7 @@ export default function MediaModal({ isOpen, onClose, onSelect, title = 'Select 
                         <button
                             onClick={handleSelect}
                             disabled={!selectedId}
-                            className="px-6 py-2 text-sm font-bold text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="px-6 py-2 text-sm font-bold text-white bg-slate-900 rounded-lg hover:bg-slate-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             Select Image
                         </button>

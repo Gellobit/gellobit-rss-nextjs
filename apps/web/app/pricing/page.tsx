@@ -99,7 +99,7 @@ export default function PricingPage() {
     if (loading || userLoading) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-gray-50">
-                <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+                <Loader2 className="h-8 w-8 animate-spin text-slate-900" />
             </div>
         );
     }
@@ -235,31 +235,31 @@ export default function PricingPage() {
                     </div>
 
                     {/* Premium Plan */}
-                    <div className="bg-gradient-to-br from-blue-600 to-indigo-700 rounded-2xl p-8 text-white relative overflow-hidden">
+                    <div className="bg-gradient-to-br from-slate-800 to-slate-950 rounded-2xl p-8 text-white relative overflow-hidden">
                         <div className="absolute top-4 right-4 bg-yellow-400 text-yellow-900 text-xs font-bold px-3 py-1 rounded-full">
                             POPULAR
                         </div>
                         <h3 className="text-lg font-semibold mb-2 flex items-center gap-2">
-                            <Crown className="h-5 w-5" />
+                            <Crown className="h-5 w-5 text-yellow-400" />
                             Premium
                         </h3>
                         <div className="mb-6">
                             {selectedPlan === 'monthly' ? (
                                 <>
                                     <span className="text-4xl font-bold">${pricing.monthlyPrice}</span>
-                                    <span className="text-blue-200">/month</span>
+                                    <span className="text-slate-400">/month</span>
                                 </>
                             ) : (
                                 <>
                                     <span className="text-4xl font-bold">${pricing.annualPrice}</span>
-                                    <span className="text-blue-200">/year</span>
-                                    <p className="text-sm text-blue-200 mt-1">
+                                    <span className="text-slate-400">/year</span>
+                                    <p className="text-sm text-slate-400 mt-1">
                                         ${annualMonthly.toFixed(2)}/month billed annually
                                     </p>
                                 </>
                             )}
                         </div>
-                        <p className="text-blue-100 mb-6">
+                        <p className="text-slate-300 mb-6">
                             Full access to everything {branding.appName} offers.
                         </p>
 
@@ -269,7 +269,7 @@ export default function PricingPage() {
                                 {!isAuthenticated ? (
                                     <button
                                         onClick={() => router.push('/auth?redirect=/pricing')}
-                                        className="w-full py-3 px-4 bg-white text-blue-600 rounded-lg font-medium hover:bg-blue-50 transition-colors"
+                                        className="w-full py-3 px-4 bg-yellow-400 text-slate-900 rounded-lg font-bold hover:bg-yellow-300 transition-colors"
                                     >
                                         Sign in to Subscribe
                                     </button>
@@ -289,7 +289,7 @@ export default function PricingPage() {
                                         </PayPalProvider>
                                     </div>
                                 ) : (
-                                    <div className="text-center py-4 text-blue-200">
+                                    <div className="text-center py-4 text-slate-400">
                                         Payment processing is not available yet.
                                     </div>
                                 )}
@@ -297,7 +297,7 @@ export default function PricingPage() {
                         )}
 
                         {processingSubscription && (
-                            <div className="mt-4 flex items-center justify-center text-blue-200">
+                            <div className="mt-4 flex items-center justify-center text-slate-300">
                                 <Loader2 className="h-5 w-5 animate-spin mr-2" />
                                 Activating your subscription...
                             </div>
@@ -343,7 +343,7 @@ export default function PricingPage() {
                                             <X className="h-5 w-5 text-gray-300 mx-auto" />
                                         )
                                     ) : (
-                                        <span className="text-blue-600 font-medium">{feature.premium}</span>
+                                        <span className="text-slate-900 font-medium">{feature.premium}</span>
                                     )}
                                 </div>
                             </div>
@@ -352,7 +352,7 @@ export default function PricingPage() {
                     <div className="grid grid-cols-3 px-8 py-4 bg-gray-50 border-t border-gray-200">
                         <div></div>
                         <div className="text-center font-medium text-gray-900">Free</div>
-                        <div className="text-center font-medium text-blue-600">Premium</div>
+                        <div className="text-center font-medium text-slate-900">Premium</div>
                     </div>
                 </div>
 

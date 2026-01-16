@@ -402,7 +402,7 @@ export default function ManageUsers() {
 
                     <button
                         onClick={handleSearch}
-                        className="bg-blue-600 text-white px-4 py-2 rounded-lg font-bold hover:bg-blue-700 transition-colors flex items-center gap-2 justify-center"
+                        className="bg-slate-900 text-white px-4 py-2 rounded-lg font-bold hover:bg-slate-800 transition-colors flex items-center gap-2 justify-center"
                     >
                         <Filter size={16} />
                         Filter
@@ -641,7 +641,7 @@ export default function ManageUsers() {
                                 <button
                                     onClick={handleSaveEdit}
                                     disabled={saving}
-                                    className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg font-bold hover:bg-blue-700 flex items-center gap-2 justify-center disabled:opacity-50"
+                                    className="flex-1 bg-slate-900 text-white px-4 py-2 rounded-lg font-bold hover:bg-slate-800 flex items-center gap-2 justify-center disabled:opacity-50"
                                 >
                                     <Save size={16} /> {saving ? 'Saving...' : 'Save Changes'}
                                 </button>

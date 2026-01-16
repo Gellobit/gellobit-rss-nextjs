@@ -338,7 +338,7 @@ export default function PersonalizationSettings() {
                                 )}
                             </div>
                             <div className="flex flex-col gap-2">
-                                <button onClick={() => setMediaModalOpen('header')} className="bg-blue-600 text-white px-3 py-1.5 rounded-lg font-bold hover:bg-blue-700 transition-colors flex items-center gap-2 text-xs">
+                                <button onClick={() => setMediaModalOpen('header')} className="bg-slate-900 text-white px-3 py-1.5 rounded-lg font-bold hover:bg-slate-800 transition-colors flex items-center gap-2 text-xs">
                                     <FolderOpen size={14} />
                                     Select Image
                                 </button>
@@ -371,7 +371,7 @@ export default function PersonalizationSettings() {
                                 )}
                             </div>
                             <div className="flex flex-col gap-2">
-                                <button onClick={() => setMediaModalOpen('footer')} className="bg-blue-600 text-white px-3 py-1.5 rounded-lg font-bold hover:bg-blue-700 transition-colors flex items-center gap-2 text-xs">
+                                <button onClick={() => setMediaModalOpen('footer')} className="bg-slate-900 text-white px-3 py-1.5 rounded-lg font-bold hover:bg-slate-800 transition-colors flex items-center gap-2 text-xs">
                                     <FolderOpen size={14} />
                                     Select Image
                                 </button>
@@ -605,7 +605,7 @@ export default function PersonalizationSettings() {
                         </div>
 
                         <div className="flex flex-col gap-2">
-                            <button onClick={() => setMediaModalOpen('mockup')} className="bg-blue-600 text-white px-4 py-2 rounded-lg font-bold hover:bg-blue-700 transition-colors flex items-center gap-2 text-sm">
+                            <button onClick={() => setMediaModalOpen('mockup')} className="bg-slate-900 text-white px-4 py-2 rounded-lg font-bold hover:bg-slate-800 transition-colors flex items-center gap-2 text-sm">
                                 <FolderOpen size={16} />
                                 Select Screenshot
                             </button>
@@ -645,7 +645,7 @@ export default function PersonalizationSettings() {
                             <label className="block text-sm font-bold text-slate-900">Explore Column Links</label>
                             <p className="text-xs text-slate-500">Custom links in the "Explore" column</p>
                         </div>
-                        <button onClick={addExploreLink} className="bg-blue-600 text-white px-3 py-1.5 rounded-lg font-bold text-sm hover:bg-blue-700 transition-colors flex items-center gap-1">
+                        <button onClick={addExploreLink} className="bg-slate-900 text-white px-3 py-1.5 rounded-lg font-bold text-sm hover:bg-slate-800 transition-colors flex items-center gap-1">
                             <Plus size={14} /> Add Link
                         </button>
                     </div>
@@ -743,7 +743,7 @@ export default function PersonalizationSettings() {
 
             {/* Save Button */}
             <div className="flex gap-3 pt-4">
-                <button onClick={handleSave} disabled={saving} className="bg-blue-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-blue-700 transition-colors flex items-center gap-2 disabled:opacity-50">
+                <button onClick={handleSave} disabled={saving} className="bg-slate-900 text-white px-6 py-2 rounded-lg font-bold hover:bg-slate-800 transition-colors flex items-center gap-2 disabled:opacity-50">
                     {saving ? <><RefreshCw size={16} className="animate-spin" /> Saving...</> : <><Save size={16} /> Save Settings</>}
                 </button>
                 <button onClick={fetchSettings} className="bg-white text-slate-700 px-6 py-2 rounded-lg font-bold border-2 border-slate-200 hover:border-slate-300 transition-colors">

@@ -266,7 +266,7 @@ export default function Dashboard() {
                     <button
                         onClick={handleProcessAllFeeds}
                         disabled={processing}
-                        className="bg-blue-600 text-white px-6 py-3 rounded-lg font-bold hover:bg-blue-700 transition-colors flex items-center gap-2 disabled:opacity-50"
+                        className="bg-slate-900 text-white px-6 py-3 rounded-lg font-bold hover:bg-slate-800 transition-colors flex items-center gap-2 disabled:opacity-50"
                     >
                         {processing ? (
                             <>

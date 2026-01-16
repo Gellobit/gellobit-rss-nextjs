@@ -113,7 +113,7 @@ export default function MembershipPage() {
                     {/* Plan Status */}
                     <div className={`rounded-xl p-6 ${
                         isPremium || isLifetime
-                            ? 'bg-gradient-to-br from-blue-600 to-indigo-700 text-white'
+                            ? 'bg-gradient-to-br from-slate-800 to-slate-950 text-white'
                             : 'bg-slate-100'
                     }`}>
                         <div className="flex items-center justify-between">
@@ -132,7 +132,7 @@ export default function MembershipPage() {
                                         {isLifetime ? 'Lifetime' : isPremium ? 'Premium' : 'Free'} Plan
                                     </h2>
                                     {(isPremium || isLifetime) && (
-                                        <p className={isPremium || isLifetime ? 'text-blue-100 text-sm' : 'text-slate-600 text-sm'}>
+                                        <p className={isPremium || isLifetime ? 'text-slate-300 text-sm' : 'text-slate-600 text-sm'}>
                                             Full access to all features
                                         </p>
                                     )}
@@ -160,8 +160,8 @@ export default function MembershipPage() {
                                 isPremium ? 'border-white/20' : 'border-slate-200'
                             }`}>
                                 <div className="flex items-center gap-2 text-sm">
-                                    <Calendar className={`h-4 w-4 ${isPremium ? 'text-blue-200' : 'text-slate-400'}`} />
-                                    <span className={isPremium ? 'text-blue-100' : 'text-slate-600'}>
+                                    <Calendar className={`h-4 w-4 ${isPremium ? 'text-slate-400' : 'text-slate-400'}`} />
+                                    <span className={isPremium ? 'text-slate-300' : 'text-slate-600'}>
                                         {hasSubscription ? 'Renews' : 'Expires'} on {formatDate(profile.membership_expires_at)}
                                     </span>
                                 </div>
@@ -200,7 +200,7 @@ export default function MembershipPage() {
                             </p>
                             <button
                                 onClick={() => router.push('/pricing')}
-                                className="bg-blue-600 text-white px-6 py-3 rounded-xl font-medium hover:bg-blue-700 transition-colors"
+                                className="bg-slate-900 text-white px-6 py-3 rounded-xl font-medium hover:bg-slate-800 transition-colors"
                             >
                                 View Plans
                             </button>

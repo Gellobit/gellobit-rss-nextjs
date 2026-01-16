@@ -273,7 +273,7 @@ export default function MediaSettings() {
                         <p className="text-slate-400 text-sm mb-3">or</p>
                         <button
                             onClick={() => fileInputRef.current?.click()}
-                            className="bg-blue-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-blue-700 transition-colors"
+                            className="bg-slate-900 text-white px-6 py-2 rounded-lg font-bold hover:bg-slate-800 transition-colors"
                         >
                             Browse Files
                         </button>
@@ -367,7 +367,7 @@ export default function MediaSettings() {
                                 onClick={() => toggleSelect(item.id)}
                                 className={`absolute top-2 left-2 w-6 h-6 rounded-md border-2 flex items-center justify-center transition-all ${
                                     selectedIds.has(item.id)
-                                        ? 'bg-blue-600 border-blue-600'
+                                        ? 'bg-slate-900 border-blue-600'
                                         : 'bg-white/80 border-slate-300 opacity-0 group-hover:opacity-100'
                                 }`}
                             >

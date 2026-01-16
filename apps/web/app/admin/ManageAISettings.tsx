@@ -403,7 +403,7 @@ export default function ManageAISettings() {
                                     <button
                                         onClick={() => handleUpdateProvider(provider)}
                                         disabled={saving}
-                                        className="bg-blue-600 text-white px-3 py-2 rounded font-bold hover:bg-blue-700 disabled:opacity-50"
+                                        className="bg-slate-900 text-white px-3 py-2 rounded font-bold hover:bg-slate-800 disabled:opacity-50"
                                     >
                                         <Save size={16} />
                                     </button>
@@ -434,7 +434,7 @@ export default function ManageAISettings() {
                                 <button
                                     onClick={() => handleTest(provider)}
                                     disabled={testing === provider.provider || !provider.api_key}
-                                    className="bg-blue-600 text-white px-4 py-2 rounded font-bold hover:bg-blue-700 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    className="bg-slate-900 text-white px-4 py-2 rounded font-bold hover:bg-slate-800 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                     {testing === provider.provider ? (
                                         <>Testing...</>
