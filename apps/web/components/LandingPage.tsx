@@ -584,7 +584,7 @@ export const LandingPage = ({ opportunities = [], branding, heroContent, appSect
             )}
 
             {/* --- APP DOWNLOAD SECTION --- */}
-            <section className="bg-[#FFDE59] py-20 overflow-hidden relative">
+            <section id="trust" className="bg-[#FFDE59] py-20 overflow-hidden relative">
                 <div className="max-w-7xl mx-auto px-4 flex flex-col md:flex-row items-center gap-12">
                     <div className="flex-1 text-center md:text-left">
                         <h2 className="text-4xl md:text-5xl font-black text-[#1a1a1a] mb-6 tracking-tight">

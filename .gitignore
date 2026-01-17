@@ -53,3 +53,7 @@ Thumbs.db
 *.tgz
 .cache
 .parcel-cache
+
+# Capacitor
+apps/web/android/
+apps/web/ios/

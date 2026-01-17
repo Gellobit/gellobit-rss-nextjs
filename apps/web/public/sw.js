@@ -1,26 +1,42 @@
 // Service Worker for Push Notifications
 // This file must be served from the root of the domain
-// Version: 1.1
+// Version: 1.2
 
 const CACHE_NAME = 'gellobit-v1';
-const SW_VERSION = '1.1';
+const SW_VERSION = '1.2';
+
+// Log helper that also stores logs for debugging
+const logs = [];
+const log = (...args) => {
+    const message = `[SW v${SW_VERSION}] ${args.join(' ')}`;
+    console.log(message);
+    logs.push({ time: new Date().toISOString(), message });
+    // Keep only last 50 logs
+    if (logs.length > 50) logs.shift();
+};
 
 // Install event
 self.addEventListener('install', (event) => {
-    console.log('[SW] Installing service worker version:', SW_VERSION);
+    log('Installing service worker');
+    // Force activation without waiting for other tabs
     self.skipWaiting();
 });
 
 // Activate event
 self.addEventListener('activate', (event) => {
-    console.log('[SW] Service worker activated, version:', SW_VERSION);
-    event.waitUntil(self.clients.claim());
+    log('Service worker activated');
+    // Take control of all clients immediately
+    event.waitUntil(
+        self.clients.claim().then(() => {
+            log('Claimed all clients');
+        })
+    );
 });
 
 // Push event - handle incoming push notifications
 self.addEventListener('push', (event) => {
-    console.log('[SW] Push event received!');
-    console.log('[SW] Has data:', !!event.data);
+    log('=== PUSH EVENT RECEIVED ===');
+    log('Has data:', !!event.data);
 
     let data = {
         title: 'Gellobit',
@@ -31,12 +47,12 @@ self.addEventListener('push', (event) => {
     try {
         if (event.data) {
             const text = event.data.text();
-            console.log('[SW] Raw push data:', text);
+            log('Raw push data:', text.substring(0, 200));
 
             // Try to parse as JSON, otherwise use as body text
             try {
                 const payload = JSON.parse(text);
-                console.log('[SW] Parsed JSON payload:', payload);
+                log('Parsed JSON payload - title:', payload.title, 'body:', payload.body?.substring(0, 50));
                 data = {
                     title: payload.title || data.title,
                     body: payload.body || data.body,
@@ -48,21 +64,21 @@ self.addEventListener('push', (event) => {
                 };
             } catch (jsonError) {
                 // Not JSON, use raw text as body
-                console.log('[SW] Using raw text as body');
+                log('Using raw text as body (not JSON)');
                 data.body = text;
             }
         }
     } catch (e) {
-        console.error('[SW] Error processing push data:', e);
+        log('Error processing push data:', e.message);
     }
 
-    console.log('[SW] Showing notification:', data.title, '-', data.body);
+    log('Preparing notification - title:', data.title, 'body:', data.body);
 
     const options = {
         body: data.body,
         tag: data.tag || 'gellobit-notification',
         renotify: true,
-        requireInteraction: true,
+        requireInteraction: false, // Changed to false - some browsers have issues with true
         vibrate: [200, 100, 200],
         data: {
             url: data.url,
@@ -74,16 +90,23 @@ self.addEventListener('push', (event) => {
     if (data.icon) options.icon = data.icon;
     if (data.badge) options.badge = data.badge;
 
-    event.waitUntil(
-        self.registration.showNotification(data.title, options)
-            .then(() => console.log('[SW] Notification shown successfully'))
-            .catch(err => console.error('[SW] Error showing notification:', err))
-    );
+    log('Calling showNotification with options');
+
+    const notificationPromise = self.registration.showNotification(data.title, options)
+        .then(() => {
+            log('=== NOTIFICATION SHOWN SUCCESSFULLY ===');
+        })
+        .catch(err => {
+            log('ERROR showing notification:', err.message, err.stack);
+        });
+
+    // Important: We must keep the SW alive until notification is shown
+    event.waitUntil(notificationPromise);
 });
 
 // Notification click event
 self.addEventListener('notificationclick', (event) => {
-    console.log('[SW] Notification clicked');
+    log('Notification clicked, action:', event.action);
 
     event.notification.close();
 
@@ -92,6 +115,7 @@ self.addEventListener('notificationclick', (event) => {
     }
 
     const urlToOpen = event.notification.data?.url || '/';
+    log('Opening URL:', urlToOpen);
 
     event.waitUntil(
         self.clients.matchAll({ type: 'window', includeUncontrolled: true })
@@ -99,6 +123,7 @@ self.addEventListener('notificationclick', (event) => {
                 // Check if there's already a window open
                 for (const client of windowClients) {
                     if (client.url.includes(self.location.origin) && 'focus' in client) {
+                        log('Found existing window, focusing and navigating');
                         client.focus();
                         client.navigate(urlToOpen);
                         return;
@@ -106,6 +131,7 @@ self.addEventListener('notificationclick', (event) => {
                 }
                 // Open new window if none found
                 if (self.clients.openWindow) {
+                    log('Opening new window');
                     return self.clients.openWindow(urlToOpen);
                 }
             })
@@ -114,5 +140,45 @@ self.addEventListener('notificationclick', (event) => {
 
 // Handle notification close
 self.addEventListener('notificationclose', (event) => {
-    console.log('[SW] Notification closed');
+    log('Notification closed');
 });
+
+// Message handler - for debugging from the main page
+self.addEventListener('message', (event) => {
+    log('Received message:', event.data?.type);
+
+    if (event.data?.type === 'GET_VERSION') {
+        event.ports[0]?.postMessage({ version: SW_VERSION });
+    }
+
+    if (event.data?.type === 'GET_LOGS') {
+        event.ports[0]?.postMessage({ logs });
+    }
+
+    if (event.data?.type === 'TEST_NOTIFICATION') {
+        log('Test notification requested via message');
+        self.registration.showNotification('Test from SW', {
+            body: 'This notification was triggered via postMessage',
+            tag: 'test-direct',
+        }).then(() => {
+            log('Test notification shown');
+        }).catch(err => {
+            log('Test notification error:', err.message);
+        });
+    }
+
+    if (event.data?.type === 'PING') {
+        event.ports[0]?.postMessage({ pong: true, version: SW_VERSION });
+    }
+});
+
+// Fetch event - minimal implementation, mainly for debugging
+self.addEventListener('fetch', (event) => {
+    // Only log API calls to avoid spam
+    if (event.request.url.includes('/api/')) {
+        // Don't log, just pass through
+    }
+    // Let all requests pass through to network
+});
+
+log('Service worker script loaded');
