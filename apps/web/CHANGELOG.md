@@ -5,6 +5,67 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.0-alpha.24] - 2026-01-18
+
+### Added
+- **Advanced Ad System by Opportunity Category**
+  - Category-based ad layouts: High Urgency, Career/Education, Lifestyle/Social
+  - Ad configuration system in `lib/config/ad-layouts.ts`
+  - Automatic ad placement based on opportunity type
+
+- **Specialized Ad Components**
+  - `LazyAdUnit` - Lazy loading ads with Intersection Observer
+  - `StickyAnchorAd` - Mobile sticky banner (320x50) for high-urgency content
+  - `ExitInterstitialAd` - Full-screen ad on external link clicks with countdown
+  - `StickySidebarAd` - Desktop sticky sidebar (300x600) for long-form content
+  - `NativeInContentAd` - Native ads that blend with content (card/inline/banner variants)
+  - `OpportunityAdsLayout` - Wrapper component with type-specific ad slots
+
+- **Content With Ads for Blog Posts**
+  - `ContentWithAds` component for intelligent ad injection
+  - Ad after first subtitle or paragraph
+  - Ad in middle of article (if ≥6 paragraphs)
+  - Ad at end of article
+  - All ads use lazy loading for performance
+
+- **Reusable Sidebar Component**
+  - `Sidebar` component with multiple sections (author, metadata, tags, related items)
+  - `SidebarWidget` and `SidebarCTA` helper components
+  - Sticky positioning on desktop, hidden on mobile
+  - Ad spot with configurable position (top/middle/bottom)
+
+- **Sidebar Integration**
+  - Blog post detail page now has 2-column layout with sidebar
+  - Opportunity detail page now has 2-column layout with sidebar
+  - Related posts/opportunities in sidebar
+  - Deadline countdown widget for opportunities
+  - Prize value widget for opportunities
+
+### Ad Placements by Category
+
+**High Urgency** (Sweepstakes, Giveaways, Contests, Instant Win):
+- Sticky anchor ad on mobile
+- Below title ad (300x250)
+- Exit interstitial on external link click
+- End of post ad
+
+**Career & Education** (Job Fairs, Dream Jobs, Scholarships, Free Training):
+- Sticky sidebar ad (300x600 skyscraper)
+- Native in-content ad between sections
+- End of post ad (recommended content style)
+
+**Lifestyle & Social** (Volunteer, Promo):
+- Sticky anchor ad on mobile
+- Native in-content ad
+- After CTA ad (high CTR position)
+- End of post ad
+
+### Technical Details
+- All ad components respect premium membership (no ads for paying users)
+- Intersection Observer for lazy loading (200px root margin)
+- Placeholder elements prevent layout shift
+- Exit interstitial captures external link clicks with 5-second countdown
+
 ## [1.0.0-alpha.23] - 2026-01-18
 
 ### Added

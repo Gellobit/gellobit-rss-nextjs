@@ -6,9 +6,10 @@ import { Calendar, Share2, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import { createAdminClient } from '@/lib/utils/supabase-admin';
 import MobileNavBar from '@/components/MobileNavBar';
-import AdContainer from '@/components/AdContainer';
 import UserNav from '@/components/UserNav';
 import ShareButton from '@/components/ShareButton';
+import Sidebar, { SidebarCTA } from '@/components/Sidebar';
+import ContentWithAds from '@/components/ContentWithAds';
 
 // Revalidate page every 60 seconds
 export const revalidate = 60;
@@ -96,6 +97,42 @@ async function getContent(slug: string) {
     return null;
 }
 
+// Cached function to fetch related posts
+const getRelatedPosts = unstable_cache(
+    async (currentSlug: string) => {
+        const supabase = createAdminClient();
+
+        const { data, error } = await supabase
+            .from('posts')
+            .select('slug, title, featured_image_url, published_at')
+            .eq('status', 'published')
+            .neq('slug', currentSlug)
+            .order('published_at', { ascending: false })
+            .limit(5);
+
+        if (error || !data) {
+            return [];
+        }
+
+        return data.map(post => ({
+            title: post.title,
+            slug: post.slug,
+            imageUrl: post.featured_image_url,
+            date: post.published_at,
+        }));
+    },
+    ['related-posts'],
+    { revalidate: 300, tags: ['posts'] }
+);
+
+// Calculate reading time from content
+function calculateReadingTime(content: string): string {
+    const text = content.replace(/<[^>]*>/g, ''); // Strip HTML
+    const words = text.split(/\s+/).length;
+    const minutes = Math.ceil(words / 200); // Average reading speed
+    return `${minutes} min read`;
+}
+
 // Generate metadata for SEO
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
     const { slug } = await params;
@@ -173,6 +210,11 @@ export default async function ContentPage({ params }: { params: Promise<{ slug: 
     }
 
     const isPost = content.type === 'post';
+
+    // Fetch related posts only for blog posts
+    const relatedPosts = isPost ? await getRelatedPosts(slug) : [];
+    const readingTime = isPost ? calculateReadingTime(content.content) : undefined;
+
     const formattedDate = isPost && content.published_at
         ? new Date(content.published_at).toLocaleDateString('en-US', {
             year: 'numeric',
@@ -255,87 +297,130 @@ export default async function ContentPage({ params }: { params: Promise<{ slug: 
                 </div>
             </div>
 
-            <main className="max-w-4xl mx-auto px-4 py-8 md:py-12">
-                <article className="bg-white rounded-2xl md:rounded-[32px] overflow-hidden shadow-sm border border-slate-100">
+            <main className="max-w-7xl mx-auto px-4 py-8 md:py-12">
+                <div className="flex gap-8">
+                    {/* Main Content */}
+                    <div className="flex-1 min-w-0">
+                        <article className="bg-white rounded-2xl md:rounded-[32px] overflow-hidden shadow-sm border border-slate-100">
 
-                    {/* Featured Image */}
-                    {content.featured_image_url && (
-                        <div className="aspect-video w-full overflow-hidden">
-                            <img
-                                src={content.featured_image_url}
-                                alt={content.title}
-                                className="w-full h-full object-cover"
-                            />
-                        </div>
-                    )}
-
-                    <div className="p-6 md:p-12">
-                        {/* Post Header with Author, Date, and Share */}
-                        {isPost && (
-                            <div className="flex items-center justify-between mb-6">
-                                <div className="flex items-center gap-4">
-                                    {/* Author */}
-                                    <Link href="/about" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-                                        {branding.logoUrl ? (
-                                            <img
-                                                src={branding.logoUrl}
-                                                alt="Gellobit Team"
-                                                className="w-8 h-8 rounded-full object-contain bg-[#FFDE59]"
-                                            />
-                                        ) : (
-                                            <div className="w-8 h-8 bg-[#FFDE59] rounded-full flex items-center justify-center font-black text-xs text-[#1a1a1a]">
-                                                GB
-                                            </div>
-                                        )}
-                                        <span className="text-sm font-bold text-slate-700">Gellobit Team</span>
-                                    </Link>
-
-                                    {/* Date */}
-                                    {formattedDate && (
-                                        <div className="flex items-center gap-2 text-slate-400 text-sm">
-                                            <span className="hidden sm:inline">•</span>
-                                            <Calendar size={14} className="hidden sm:inline" />
-                                            <time dateTime={content.published_at || content.created_at}>{formattedDate}</time>
-                                        </div>
-                                    )}
+                            {/* Featured Image */}
+                            {content.featured_image_url && (
+                                <div className="aspect-video w-full overflow-hidden">
+                                    <img
+                                        src={content.featured_image_url}
+                                        alt={content.title}
+                                        className="w-full h-full object-cover"
+                                    />
                                 </div>
+                            )}
 
-                                {/* Share Button */}
-                                <ShareButton title={content.title} />
+                            <div className="p-6 md:p-12">
+                                {/* Post Header with Author, Date, and Share */}
+                                {isPost && (
+                                    <div className="flex items-center justify-between mb-6">
+                                        <div className="flex items-center gap-4">
+                                            {/* Author */}
+                                            <Link href="/about" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+                                                {branding.logoUrl ? (
+                                                    <img
+                                                        src={branding.logoUrl}
+                                                        alt="Gellobit Team"
+                                                        className="w-8 h-8 rounded-full object-contain bg-[#FFDE59]"
+                                                    />
+                                                ) : (
+                                                    <div className="w-8 h-8 bg-[#FFDE59] rounded-full flex items-center justify-center font-black text-xs text-[#1a1a1a]">
+                                                        GB
+                                                    </div>
+                                                )}
+                                                <span className="text-sm font-bold text-slate-700">Gellobit Team</span>
+                                            </Link>
+
+                                            {/* Date */}
+                                            {formattedDate && (
+                                                <div className="flex items-center gap-2 text-slate-400 text-sm">
+                                                    <span className="hidden sm:inline">•</span>
+                                                    <Calendar size={14} className="hidden sm:inline" />
+                                                    <time dateTime={content.published_at || content.created_at}>{formattedDate}</time>
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {/* Share Button */}
+                                        <ShareButton title={content.title} />
+                                    </div>
+                                )}
+
+                                <h1 className="text-2xl md:text-4xl font-black text-[#1a1a1a] mb-6 md:mb-8 leading-tight">
+                                    {content.title}
+                                </h1>
+
+                                {/* Excerpt for posts */}
+                                {isPost && content.excerpt && (
+                                    <p className="text-xl text-slate-600 mb-10 leading-relaxed border-l-4 border-[#FFDE59] pl-6">
+                                        {content.excerpt}
+                                    </p>
+                                )}
+
+                                {/* Content with Inline Ads (for posts) */}
+                                {isPost ? (
+                                    <ContentWithAds
+                                        content={content.content}
+                                        className="prose prose-slate max-w-none prose-headings:font-bold prose-headings:text-[#1a1a1a] prose-a:text-yellow-600 prose-strong:text-slate-900 prose-img:rounded-2xl"
+                                        showAds={true}
+                                        adFormat="horizontal"
+                                        showAdAfterFirst={true}
+                                        showAdMiddle={true}
+                                        showAdBottom={true}
+                                        minParagraphsForMiddleAd={6}
+                                    />
+                                ) : (
+                                    /* Static pages - no inline ads */
+                                    <div
+                                        className="prose prose-slate max-w-none prose-headings:font-bold prose-headings:text-[#1a1a1a] prose-a:text-yellow-600 prose-strong:text-slate-900 prose-img:rounded-2xl"
+                                        dangerouslySetInnerHTML={{ __html: content.content }}
+                                    />
+                                )}
                             </div>
-                        )}
+                        </article>
 
-                        <h1 className="text-2xl md:text-4xl font-black text-[#1a1a1a] mb-6 md:mb-8 leading-tight">
-                            {content.title}
-                        </h1>
-
-                        {/* Excerpt for posts */}
-                        {isPost && content.excerpt && (
-                            <p className="text-xl text-slate-600 mb-10 leading-relaxed border-l-4 border-[#FFDE59] pl-6">
-                                {content.excerpt}
-                            </p>
-                        )}
-
-                        {/* Content */}
-                        <div
-                            className="prose prose-slate max-w-none prose-headings:font-bold prose-headings:text-[#1a1a1a] prose-a:text-yellow-600 prose-strong:text-slate-900 prose-img:rounded-2xl"
-                            dangerouslySetInnerHTML={{ __html: content.content }}
-                        />
-
-                        {/* Ad Unit */}
-                        <AdContainer format="horizontal" position="bottom" className="mt-8" />
+                        {/* Back link - desktop only */}
+                        <div className="hidden md:block text-center mt-12">
+                            <a
+                                href={isPost ? "/blog" : "/"}
+                                className="inline-flex items-center gap-2 text-sm font-bold text-slate-500 hover:text-[#1a1a1a] transition-colors"
+                            >
+                                <ArrowLeft size={16} />
+                                {isPost ? 'Back to all posts' : 'Back to home'}
+                            </a>
+                        </div>
                     </div>
-                </article>
 
-                {/* Back link - desktop only */}
-                <div className="hidden md:block text-center mt-12">
-                    <a
-                        href={isPost ? "/blog" : "/"}
-                        className="inline-flex items-center gap-2 text-sm font-bold text-slate-500 hover:text-[#1a1a1a] transition-colors"
-                    >
-                        <ArrowLeft size={16} />
-                        {isPost ? 'Back to all posts' : 'Back to home'}
-                    </a>
+                    {/* Sidebar - Desktop only, only for posts */}
+                    {isPost && (
+                        <Sidebar
+                            showAd={true}
+                            adPosition="top"
+                            author={{
+                                name: 'Gellobit Team',
+                                imageUrl: branding.logoUrl || undefined,
+                                description: 'Helping you discover the best opportunities online.',
+                                link: '/about'
+                            }}
+                            publishedDate={content.published_at}
+                            readingTime={readingTime}
+                            relatedItems={relatedPosts}
+                            relatedTitle="More Posts"
+                        >
+                            {/* CTA Widget */}
+                            <SidebarCTA
+                                title="Never Miss an Opportunity"
+                                description="Get the latest contests, giveaways, and more delivered to your inbox."
+                                buttonText="Get Started"
+                                buttonLink="/auth"
+                                variant="primary"
+                            />
+                        </Sidebar>
+                    )}
                 </div>
             </main>
 

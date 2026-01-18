@@ -1,11 +1,19 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { createAdminClient } from '@/lib/utils/supabase-admin';
-import { Calendar, MapPin, Gift, ExternalLink, ArrowLeft, Clock, Award, CheckCircle } from 'lucide-react';
-import AdContainer from '@/components/AdContainer';
+import { Calendar, MapPin, Gift, ExternalLink, ArrowLeft, Clock, Award, CheckCircle, AlertTriangle } from 'lucide-react';
 import UserNav from '@/components/UserNav';
 import FavoriteButton from '@/components/FavoriteButton';
+import Sidebar, { SidebarWidget, SidebarCTA } from '@/components/Sidebar';
 import { Metadata } from 'next';
+import OpportunityAdsLayout, {
+  BelowTitleAd,
+  InContentAd,
+  EndOfPostAd,
+  AfterCTAAd,
+  OpportunitySidebarAd,
+} from '@/components/ads/OpportunityAdsLayout';
+import { getAdLayout } from '@/lib/config/ad-layouts';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 60;
@@ -42,6 +50,53 @@ async function getOpportunity(slug: string): Promise<Opportunity | null> {
   }
 
   return data;
+}
+
+// Fetch related opportunities of the same type
+async function getRelatedOpportunities(currentSlug: string, opportunityType: string) {
+  const supabase = createAdminClient();
+
+  const { data, error } = await supabase
+    .from('opportunities')
+    .select('slug, title, featured_image_url, deadline, prize_value')
+    .eq('status', 'published')
+    .eq('opportunity_type', opportunityType)
+    .neq('slug', currentSlug)
+    .order('published_at', { ascending: false })
+    .limit(5);
+
+  if (error || !data) {
+    return [];
+  }
+
+  return data.map(opp => ({
+    title: opp.title,
+    slug: `opportunities/${opp.slug}`,
+    imageUrl: opp.featured_image_url,
+    date: opp.deadline,
+  }));
+}
+
+// Calculate days until deadline
+function getDaysUntilDeadline(deadline: string | null): { days: number; isExpired: boolean; text: string } | null {
+  if (!deadline) return null;
+
+  const now = new Date();
+  const deadlineDate = new Date(deadline);
+  const diffTime = deadlineDate.getTime() - now.getTime();
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+  if (diffDays < 0) {
+    return { days: Math.abs(diffDays), isExpired: true, text: `Expired ${Math.abs(diffDays)} days ago` };
+  } else if (diffDays === 0) {
+    return { days: 0, isExpired: false, text: 'Ends today!' };
+  } else if (diffDays === 1) {
+    return { days: 1, isExpired: false, text: 'Ends tomorrow!' };
+  } else if (diffDays <= 7) {
+    return { days: diffDays, isExpired: false, text: `${diffDays} days left` };
+  } else {
+    return { days: diffDays, isExpired: false, text: `${diffDays} days left` };
+  }
 }
 
 /**
@@ -97,13 +152,24 @@ export default async function OpportunityPage({
     notFound();
   }
 
+  // Fetch related opportunities
+  const relatedOpportunities = await getRelatedOpportunities(
+    resolvedParams.slug,
+    opportunity.opportunity_type
+  );
+
   const isExpired = opportunity.deadline && new Date(opportunity.deadline) < new Date();
+  const deadlineInfo = getDaysUntilDeadline(opportunity.deadline);
+
+  // Get the ad layout for this opportunity type
+  const adLayout = getAdLayout(opportunity.opportunity_type);
 
   return (
+    <OpportunityAdsLayout opportunityType={opportunity.opportunity_type}>
     <div className="min-h-screen bg-slate-50">
       {/* Header */}
       <header className="bg-white border-b border-slate-200">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
           <Link
             href="/opportunities"
             className="inline-flex items-center gap-2 text-sm font-bold text-slate-600 hover:text-slate-900"
@@ -118,8 +184,11 @@ export default async function OpportunityPage({
       </header>
 
       {/* Main Content */}
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <article className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="flex gap-8">
+          {/* Main Article */}
+          <div className="flex-1 min-w-0">
+            <article className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
           {/* Featured Image */}
           {opportunity.featured_image_url && (
             <div className="aspect-video bg-slate-100">
@@ -181,6 +250,9 @@ export default async function OpportunityPage({
               )}
             </div>
 
+            {/* Ad: Below Title (High Urgency categories) */}
+            <BelowTitleAd opportunityType={opportunity.opportunity_type} />
+
             {/* Expired Warning */}
             {isExpired && (
               <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
@@ -200,14 +272,17 @@ export default async function OpportunityPage({
               </div>
             )}
 
+            {/* Ad: In-Content (Career/Education categories) */}
+            <InContentAd opportunityType={opportunity.opportunity_type} />
+
             {/* Main Content */}
             <div
               className="prose prose-slate max-w-none mb-8"
               dangerouslySetInnerHTML={{ __html: opportunity.content }}
             />
 
-            {/* Ad Unit */}
-            <AdContainer format="horizontal" position="bottom" className="mb-8" />
+            {/* Ad: End of Post */}
+            <EndOfPostAd opportunityType={opportunity.opportunity_type} />
 
             {/* CTA Buttons */}
             <div className="border-t border-slate-200 pt-6">
@@ -234,17 +309,115 @@ export default async function OpportunityPage({
                   : new Date(opportunity.created_at).toLocaleDateString()
                 }
               </p>
+
+              {/* Ad: After CTA (Lifestyle/Social categories - high CTR after copy code) */}
+              <AfterCTAAd opportunityType={opportunity.opportunity_type} />
             </div>
           </div>
         </article>
+          </div>
+
+          {/* Sidebar - Desktop only */}
+          <Sidebar
+            showAd={false}
+            relatedItems={relatedOpportunities}
+            relatedTitle={`More ${opportunity.opportunity_type.replace('_', ' ')}s`}
+          >
+            {/* Type-specific Sidebar Ad */}
+            <OpportunitySidebarAd opportunityType={opportunity.opportunity_type} />
+            {/* Deadline Widget */}
+            {deadlineInfo && (
+              <SidebarWidget>
+                <div className={`text-center p-4 rounded-lg ${
+                  deadlineInfo.isExpired
+                    ? 'bg-red-50 border border-red-200'
+                    : deadlineInfo.days <= 3
+                      ? 'bg-amber-50 border border-amber-200'
+                      : 'bg-green-50 border border-green-200'
+                }`}>
+                  <div className={`flex items-center justify-center gap-2 mb-2 ${
+                    deadlineInfo.isExpired ? 'text-red-600' : deadlineInfo.days <= 3 ? 'text-amber-600' : 'text-green-600'
+                  }`}>
+                    {deadlineInfo.isExpired ? (
+                      <AlertTriangle size={20} />
+                    ) : (
+                      <Clock size={20} />
+                    )}
+                  </div>
+                  <div className={`text-2xl font-black ${
+                    deadlineInfo.isExpired ? 'text-red-700' : deadlineInfo.days <= 3 ? 'text-amber-700' : 'text-green-700'
+                  }`}>
+                    {deadlineInfo.text}
+                  </div>
+                  {opportunity.deadline && (
+                    <div className="text-xs text-slate-500 mt-2">
+                      {new Date(opportunity.deadline).toLocaleDateString('en-US', {
+                        weekday: 'long',
+                        month: 'long',
+                        day: 'numeric',
+                        year: 'numeric'
+                      })}
+                    </div>
+                  )}
+                </div>
+              </SidebarWidget>
+            )}
+
+            {/* Prize Value Widget */}
+            {opportunity.prize_value && (
+              <SidebarWidget>
+                <div className="text-center">
+                  <div className="flex items-center justify-center gap-2 text-green-600 mb-2">
+                    <Gift size={20} />
+                    <span className="text-xs font-bold uppercase tracking-wider">Prize Value</span>
+                  </div>
+                  <div className="text-2xl font-black text-green-700">
+                    {opportunity.prize_value}
+                  </div>
+                </div>
+              </SidebarWidget>
+            )}
+
+            {/* Quick Actions Widget */}
+            <SidebarWidget title="Quick Actions">
+              <div className="space-y-3">
+                <a
+                  href={opportunity.source_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-center gap-2 w-full px-4 py-3 bg-[#FFDE59] text-[#1a1a1a] font-bold rounded-lg hover:bg-yellow-400 transition-colors text-sm"
+                >
+                  Apply Now
+                  <ExternalLink size={16} />
+                </a>
+                <FavoriteButton
+                  opportunityId={opportunity.id}
+                  size={18}
+                  showLabel={true}
+                  className="w-full justify-center px-4 py-3 bg-slate-100 hover:bg-slate-200 rounded-lg text-sm"
+                />
+              </div>
+            </SidebarWidget>
+
+            {/* Browse More CTA */}
+            <SidebarCTA
+              title="Find More Opportunities"
+              description="Browse all contests, giveaways, scholarships and more."
+              buttonText="Browse All"
+              buttonLink="/opportunities"
+              variant="secondary"
+            />
+          </Sidebar>
+        </div>
       </main>
 
       {/* Footer */}
       <footer className="bg-white border-t border-slate-200 mt-12">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6 text-center text-sm text-slate-500">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 text-center text-sm text-slate-500">
           Powered by Gellobit RSS Processor
         </div>
       </footer>
     </div>
+    </OpportunityAdsLayout>
   );
 }
