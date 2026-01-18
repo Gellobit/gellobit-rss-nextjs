@@ -11,6 +11,7 @@ import { z } from 'zod';
 export const createFeedSchema = z.object({
     name: z.string().min(1, 'Feed name is required').max(255),
     url: z.string().url('Invalid URL').min(1, 'URL is required'),
+    output_type: z.enum(['opportunity', 'blog_post']).optional().default('opportunity'),
     opportunity_type: z.enum([
         'contest',
         'giveaway',

@@ -85,7 +85,9 @@ export async function PUT(
             status,
             show_in_footer,
             show_in_menu,
-            sort_order
+            sort_order,
+            published_at,
+            created_at
         } = body;
 
         // Check if slug is unique (excluding current page)
@@ -125,9 +127,16 @@ export async function PUT(
         if (show_in_menu !== undefined) updateData.show_in_menu = show_in_menu;
         if (sort_order !== undefined) updateData.sort_order = sort_order;
 
-        // Set published_at if publishing for the first time
-        if (status === 'published' && currentPage?.status !== 'published' && !currentPage?.published_at) {
+        // Handle dates
+        if (published_at !== undefined) {
+            updateData.published_at = published_at || null;
+        } else if (status === 'published' && currentPage?.status !== 'published' && !currentPage?.published_at) {
+            // Auto-set published_at if publishing for the first time and no date provided
             updateData.published_at = new Date().toISOString();
+        }
+
+        if (created_at !== undefined && created_at) {
+            updateData.created_at = created_at;
         }
 
         const { data, error } = await adminSupabase

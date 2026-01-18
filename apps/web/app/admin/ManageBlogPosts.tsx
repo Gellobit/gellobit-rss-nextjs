@@ -54,6 +54,8 @@ interface PostFormData {
     meta_title: string;
     meta_description: string;
     status: 'draft' | 'published' | 'archived';
+    published_at: string;
+    created_at: string;
 }
 
 const initialFormData: PostFormData = {
@@ -65,6 +67,8 @@ const initialFormData: PostFormData = {
     meta_title: '',
     meta_description: '',
     status: 'draft',
+    published_at: '',
+    created_at: '',
 };
 
 export default function ManageBlogPosts() {
@@ -169,10 +173,16 @@ export default function ManageBlogPosts() {
 
             if (res.ok) {
                 setMessage({ type: 'success', text: editingPost ? 'Post updated!' : 'Post created!' });
-                setShowForm(false);
-                setEditingPost(null);
-                setFormData(initialFormData);
-                fetchPosts();
+                // Stay in the editor, update the editing post reference
+                if (data.post) {
+                    setEditingPost(data.post);
+                    setFormData(prev => ({
+                        ...prev,
+                        published_at: data.post.published_at || prev.published_at,
+                        created_at: data.post.created_at || prev.created_at,
+                    }));
+                }
+                fetchPosts(); // Refresh the list in the background
             } else {
                 setMessage({ type: 'error', text: data.error || 'Failed to save post' });
             }
@@ -194,6 +204,8 @@ export default function ManageBlogPosts() {
             meta_title: post.meta_title || '',
             meta_description: post.meta_description || '',
             status: post.status,
+            published_at: post.published_at || '',
+            created_at: post.created_at || '',
         });
         setShowForm(true);
         setMessage(null);
@@ -244,16 +256,29 @@ export default function ManageBlogPosts() {
                     <h1 className="text-3xl font-black text-[#1a1a1a]">
                         {editingPost ? 'Edit Post' : 'New Post'}
                     </h1>
-                    <button
-                        onClick={() => {
-                            setShowForm(false);
-                            setEditingPost(null);
-                            setFormData(initialFormData);
-                        }}
-                        className="text-slate-500 hover:text-slate-700"
-                    >
-                        <X size={24} />
-                    </button>
+                    <div className="flex items-center gap-3">
+                        {editingPost && formData.slug && (
+                            <a
+                                href={`/${formData.slug}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center gap-2 px-4 py-2 bg-slate-100 text-slate-700 rounded-lg font-bold hover:bg-slate-200 transition-colors"
+                            >
+                                <Eye size={16} />
+                                View Post
+                            </a>
+                        )}
+                        <button
+                            onClick={() => {
+                                setShowForm(false);
+                                setEditingPost(null);
+                                setFormData(initialFormData);
+                            }}
+                            className="text-slate-500 hover:text-slate-700"
+                        >
+                            <X size={24} />
+                        </button>
+                    </div>
                 </div>
 
                 {/* Message */}
@@ -284,44 +309,13 @@ export default function ManageBlogPosts() {
                             />
                         </div>
 
-                        {/* Slug */}
-                        <div className="bg-white rounded-xl p-6 border border-slate-200">
-                            <label className="block text-sm font-bold text-slate-900 mb-2">
-                                Slug *
-                            </label>
-                            <div className="flex items-center gap-2">
-                                <span className="text-slate-500 text-sm">/</span>
-                                <input
-                                    type="text"
-                                    value={formData.slug}
-                                    onChange={(e) => setFormData(prev => ({ ...prev, slug: e.target.value }))}
-                                    placeholder="post-slug"
-                                    className="flex-1 border border-slate-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                />
-                            </div>
-                        </div>
-
-                        {/* Excerpt */}
-                        <div className="bg-white rounded-xl p-6 border border-slate-200">
-                            <label className="block text-sm font-bold text-slate-900 mb-2">
-                                Excerpt
-                            </label>
-                            <textarea
-                                value={formData.excerpt}
-                                onChange={(e) => setFormData(prev => ({ ...prev, excerpt: e.target.value }))}
-                                placeholder="Brief description for SEO and previews..."
-                                rows={3}
-                                className="w-full border border-slate-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            />
-                        </div>
-
                         {/* Content Editor */}
                         <div className="bg-white rounded-xl p-6 border border-slate-200">
                             <label className="block text-sm font-bold text-slate-900 mb-2">
                                 Content *
                             </label>
                             <p className="text-xs text-slate-500 mb-3">
-                                Use the toolbar to format text with headings, bold, lists, links, and more.
+                                Use the toolbar to format text. Click the code icon to view/edit HTML.
                             </p>
                             <WysiwygEditor
                                 value={formData.content}
@@ -353,6 +347,37 @@ export default function ManageBlogPosts() {
                                     </select>
                                 </div>
 
+                                {/* Dates */}
+                                {editingPost && (
+                                    <>
+                                        <div>
+                                            <label className="block text-sm font-bold text-slate-700 mb-2">
+                                                <Clock size={12} className="inline mr-1" />
+                                                Created
+                                            </label>
+                                            <input
+                                                type="datetime-local"
+                                                value={formData.created_at ? formData.created_at.slice(0, 16) : ''}
+                                                onChange={(e) => setFormData(prev => ({ ...prev, created_at: e.target.value ? new Date(e.target.value).toISOString() : '' }))}
+                                                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-bold text-slate-700 mb-2">
+                                                <Globe size={12} className="inline mr-1" />
+                                                Published
+                                            </label>
+                                            <input
+                                                type="datetime-local"
+                                                value={formData.published_at ? formData.published_at.slice(0, 16) : ''}
+                                                onChange={(e) => setFormData(prev => ({ ...prev, published_at: e.target.value ? new Date(e.target.value).toISOString() : '' }))}
+                                                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                            />
+                                            <p className="text-xs text-slate-400 mt-1">Leave empty to auto-set when published</p>
+                                        </div>
+                                    </>
+                                )}
+
                                 <button
                                     onClick={handleSubmit}
                                     disabled={saving}
@@ -370,6 +395,40 @@ export default function ManageBlogPosts() {
                                         </>
                                     )}
                                 </button>
+                            </div>
+                        </div>
+
+                        {/* Slug & Excerpt */}
+                        <div className="bg-white rounded-xl p-6 border border-slate-200">
+                            <h3 className="font-bold text-lg mb-4">URL & Summary</h3>
+                            <div className="space-y-4">
+                                <div>
+                                    <label className="block text-sm font-bold text-slate-700 mb-2">
+                                        Slug *
+                                    </label>
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-slate-500 text-sm">/</span>
+                                        <input
+                                            type="text"
+                                            value={formData.slug}
+                                            onChange={(e) => setFormData(prev => ({ ...prev, slug: e.target.value }))}
+                                            placeholder="post-slug"
+                                            className="flex-1 border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        />
+                                    </div>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-bold text-slate-700 mb-2">
+                                        Excerpt
+                                    </label>
+                                    <textarea
+                                        value={formData.excerpt}
+                                        onChange={(e) => setFormData(prev => ({ ...prev, excerpt: e.target.value }))}
+                                        placeholder="Brief description..."
+                                        rows={3}
+                                        className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    />
+                                </div>
                             </div>
                         </div>
 

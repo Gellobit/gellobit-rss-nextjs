@@ -6,9 +6,11 @@ import { promptService } from './prompt.service';
 import { scraperService } from './scraper.service';
 import { duplicateCheckerService } from './duplicate-checker.service';
 import { opportunityService } from './opportunity.service';
+import { postService } from './post.service';
 import { analyticsService } from './analytics.service';
 import { settingsService } from './settings.service';
-import type { OpportunityType } from '../types/database.types';
+import { buildBlogPostPrompt } from '../../prompts/blog_post.prompt';
+import type { OpportunityType, FeedOutputType } from '../types/database.types';
 
 /**
  * Feed processing result
@@ -16,9 +18,11 @@ import type { OpportunityType } from '../types/database.types';
 interface FeedProcessingResult {
   feedId: string;
   feedName: string;
+  outputType: FeedOutputType;
   opportunityType: OpportunityType;
   itemsProcessed: number;
   opportunitiesCreated: number;
+  postsCreated: number;
   duplicatesSkipped: number;
   aiRejections: number;
   errors: number;
@@ -137,6 +141,10 @@ export class RSSProcessorService {
           (sum, r) => sum + r.opportunitiesCreated,
           0
         ),
+        total_posts_created: results.reduce(
+          (sum, r) => sum + r.postsCreated,
+          0
+        ),
         total_time_ms: totalTime,
       });
 
@@ -162,9 +170,11 @@ export class RSSProcessorService {
     const result: FeedProcessingResult = {
       feedId,
       feedName: '',
+      outputType: 'opportunity',
       opportunityType: 'giveaway',
       itemsProcessed: 0,
       opportunitiesCreated: 0,
+      postsCreated: 0,
       duplicatesSkipped: 0,
       aiRejections: 0,
       errors: 0,
@@ -187,12 +197,14 @@ export class RSSProcessorService {
       }
 
       result.feedName = feed.name;
+      result.outputType = feed.output_type || 'opportunity';
       result.opportunityType = feed.opportunity_type;
 
       await logger.info('Processing feed', {
         feed_id: feedId,
         feed_name: feed.name,
         feed_url: feed.url,
+        output_type: feed.output_type || 'opportunity',
         opportunity_type: feed.opportunity_type,
       });
 
@@ -298,11 +310,20 @@ export class RSSProcessorService {
             continue;
           }
 
-          // Get appropriate prompt
-          const prompt = await promptService.getPrompt(
-            feed.opportunity_type,
-            scrapedContent
-          );
+          // Get appropriate prompt based on output type
+          const outputType = feed.output_type || 'opportunity';
+          let prompt: string;
+
+          if (outputType === 'blog_post') {
+            // Use blog post prompt for blog output
+            prompt = buildBlogPostPrompt(scrapedContent);
+          } else {
+            // Use opportunity-specific prompt
+            prompt = await promptService.getPrompt(
+              feed.opportunity_type,
+              scrapedContent
+            );
+          }
 
           // Generate content with AI (use feed-specific AI config if available)
           const aiContent = await aiService.generateOpportunity(
@@ -321,6 +342,7 @@ export class RSSProcessorService {
             await logger.error('AI generation failed', {
               feed_id: feedId,
               item_url: normalized.link,
+              output_type: outputType,
             });
             continue;
           }
@@ -333,6 +355,7 @@ export class RSSProcessorService {
               title: scrapedContent.title,
               source_url: normalized.link,
               reason: aiContent.reason || 'Content not suitable for processing',
+              output_type: outputType,
               opportunity_type: feed.opportunity_type,
               ai_provider: feed.ai_provider,
             });
@@ -355,6 +378,7 @@ export class RSSProcessorService {
               reason: `Quality score ${(aiContent.confidence_score * 100).toFixed(0)}% below threshold ${(qualityThreshold * 100).toFixed(0)}%`,
               confidence_score: aiContent.confidence_score,
               threshold: qualityThreshold,
+              output_type: outputType,
               opportunity_type: feed.opportunity_type,
               ai_provider: feed.ai_provider,
             });
@@ -367,36 +391,60 @@ export class RSSProcessorService {
           // Use feed's fallback featured image (no scraping since posts are private)
           const featuredImageUrl = feed.fallback_featured_image_url || null;
 
-          // Create opportunity
-          const opportunityId = await opportunityService.createFromAI(
-            aiContent,
-            feed.opportunity_type,
-            normalized.link,
-            feedId,
-            shouldAutoPublish,
-            featuredImageUrl
-          );
+          // Create content based on output type
+          let createdId: string | null = null;
 
-          if (!opportunityId) {
+          if (outputType === 'blog_post') {
+            // Create blog post
+            createdId = await postService.createFromAI(
+              aiContent,
+              normalized.link,
+              feedId,
+              shouldAutoPublish,
+              featuredImageUrl
+            );
+
+            if (createdId) {
+              result.postsCreated++;
+              await logger.info('Blog post created successfully', {
+                feed_id: feedId,
+                post_id: createdId,
+                auto_published: shouldAutoPublish,
+              });
+            }
+          } else {
+            // Create opportunity
+            createdId = await opportunityService.createFromAI(
+              aiContent,
+              feed.opportunity_type,
+              normalized.link,
+              feedId,
+              shouldAutoPublish,
+              featuredImageUrl
+            );
+
+            if (createdId) {
+              result.opportunitiesCreated++;
+              await logger.info('Opportunity created successfully', {
+                feed_id: feedId,
+                opportunity_id: createdId,
+                opportunity_type: feed.opportunity_type,
+                auto_published: shouldAutoPublish,
+              });
+            }
+          }
+
+          if (!createdId) {
             result.errors++;
             continue;
           }
 
-          result.opportunitiesCreated++;
-
           // Record in duplicate tracking
           await duplicateCheckerService.recordContent(
             scrapedContent,
-            opportunityId,
+            createdId,
             feedId
           );
-
-          await logger.info('Opportunity created successfully', {
-            feed_id: feedId,
-            opportunity_id: opportunityId,
-            opportunity_type: feed.opportunity_type,
-            auto_published: feed.auto_publish,
-          });
         } catch (itemError) {
           result.errors++;
           await logger.error('Error processing RSS item', {
@@ -421,8 +469,10 @@ export class RSSProcessorService {
 
       await logger.info('Feed processing completed', {
         feed_id: feedId,
+        output_type: result.outputType,
         items_processed: result.itemsProcessed,
         opportunities_created: result.opportunitiesCreated,
+        posts_created: result.postsCreated,
         duplicates_skipped: result.duplicatesSkipped,
         ai_rejections: result.aiRejections,
         errors: result.errors,

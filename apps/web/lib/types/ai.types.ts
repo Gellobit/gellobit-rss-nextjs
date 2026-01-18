@@ -22,6 +22,9 @@ export interface AIGeneratedContent {
     location?: string | null;
     confidence_score?: number;
     reason?: string; // Rejection reason if valid=false
+    // Blog post specific fields
+    meta_title?: string | null;
+    meta_description?: string | null;
 }
 
 /**

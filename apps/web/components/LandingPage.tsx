@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
     Check, ShieldCheck, Zap, Bell, Smartphone, Search,
-    Briefcase, Gift, GraduationCap, Star, Users, ChevronDown, Globe,
+    Briefcase, Gift, GraduationCap, Star, Users, Globe,
     Trophy, ArrowRight
 } from 'lucide-react';
 
@@ -87,16 +87,6 @@ const SOCIAL_ICONS: Record<string, string> = {
 
 const APP_VERSION = 'v1.0.0-alpha.19';
 
-const SEARCH_CATEGORIES = [
-    { value: '', label: 'All Categories' },
-    { value: 'giveaway', label: 'Giveaways' },
-    { value: 'contest', label: 'Contests' },
-    { value: 'sweepstakes', label: 'Sweepstakes' },
-    { value: 'dream_job', label: 'Dream Jobs' },
-    { value: 'scholarship', label: 'Scholarships' },
-    { value: 'free_training', label: 'Free Training' },
-    { value: 'get_paid_to', label: 'Get Paid To' },
-];
 
 // Category badge colors and labels for opportunities
 const CATEGORY_CONFIG: Record<string, { label: string; bgColor: string; textColor: string }> = {
@@ -120,8 +110,6 @@ export const LandingPage = ({ opportunities = [], branding, heroContent, appSect
 
     // Search state
     const [searchQuery, setSearchQuery] = useState('');
-    const [selectedCategory, setSelectedCategory] = useState('');
-    const [categoryDropdownOpen, setCategoryDropdownOpen] = useState(false);
 
     // Scroll state for header
     const [isScrolled, setIsScrolled] = useState(false);
@@ -137,7 +125,6 @@ export const LandingPage = ({ opportunities = [], branding, heroContent, appSect
     const handleSearch = () => {
         const params = new URLSearchParams();
         if (searchQuery) params.set('q', searchQuery);
-        if (selectedCategory) params.set('type', selectedCategory);
 
         const queryString = params.toString();
         const targetUrl = `/opportunities${queryString ? `?${queryString}` : ''}`;
@@ -181,9 +168,9 @@ export const LandingPage = ({ opportunities = [], branding, heroContent, appSect
 
     return (
         <div className="min-h-screen bg-white font-sans text-slate-900 selection:bg-yellow-200 pb-20 md:pb-0">
-            {/* Upgrade Banner for Free Users */}
+            {/* Upgrade Banner for Free Users - Desktop only */}
             {shouldShowAds && (
-                <Link href="/pricing" className="block bg-gradient-to-r from-yellow-400 to-yellow-500 text-black text-xs text-center py-2 font-bold hover:from-yellow-500 hover:to-yellow-600 transition-all">
+                <Link href="/pricing" className="hidden md:block bg-[#1a1a1a] text-white text-xs text-center py-2 font-bold hover:bg-slate-800 transition-all">
                     Upgrade to Premium for an ad-free experience and exclusive features
                 </Link>
             )}
@@ -225,13 +212,16 @@ export const LandingPage = ({ opportunities = [], branding, heroContent, appSect
             >
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 w-full">
                     <div className="text-center max-w-4xl mx-auto">
-                        <div className="inline-flex items-center gap-2 bg-yellow-100 text-yellow-800 px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-widest mb-8">
-                            <Star size={14} fill="currentColor" /> {heroBadgeText}
+                        <div className="inline-flex items-center gap-1 md:gap-2 bg-yellow-100 text-yellow-800 px-2 py-1 md:px-4 md:py-1.5 rounded-full text-[10px] md:text-xs font-black uppercase tracking-widest mb-4 md:mb-8">
+                            <Star size={10} fill="currentColor" className="md:hidden" />
+                            <Star size={14} fill="currentColor" className="hidden md:block" />
+                            <span className="md:hidden">{APP_VERSION}</span>
+                            <span className="hidden md:inline">{heroBadgeText}</span>
                         </div>
                         <h1 className="text-4xl sm:text-5xl md:text-7xl font-black text-[#1a1a1a] leading-[1.1] mb-6 md:mb-8 tracking-tight">
                             {heroTitle} <span className="text-white">{heroTitleHighlight}</span>
                         </h1>
-                        <p className="text-lg md:text-xl text-[#1a1a1a] mb-8 md:mb-12 max-w-2xl mx-auto leading-relaxed px-4">
+                        <p className="hidden md:block text-lg md:text-xl text-[#1a1a1a] mb-8 md:mb-12 max-w-2xl mx-auto leading-relaxed px-4">
                             {heroSubtitle}
                         </p>
                         {/* Search Bar */}
@@ -250,68 +240,19 @@ export const LandingPage = ({ opportunities = [], branding, heroContent, appSect
                                     />
                                 </div>
 
-                                {/* Category Dropdown - Desktop */}
-                                <div className="hidden md:block relative">
-                                    <button
-                                        onClick={() => setCategoryDropdownOpen(!categoryDropdownOpen)}
-                                        className="flex items-center gap-2 px-4 py-2 text-sm font-bold text-slate-700 hover:text-slate-900 transition-colors whitespace-nowrap"
-                                    >
-                                        {SEARCH_CATEGORIES.find(c => c.value === selectedCategory)?.label || 'All Categories'}
-                                        <ChevronDown size={16} className={`transition-transform ${categoryDropdownOpen ? 'rotate-180' : ''}`} />
-                                    </button>
-
-                                    {categoryDropdownOpen && (
-                                        <>
-                                            <div className="fixed inset-0 z-10" onClick={() => setCategoryDropdownOpen(false)} />
-                                            <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-xl shadow-xl border border-slate-100 py-2 z-20">
-                                                {SEARCH_CATEGORIES.map((category) => (
-                                                    <button
-                                                        key={category.value}
-                                                        onClick={() => {
-                                                            setSelectedCategory(category.value);
-                                                            setCategoryDropdownOpen(false);
-                                                        }}
-                                                        className={`w-full text-left px-4 py-2 text-sm font-medium transition-colors ${
-                                                            selectedCategory === category.value
-                                                                ? 'bg-slate-100 text-slate-900'
-                                                                : 'text-slate-600 hover:bg-slate-50'
-                                                        }`}
-                                                    >
-                                                        {category.label}
-                                                    </button>
-                                                ))}
-                                            </div>
-                                        </>
-                                    )}
-                                </div>
-
                                 {/* Search Button */}
                                 <button
                                     onClick={handleSearch}
-                                    className="bg-[#1a1a1a] text-white px-6 md:px-8 py-2.5 md:py-3 rounded-full font-bold hover:bg-slate-800 transition-all flex-shrink-0"
+                                    className="bg-[#1a1a1a] text-white p-3 md:px-8 md:py-3 rounded-full font-bold hover:bg-slate-800 transition-all flex-shrink-0 flex items-center justify-center"
                                 >
-                                    Search
+                                    <Search size={20} className="md:hidden" />
+                                    <span className="hidden md:inline">Search</span>
                                 </button>
-                            </div>
-
-                            {/* Category Select - Mobile */}
-                            <div className="md:hidden mt-3 pt-3 border-t border-slate-100">
-                                <select
-                                    value={selectedCategory}
-                                    onChange={(e) => setSelectedCategory(e.target.value)}
-                                    className="w-full bg-slate-50 border-0 rounded-xl px-4 py-2.5 text-sm font-medium text-slate-700 focus:ring-2 focus:ring-yellow-400"
-                                >
-                                    {SEARCH_CATEGORIES.map((category) => (
-                                        <option key={category.value} value={category.value}>
-                                            {category.label}
-                                        </option>
-                                    ))}
-                                </select>
                             </div>
                         </div>
 
                         {/* Category Quick Links */}
-                        <div className="mt-8 grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 max-w-4xl mx-auto">
+                        <div className="mt-8 grid grid-cols-4 md:grid-cols-4 gap-2 md:gap-4 max-w-4xl mx-auto px-2 md:px-0">
                             {[
                                 { type: 'giveaway', label: 'Giveaways', icon: Gift, desc: 'Win prizes & rewards' },
                                 { type: 'sweepstakes', label: 'Sweepstakes', icon: Trophy, desc: 'Enter to win big' },
@@ -327,14 +268,14 @@ export const LandingPage = ({ opportunities = [], branding, heroContent, appSect
                                     <Link
                                         key={cat.type}
                                         href={isAuthenticated ? `/opportunities?type=${cat.type}` : `/auth?mode=signin&redirect=${encodeURIComponent(`/opportunities?type=${cat.type}`)}`}
-                                        className="bg-[#FFF9E6] hover:bg-[#FFF3CC] border border-[#F5E6B8] px-4 py-3 rounded-xl hover:shadow-md transition-all group flex items-center gap-3"
+                                        className="bg-[#FFF9E6] hover:bg-[#FFF3CC] border border-[#F5E6B8] px-2 py-3 md:px-4 md:py-3 rounded-xl hover:shadow-md transition-all group flex flex-col md:flex-row items-center gap-1 md:gap-3"
                                     >
                                         <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center group-hover:bg-yellow-50 transition-colors flex-shrink-0">
                                             <Icon size={20} className="text-yellow-600" />
                                         </div>
-                                        <div className="text-left min-w-0">
-                                            <span className="block text-sm font-bold text-slate-900 truncate">{cat.label}</span>
-                                            <span className="block text-[10px] text-slate-500 truncate">{cat.desc}</span>
+                                        <div className="text-center md:text-left min-w-0">
+                                            <span className="block text-[10px] md:text-sm font-bold text-slate-900 truncate">{cat.label}</span>
+                                            <span className="hidden md:block text-[10px] text-slate-500 truncate">{cat.desc}</span>
                                         </div>
                                     </Link>
                                 );
@@ -345,6 +286,9 @@ export const LandingPage = ({ opportunities = [], branding, heroContent, appSect
                 <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-yellow-400/5 rounded-full blur-3xl -z-10"></div>
             </header>
 
+            {/* --- CONTENT SECTIONS (Hidden for premium users) --- */}
+            {!isPremium && (
+            <>
             {/* --- LIST OF OPPORTUNITIES (NEW SECTION) --- */}
             {opportunities.length > 0 && (
                 <section className="py-16 bg-slate-50">
@@ -519,9 +463,8 @@ export const LandingPage = ({ opportunities = [], branding, heroContent, appSect
                 </div>
             </section>
 
-            {/* --- PRICING SECTION --- Only show for non-premium users */}
-            {!isPremium && (
-                <section id="pricing" className="py-24">
+            {/* --- PRICING SECTION --- */}
+            <section id="pricing" className="py-24">
                     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                         <div className="text-center mb-16">
                             <h2 className="text-4xl font-black text-[#1a1a1a] mb-4">Plans for every level.</h2>
@@ -581,7 +524,6 @@ export const LandingPage = ({ opportunities = [], branding, heroContent, appSect
                         </div>
                     </div>
                 </section>
-            )}
 
             {/* --- APP DOWNLOAD SECTION --- */}
             <section id="trust" className="bg-[#FFDE59] py-20 overflow-hidden relative">
@@ -783,6 +725,8 @@ export const LandingPage = ({ opportunities = [], branding, heroContent, appSect
                     </div>
                 </div>
             </footer>
+            </>
+            )}
 
             {/* Mobile Navigation */}
             <MobileNavBar />

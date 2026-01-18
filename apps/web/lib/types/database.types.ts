@@ -21,6 +21,7 @@ export type OpportunityType =
 export type FeedStatus = 'active' | 'inactive' | 'error';
 export type OpportunityStatus = 'draft' | 'published' | 'rejected';
 export type AIProvider = 'openai' | 'anthropic' | 'deepseek' | 'gemini';
+export type FeedOutputType = 'opportunity' | 'blog_post';
 export type LogLevel = 'info' | 'warning' | 'error' | 'debug';
 export type QueueStatus = 'pending' | 'processing' | 'completed' | 'failed';
 export type ProcessingStatus = 'published' | 'rejected';
@@ -42,6 +43,7 @@ export interface RSSFeed {
     name: string;
     url: string;
     status: FeedStatus;
+    output_type: FeedOutputType;
     opportunity_type: OpportunityType;
     enable_scraping: boolean;
     enable_ai_processing: boolean;

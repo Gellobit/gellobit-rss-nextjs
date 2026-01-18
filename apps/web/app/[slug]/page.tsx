@@ -3,10 +3,12 @@ import { notFound } from 'next/navigation';
 import { unstable_cache } from 'next/cache';
 import { Metadata } from 'next';
 import { Calendar, Share2, ArrowLeft } from 'lucide-react';
+import Link from 'next/link';
 import { createAdminClient } from '@/lib/utils/supabase-admin';
 import MobileNavBar from '@/components/MobileNavBar';
 import AdContainer from '@/components/AdContainer';
 import UserNav from '@/components/UserNav';
+import ShareButton from '@/components/ShareButton';
 
 // Revalidate page every 60 seconds
 export const revalidate = 60;
@@ -97,7 +99,10 @@ async function getContent(slug: string) {
 // Generate metadata for SEO
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
     const { slug } = await params;
-    const content = await getContent(slug);
+    const [content, branding] = await Promise.all([
+        getContent(slug),
+        getBranding()
+    ]);
 
     if (!content) {
         return {
@@ -107,16 +112,51 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 
     const title = content.meta_title || content.title;
     const description = content.meta_description || (content.type === 'post' ? content.excerpt : undefined);
+    const isPost = content.type === 'post';
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://gellobit.com';
+    const canonicalUrl = `${siteUrl}/${slug}`;
 
     return {
         title,
         description,
+        authors: isPost ? [{ name: 'Gellobit Team', url: `${siteUrl}/about` }] : undefined,
+        alternates: {
+            canonical: canonicalUrl,
+        },
         openGraph: {
             title,
             description,
+            url: canonicalUrl,
+            siteName: branding.appName,
+            images: content.featured_image_url ? [{
+                url: content.featured_image_url,
+                width: 1200,
+                height: 630,
+                alt: title,
+            }] : undefined,
+            type: isPost ? 'article' : 'website',
+            ...(isPost && content.published_at && {
+                publishedTime: content.published_at,
+                modifiedTime: content.updated_at || content.published_at,
+                authors: ['Gellobit Team'],
+            }),
+        },
+        twitter: {
+            card: 'summary_large_image',
+            title,
+            description,
             images: content.featured_image_url ? [content.featured_image_url] : undefined,
-            type: content.type === 'post' ? 'article' : 'website',
-            publishedTime: content.type === 'post' && content.published_at ? content.published_at : undefined,
+        },
+        robots: {
+            index: true,
+            follow: true,
+            googleBot: {
+                index: true,
+                follow: true,
+                'max-video-preview': -1,
+                'max-image-preview': 'large',
+                'max-snippet': -1,
+            },
         },
     };
 }
@@ -141,8 +181,43 @@ export default async function ContentPage({ params }: { params: Promise<{ slug: 
         })
         : null;
 
+    // JSON-LD structured data for blog posts
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://gellobit.com';
+    const jsonLd = isPost ? {
+        '@context': 'https://schema.org',
+        '@type': 'BlogPosting',
+        headline: content.title,
+        description: content.excerpt || content.meta_description,
+        image: content.featured_image_url || undefined,
+        datePublished: content.published_at,
+        dateModified: content.updated_at || content.published_at,
+        author: {
+            '@type': 'Organization',
+            name: 'Gellobit Team',
+            url: `${siteUrl}/about`,
+            logo: branding.logoUrl || `${siteUrl}/logo.png`,
+        },
+        publisher: {
+            '@type': 'Organization',
+            name: branding.appName,
+            url: siteUrl,
+            logo: branding.logoUrl || `${siteUrl}/logo.png`,
+        },
+        mainEntityOfPage: {
+            '@type': 'WebPage',
+            '@id': `${siteUrl}/${slug}`,
+        },
+    } : null;
+
     return (
         <div className="min-h-screen bg-slate-50 font-sans text-slate-900 pb-20 md:pb-0">
+            {/* JSON-LD Structured Data for SEO */}
+            {jsonLd && (
+                <script
+                    type="application/ld+json"
+                    dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+                />
+            )}
             {/* Navigation - Desktop */}
             <nav className="bg-white border-b border-slate-100 sticky top-0 z-50 hidden md:block">
                 <div className="max-w-7xl mx-auto px-4 h-20 flex items-center justify-between">
@@ -195,16 +270,38 @@ export default async function ContentPage({ params }: { params: Promise<{ slug: 
                     )}
 
                     <div className="p-6 md:p-12">
-                        {/* Post Header with Date */}
-                        {isPost && formattedDate && (
-                            <div className="flex items-center gap-4 mb-6 text-slate-500 text-sm">
-                                <div className="flex items-center gap-2">
-                                    <Calendar size={16} />
-                                    <time dateTime={content.published_at || content.created_at}>{formattedDate}</time>
+                        {/* Post Header with Author, Date, and Share */}
+                        {isPost && (
+                            <div className="flex items-center justify-between mb-6">
+                                <div className="flex items-center gap-4">
+                                    {/* Author */}
+                                    <Link href="/about" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+                                        {branding.logoUrl ? (
+                                            <img
+                                                src={branding.logoUrl}
+                                                alt="Gellobit Team"
+                                                className="w-8 h-8 rounded-full object-contain bg-[#FFDE59]"
+                                            />
+                                        ) : (
+                                            <div className="w-8 h-8 bg-[#FFDE59] rounded-full flex items-center justify-center font-black text-xs text-[#1a1a1a]">
+                                                GB
+                                            </div>
+                                        )}
+                                        <span className="text-sm font-bold text-slate-700">Gellobit Team</span>
+                                    </Link>
+
+                                    {/* Date */}
+                                    {formattedDate && (
+                                        <div className="flex items-center gap-2 text-slate-400 text-sm">
+                                            <span className="hidden sm:inline">•</span>
+                                            <Calendar size={14} className="hidden sm:inline" />
+                                            <time dateTime={content.published_at || content.created_at}>{formattedDate}</time>
+                                        </div>
+                                    )}
                                 </div>
-                                <button className="p-2 rounded-full hover:bg-slate-50 text-slate-400 hover:text-slate-600 transition-colors">
-                                    <Share2 size={18} />
-                                </button>
+
+                                {/* Share Button */}
+                                <ShareButton title={content.title} />
                             </div>
                         )}
 

@@ -75,7 +75,7 @@ export async function PUT(
         }
 
         const body = await request.json();
-        const { title, slug, excerpt, content, featured_image_url, meta_title, meta_description, status } = body;
+        const { title, slug, excerpt, content, featured_image_url, meta_title, meta_description, status, published_at, created_at } = body;
 
         // Check if slug is unique (excluding current post)
         if (slug) {
@@ -112,9 +112,16 @@ export async function PUT(
         if (meta_description !== undefined) updateData.meta_description = meta_description;
         if (status !== undefined) updateData.status = status;
 
-        // Set published_at if publishing for the first time
-        if (status === 'published' && currentPost?.status !== 'published' && !currentPost?.published_at) {
+        // Handle dates
+        if (published_at !== undefined) {
+            updateData.published_at = published_at || null;
+        } else if (status === 'published' && currentPost?.status !== 'published' && !currentPost?.published_at) {
+            // Auto-set published_at if publishing for the first time and no date provided
             updateData.published_at = new Date().toISOString();
+        }
+
+        if (created_at !== undefined && created_at) {
+            updateData.created_at = created_at;
         }
 
         const { data, error } = await adminSupabase

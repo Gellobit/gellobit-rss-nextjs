@@ -9,6 +9,7 @@ interface Feed {
     name: string;
     url: string;
     status: 'active' | 'inactive' | 'error';
+    output_type?: 'opportunity' | 'blog_post';
     opportunity_type: string;
     enable_scraping: boolean;
     enable_ai_processing: boolean;
@@ -35,6 +36,7 @@ interface Feed {
 interface FeedFormValues {
     name: string;
     url: string;
+    output_type: 'opportunity' | 'blog_post';
     opportunity_type: string;
     enable_scraping: boolean;
     enable_ai_processing: boolean;
@@ -56,6 +58,7 @@ interface FeedFormValues {
 const defaultFeedValues: FeedFormValues = {
     name: '',
     url: '',
+    output_type: 'opportunity',
     opportunity_type: 'giveaway',
     enable_scraping: true,
     enable_ai_processing: true,
@@ -72,6 +75,11 @@ const defaultFeedValues: FeedFormValues = {
     scheduled_hour: null,
     scheduled_minute: 0,
 };
+
+const outputTypes = [
+    { value: 'opportunity', label: 'Opportunity', description: 'Create opportunities in the main feed' },
+    { value: 'blog_post', label: 'Blog Post', description: 'Create blog posts for the blog section' },
+];
 
 const opportunityTypes = [
     { value: 'giveaway', label: 'Giveaway' },
@@ -144,6 +152,45 @@ function FeedForm({
 
     return (
         <div className="space-y-4">
+            {/* Output Type Selection */}
+            <div className="bg-gradient-to-r from-slate-50 to-slate-100 p-4 rounded-lg border border-slate-200">
+                <label className="block text-xs text-slate-500 mb-2">Output Type</label>
+                <div className="grid grid-cols-2 gap-3">
+                    {outputTypes.map(t => (
+                        <label
+                            key={t.value}
+                            className={`flex items-center gap-3 p-3 rounded-lg border-2 cursor-pointer transition-all ${
+                                values.output_type === t.value
+                                    ? 'border-slate-900 bg-white shadow-sm'
+                                    : 'border-slate-200 bg-white/50 hover:border-slate-300'
+                            }`}
+                        >
+                            <input
+                                type="radio"
+                                name="output_type"
+                                value={t.value}
+                                checked={values.output_type === t.value}
+                                onChange={e => onChange('output_type', e.target.value)}
+                                className="sr-only"
+                            />
+                            <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
+                                values.output_type === t.value
+                                    ? 'border-slate-900'
+                                    : 'border-slate-300'
+                            }`}>
+                                {values.output_type === t.value && (
+                                    <div className="w-2 h-2 rounded-full bg-slate-900" />
+                                )}
+                            </div>
+                            <div>
+                                <span className="font-bold text-sm text-slate-900">{t.label}</span>
+                                <p className="text-xs text-slate-500">{t.description}</p>
+                            </div>
+                        </label>
+                    ))}
+                </div>
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                     <label className="block text-xs text-slate-500 mb-1">Feed Name</label>
@@ -156,18 +203,20 @@ function FeedForm({
                         required
                     />
                 </div>
-                <div>
-                    <label className="block text-xs text-slate-500 mb-1">Opportunity Type</label>
-                    <select
-                        className="border p-2 rounded w-full"
-                        value={values.opportunity_type}
-                        onChange={e => onChange('opportunity_type', e.target.value)}
-                    >
-                        {opportunityTypes.map(t => (
-                            <option key={t.value} value={t.value}>{t.label}</option>
-                        ))}
-                    </select>
-                </div>
+                {values.output_type === 'opportunity' && (
+                    <div>
+                        <label className="block text-xs text-slate-500 mb-1">Opportunity Type</label>
+                        <select
+                            className="border p-2 rounded w-full"
+                            value={values.opportunity_type}
+                            onChange={e => onChange('opportunity_type', e.target.value)}
+                        >
+                            {opportunityTypes.map(t => (
+                                <option key={t.value} value={t.value}>{t.label}</option>
+                            ))}
+                        </select>
+                    </div>
+                )}
             </div>
 
             <div>
@@ -476,7 +525,10 @@ export default function ManageFeeds() {
             const res = await fetch(`/api/admin/feeds/${id}/sync`, { method: 'POST' });
             const data = await res.json();
             if (res.ok) {
-                alert(`Sync completed!\n\nProcessed: ${data.result.itemsProcessed}\nCreated: ${data.result.opportunitiesCreated}\nDuplicates: ${data.result.duplicatesSkipped}\nRejected: ${data.result.aiRejections}`);
+                const created = data.result.outputType === 'blog_post'
+                    ? `Posts Created: ${data.result.postsCreated || 0}`
+                    : `Opportunities Created: ${data.result.opportunitiesCreated || 0}`;
+                alert(`Sync completed!\n\nProcessed: ${data.result.itemsProcessed}\n${created}\nDuplicates: ${data.result.duplicatesSkipped}\nRejected: ${data.result.aiRejections}`);
                 fetchFeeds();
             } else {
                 alert('Error syncing feed: ' + data.error);
@@ -492,6 +544,7 @@ export default function ManageFeeds() {
         setEditForm({
             name: feed.name,
             url: feed.url,
+            output_type: feed.output_type || 'opportunity',
             opportunity_type: feed.opportunity_type,
             enable_scraping: feed.enable_scraping,
             enable_ai_processing: feed.enable_ai_processing,
@@ -635,9 +688,18 @@ export default function ManageFeeds() {
                                         }`}>
                                             {feed.status}
                                         </span>
-                                        <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-blue-100 text-blue-700">
-                                            {feed.opportunity_type.replace('_', ' ')}
+                                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
+                                            feed.output_type === 'blog_post'
+                                                ? 'bg-amber-100 text-amber-700'
+                                                : 'bg-emerald-100 text-emerald-700'
+                                        }`}>
+                                            {feed.output_type === 'blog_post' ? 'Blog Post' : 'Opportunity'}
                                         </span>
+                                        {feed.output_type !== 'blog_post' && (
+                                            <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-blue-100 text-blue-700">
+                                                {feed.opportunity_type.replace('_', ' ')}
+                                            </span>
+                                        )}
                                         {feed.ai_provider && (
                                             <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-purple-100 text-purple-700">
                                                 AI: {feed.ai_provider}

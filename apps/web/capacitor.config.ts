@@ -4,7 +4,7 @@ import type { CapacitorConfig } from '@capacitor/cli';
 // For emulator: use WSL IP (172.20.160.237)
 // For physical device: use Windows IP (192.168.0.5)
 // For production: comment out the server block entirely
-const DEV_SERVER_IP = '192.168.0.5'; // Windows IP for physical device testing
+const DEV_SERVER_IP = '192.168.0.5'; // Windows IP for physical device
 
 const config: CapacitorConfig = {
     appId: 'com.gellobit.app',
