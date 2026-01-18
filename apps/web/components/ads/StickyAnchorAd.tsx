@@ -4,9 +4,12 @@ import React, { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import { useShowAds } from '@/context/UserContext';
 import LazyAdUnit from '../LazyAdUnit';
+import { isNativeApp } from '@/lib/utils/platform';
+import { useAdMobBanner } from './admob';
 
 interface StickyAnchorAdProps {
   slotId?: string;
+  admobUnitId?: string;
   position?: string;
   dismissible?: boolean;
   showAfterScroll?: number; // Show after scrolling X pixels
@@ -16,9 +19,13 @@ interface StickyAnchorAdProps {
  * Sticky Anchor Ad - Mobile Only
  * Fixed at bottom of screen, 320x50 format
  * Ideal for high-urgency content where users scroll quickly
+ *
+ * Web: Uses AdSense with custom positioning
+ * Native: Uses AdMob banner positioned at bottom
  */
 export default function StickyAnchorAd({
   slotId,
+  admobUnitId,
   position = 'sticky_anchor',
   dismissible = true,
   showAfterScroll = 300,
@@ -26,7 +33,15 @@ export default function StickyAnchorAd({
   const { shouldShowAds, loading } = useShowAds();
   const [isVisible, setIsVisible] = useState(false);
   const [isDismissed, setIsDismissed] = useState(false);
+  const [isNative, setIsNative] = useState(false);
+  const { showBanner, hideBanner } = useAdMobBanner();
 
+  // Detect platform
+  useEffect(() => {
+    setIsNative(isNativeApp());
+  }, []);
+
+  // Handle scroll visibility
   useEffect(() => {
     if (!shouldShowAds || loading || isDismissed) return;
 
@@ -43,10 +58,38 @@ export default function StickyAnchorAd({
     return () => window.removeEventListener('scroll', handleScroll);
   }, [shouldShowAds, loading, isDismissed, showAfterScroll]);
 
+  // Show AdMob banner for native apps
+  useEffect(() => {
+    if (!isNative || !admobUnitId || !shouldShowAds || loading || isDismissed || !isVisible) {
+      return;
+    }
+
+    showBanner({
+      adUnitId: admobUnitId,
+      size: 'BANNER',
+      position: 'bottom',
+    });
+
+    return () => {
+      hideBanner();
+    };
+  }, [isNative, admobUnitId, shouldShowAds, loading, isDismissed, isVisible, showBanner, hideBanner]);
+
   if (!shouldShowAds || loading || isDismissed || !isVisible) {
     return null;
   }
 
+  // For native apps, AdMob banner is rendered by the SDK, just add spacer
+  if (isNative) {
+    return (
+      <>
+        {/* Spacer for AdMob native banner */}
+        <div className="h-16" />
+      </>
+    );
+  }
+
+  // Web: AdSense implementation
   return (
     <>
       {/* Spacer to prevent content from being hidden behind the ad */}

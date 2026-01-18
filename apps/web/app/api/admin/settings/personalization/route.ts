@@ -10,6 +10,8 @@ const SETTING_KEYS = [
     'app_logo_url',
     'app_logo_footer_url',
     'app_name',
+    'logo_spin_enabled',
+    'logo_spin_duration',
     'custom_css',
     'hero_badge_text',
     'hero_title',
@@ -37,6 +39,8 @@ const JSON_KEYS = ['footer_explore_links', 'footer_info_page_ids', 'footer_socia
 // Default values
 const DEFAULTS: Record<string, any> = {
     app_name: 'GelloBit',
+    logo_spin_enabled: false,
+    logo_spin_duration: 6,
     hero_badge_text: 'New Platform 2.0 Available!',
     hero_title: 'Verified USA Opportunities',
     hero_title_highlight: 'just a click away.',

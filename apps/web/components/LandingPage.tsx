@@ -20,6 +20,8 @@ interface Branding {
     logoUrl: string | null;
     footerLogoUrl: string | null;
     appName: string;
+    logoSpinEnabled?: boolean;
+    logoSpinDuration?: number;
 }
 
 interface ExploreLink {
@@ -111,6 +113,12 @@ export const LandingPage = ({ opportunities = [], branding, heroContent, appSect
     // Search state
     const [searchQuery, setSearchQuery] = useState('');
 
+    // Logo spin classes
+    const logoClassName = `app-logo h-10 object-contain${branding.logoSpinEnabled ? ' logo-spin' : ''}`;
+    const logoStyle = branding.logoSpinEnabled && branding.logoSpinDuration
+        ? { '--logo-spin-duration': `${branding.logoSpinDuration}s` } as React.CSSProperties
+        : undefined;
+
     // Scroll state for header
     const [isScrolled, setIsScrolled] = useState(false);
 
@@ -187,7 +195,8 @@ export const LandingPage = ({ opportunities = [], branding, heroContent, appSect
                                 <img
                                     src={branding.logoUrl}
                                     alt={branding.appName}
-                                    className="app-logo h-10 object-contain"
+                                    className={logoClassName}
+                                    style={logoStyle}
                                 />
                             ) : (
                                 <div className="app-logo bg-[#FFDE59] p-2 rounded-xl font-black text-xl shadow-sm">GB</div>
@@ -624,13 +633,15 @@ export const LandingPage = ({ opportunities = [], branding, heroContent, appSect
                                     <img
                                         src={branding.footerLogoUrl}
                                         alt={branding.appName}
-                                        className="app-logo h-10 object-contain"
+                                        className={logoClassName}
+                                        style={logoStyle}
                                     />
                                 ) : branding.logoUrl ? (
                                     <img
                                         src={branding.logoUrl}
                                         alt={branding.appName}
-                                        className="app-logo h-10 object-contain"
+                                        className={logoClassName}
+                                        style={logoStyle}
                                     />
                                 ) : (
                                     <>

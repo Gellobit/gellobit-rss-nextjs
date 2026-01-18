@@ -6,10 +6,21 @@ import ImageUpload from '@/components/ImageUpload';
 
 interface AnalyticsConfig {
     google_analytics_id: string;
+    // AdSense settings for web
     adsense_client_id: string;
-    adsense_slot_id: string;
+    adsense_slot_id: string; // Default/fallback slot
+    adsense_slot_sticky: string;
+    adsense_slot_sidebar: string;
+    adsense_slot_below_title: string;
+    adsense_slot_in_content: string;
+    adsense_slot_end_of_post: string;
+    adsense_slot_after_cta: string;
+    // AdMob settings for native mobile app
     admob_app_id: string;
     admob_banner_id: string;
+    admob_interstitial_id: string;
+    admob_sticky_id: string;
+    admob_in_content_id: string;
     // Manual banner
     manual_banner_image_url: string;
     manual_banner_target_url: string;
@@ -19,10 +30,22 @@ interface AnalyticsConfig {
 export default function AnalyticsSettings() {
     const [config, setConfig] = useState<AnalyticsConfig>({
         google_analytics_id: '',
+        // AdSense
         adsense_client_id: '',
         adsense_slot_id: '',
+        adsense_slot_sticky: '',
+        adsense_slot_sidebar: '',
+        adsense_slot_below_title: '',
+        adsense_slot_in_content: '',
+        adsense_slot_end_of_post: '',
+        adsense_slot_after_cta: '',
+        // AdMob
         admob_app_id: '',
         admob_banner_id: '',
+        admob_interstitial_id: '',
+        admob_sticky_id: '',
+        admob_in_content_id: '',
+        // Manual banner
         manual_banner_image_url: '',
         manual_banner_target_url: '',
         manual_banner_enabled: false,
@@ -170,7 +193,7 @@ export default function AnalyticsSettings() {
                             value={config.adsense_client_id}
                             onChange={(e) => setConfig({ ...config, adsense_client_id: e.target.value })}
                             placeholder="ca-pub-XXXXXXXXXXXXXXXX"
-                            className="w-full max-w-md border border-slate-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono"
+                            className="w-full max-w-md border border-slate-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 font-mono"
                         />
                         <p className="text-xs text-slate-500">
                             Your AdSense publisher ID starting with "ca-pub-"
@@ -179,31 +202,132 @@ export default function AnalyticsSettings() {
 
                     <div className="space-y-2">
                         <label className="block text-sm font-bold text-slate-700">
-                            Ad Slot ID
+                            Default Slot ID (Fallback)
                         </label>
                         <input
                             type="text"
                             value={config.adsense_slot_id}
                             onChange={(e) => setConfig({ ...config, adsense_slot_id: e.target.value })}
                             placeholder="1234567890"
-                            className="w-full max-w-md border border-slate-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono"
+                            className="w-full max-w-md border border-slate-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 font-mono"
                         />
                         <p className="text-xs text-slate-500">
-                            The ad unit slot ID for display ads
+                            Used when a position-specific slot is not configured
                         </p>
                     </div>
+
+                    {/* Position-specific Ad Slots */}
+                    <div className="pt-4 border-t border-slate-100">
+                        <h4 className="text-sm font-bold text-slate-800 mb-4">Ad Slots by Position</h4>
+                        <p className="text-xs text-slate-500 mb-4">
+                            Configure different ad units for each position. Create separate ad units in AdSense for better tracking.
+                        </p>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <label className="block text-sm font-bold text-slate-700">
+                                    Sticky Anchor (Mobile)
+                                </label>
+                                <input
+                                    type="text"
+                                    value={config.adsense_slot_sticky}
+                                    onChange={(e) => setConfig({ ...config, adsense_slot_sticky: e.target.value })}
+                                    placeholder="1234567890"
+                                    className="w-full border border-slate-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 font-mono"
+                                />
+                                <p className="text-xs text-slate-400">320x50 banner at bottom</p>
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="block text-sm font-bold text-slate-700">
+                                    Sidebar (Desktop)
+                                </label>
+                                <input
+                                    type="text"
+                                    value={config.adsense_slot_sidebar}
+                                    onChange={(e) => setConfig({ ...config, adsense_slot_sidebar: e.target.value })}
+                                    placeholder="1234567890"
+                                    className="w-full border border-slate-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 font-mono"
+                                />
+                                <p className="text-xs text-slate-400">300x600 skyscraper</p>
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="block text-sm font-bold text-slate-700">
+                                    Below Title
+                                </label>
+                                <input
+                                    type="text"
+                                    value={config.adsense_slot_below_title}
+                                    onChange={(e) => setConfig({ ...config, adsense_slot_below_title: e.target.value })}
+                                    placeholder="1234567890"
+                                    className="w-full border border-slate-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 font-mono"
+                                />
+                                <p className="text-xs text-slate-400">300x250 rectangle</p>
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="block text-sm font-bold text-slate-700">
+                                    In-Content
+                                </label>
+                                <input
+                                    type="text"
+                                    value={config.adsense_slot_in_content}
+                                    onChange={(e) => setConfig({ ...config, adsense_slot_in_content: e.target.value })}
+                                    placeholder="1234567890"
+                                    className="w-full border border-slate-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 font-mono"
+                                />
+                                <p className="text-xs text-slate-400">Native/horizontal ad</p>
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="block text-sm font-bold text-slate-700">
+                                    End of Post
+                                </label>
+                                <input
+                                    type="text"
+                                    value={config.adsense_slot_end_of_post}
+                                    onChange={(e) => setConfig({ ...config, adsense_slot_end_of_post: e.target.value })}
+                                    placeholder="1234567890"
+                                    className="w-full border border-slate-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 font-mono"
+                                />
+                                <p className="text-xs text-slate-400">Horizontal banner</p>
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="block text-sm font-bold text-slate-700">
+                                    After CTA
+                                </label>
+                                <input
+                                    type="text"
+                                    value={config.adsense_slot_after_cta}
+                                    onChange={(e) => setConfig({ ...config, adsense_slot_after_cta: e.target.value })}
+                                    placeholder="1234567890"
+                                    className="w-full border border-slate-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 font-mono"
+                                />
+                                <p className="text-xs text-slate-400">High CTR position</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="bg-green-50 border border-green-200 rounded-lg p-4 mt-4">
+                    <p className="text-sm text-green-800">
+                        <strong>Tip:</strong> Create separate ad units in your AdSense account for each position.
+                        This allows you to track performance and optimize each placement independently.
+                    </p>
                 </div>
             </div>
 
             {/* AdMob Section */}
-            <div className="space-y-4">
+            <div className="space-y-4 pb-6 border-b border-slate-200">
                 <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center">
                         <Smartphone className="text-blue-600" size={20} />
                     </div>
                     <div>
                         <h3 className="font-bold text-slate-900">Google AdMob</h3>
-                        <p className="text-xs text-slate-500">Display ads on mobile app (iOS/Android) - for PWA use AdSense</p>
+                        <p className="text-xs text-slate-500">Display ads on native mobile app (Capacitor/iOS/Android)</p>
                     </div>
                 </div>
 
@@ -236,15 +360,64 @@ export default function AnalyticsSettings() {
                             className="w-full max-w-md border border-slate-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono"
                         />
                         <p className="text-xs text-slate-500">
-                            The banner ad unit ID for mobile display
+                            Standard banner ad (320x50) - used for in-content ads
+                        </p>
+                    </div>
+
+                    <div className="space-y-2">
+                        <label className="block text-sm font-bold text-slate-700">
+                            Sticky Banner Ad Unit ID
+                        </label>
+                        <input
+                            type="text"
+                            value={config.admob_sticky_id}
+                            onChange={(e) => setConfig({ ...config, admob_sticky_id: e.target.value })}
+                            placeholder="ca-app-pub-XXXXXXXXXXXXXXXX/XXXXXXXXXX"
+                            className="w-full max-w-md border border-slate-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono"
+                        />
+                        <p className="text-xs text-slate-500">
+                            For sticky anchor banner at bottom of screen
+                        </p>
+                    </div>
+
+                    <div className="space-y-2">
+                        <label className="block text-sm font-bold text-slate-700">
+                            In-Content Ad Unit ID
+                        </label>
+                        <input
+                            type="text"
+                            value={config.admob_in_content_id}
+                            onChange={(e) => setConfig({ ...config, admob_in_content_id: e.target.value })}
+                            placeholder="ca-app-pub-XXXXXXXXXXXXXXXX/XXXXXXXXXX"
+                            className="w-full max-w-md border border-slate-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono"
+                        />
+                        <p className="text-xs text-slate-500">
+                            For ads placed within opportunity/post content
+                        </p>
+                    </div>
+
+                    <div className="space-y-2">
+                        <label className="block text-sm font-bold text-slate-700">
+                            Interstitial Ad Unit ID
+                        </label>
+                        <input
+                            type="text"
+                            value={config.admob_interstitial_id}
+                            onChange={(e) => setConfig({ ...config, admob_interstitial_id: e.target.value })}
+                            placeholder="ca-app-pub-XXXXXXXXXXXXXXXX/XXXXXXXXXX"
+                            className="w-full max-w-md border border-slate-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono"
+                        />
+                        <p className="text-xs text-slate-500">
+                            Full-screen interstitial ad shown on external link clicks
                         </p>
                     </div>
                 </div>
 
-                <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mt-4">
-                    <p className="text-sm text-amber-800">
-                        <strong>Note:</strong> AdMob is for native mobile apps. For this PWA (Progressive Web App),
-                        ads will use Google AdSense which works on both desktop and mobile browsers.
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-4">
+                    <p className="text-sm text-blue-800">
+                        <strong>Platform Detection:</strong> The app automatically detects the platform.
+                        AdSense is used for web browsers (desktop & mobile PWA), while AdMob is used for
+                        native Capacitor apps (Android/iOS).
                     </p>
                 </div>
             </div>

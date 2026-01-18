@@ -4,6 +4,8 @@ import UserNav from './UserNav';
 interface Branding {
     logoUrl: string | null;
     appName: string;
+    logoSpinEnabled?: boolean;
+    logoSpinDuration?: number;
 }
 
 interface AppHeaderProps {
@@ -21,6 +23,11 @@ export default function AppHeader({
     hideOpportunities = false,
     children,
 }: AppHeaderProps) {
+    const logoClassName = `app-logo h-8 md:h-10 object-contain${branding.logoSpinEnabled ? ' logo-spin' : ''}`;
+    const logoStyle = branding.logoSpinEnabled && branding.logoSpinDuration
+        ? { '--logo-spin-duration': `${branding.logoSpinDuration}s` } as React.CSSProperties
+        : undefined;
+
     return (
         <header className="sticky top-0 z-30 bg-white border-b border-slate-200">
             {/* Main nav bar */}
@@ -31,7 +38,8 @@ export default function AppHeader({
                         <img
                             src={branding.logoUrl}
                             alt={branding.appName}
-                            className="app-logo h-8 md:h-10 object-contain"
+                            className={logoClassName}
+                            style={logoStyle}
                         />
                     ) : (
                         <div className="app-logo bg-[#FFDE59] p-1.5 md:p-2 rounded-lg md:rounded-xl font-black text-sm md:text-xl shadow-sm">

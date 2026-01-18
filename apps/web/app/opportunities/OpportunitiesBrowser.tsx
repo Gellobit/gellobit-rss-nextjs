@@ -44,6 +44,8 @@ interface Opportunity {
 interface Branding {
     logoUrl: string | null;
     appName: string;
+    logoSpinEnabled?: boolean;
+    logoSpinDuration?: number;
 }
 
 interface OpportunitiesBrowserProps {
@@ -75,6 +77,12 @@ export default function OpportunitiesBrowser({ opportunities, branding, initialS
     const [tempSelectedTypes, setTempSelectedTypes] = useState<string[]>(initialType ? [initialType] : []);
     const [viewMode, setViewMode] = useState<'table' | 'card'>('table');
     const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+
+    // Logo spin classes
+    const logoClassName = `app-logo object-contain${branding.logoSpinEnabled ? ' logo-spin' : ''}`;
+    const logoStyle = branding.logoSpinEnabled && branding.logoSpinDuration
+        ? { '--logo-spin-duration': `${branding.logoSpinDuration}s` } as React.CSSProperties
+        : undefined;
 
     // Get membership access info
     const { hasFullAccess, limits, loading: membershipLoading } = useMembershipAccess();
@@ -164,7 +172,7 @@ export default function OpportunitiesBrowser({ opportunities, branding, initialS
                 <div className="flex items-center justify-between px-4 h-14 md:hidden">
                     <Link href="/" className="flex items-center gap-2">
                         {branding.logoUrl ? (
-                            <img src={branding.logoUrl} alt={branding.appName} className="app-logo h-8 object-contain" />
+                            <img src={branding.logoUrl} alt={branding.appName} className={`${logoClassName} h-8`} style={logoStyle} />
                         ) : (
                             <div className="app-logo bg-[#FFDE59] p-1.5 rounded-lg font-black text-sm">GB</div>
                         )}
@@ -178,7 +186,7 @@ export default function OpportunitiesBrowser({ opportunities, branding, initialS
                     <div className="flex items-center gap-4">
                         <Link href="/" className="flex items-center gap-2">
                             {branding.logoUrl ? (
-                                <img src={branding.logoUrl} alt={branding.appName} className="app-logo h-10 object-contain" />
+                                <img src={branding.logoUrl} alt={branding.appName} className={`${logoClassName} h-10`} style={logoStyle} />
                             ) : (
                                 <div className="app-logo bg-[#FFDE59] p-2 rounded-xl font-black text-xl">GB</div>
                             )}

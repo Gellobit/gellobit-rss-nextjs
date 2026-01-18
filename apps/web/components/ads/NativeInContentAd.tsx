@@ -6,6 +6,7 @@ import LazyAdUnit from '../LazyAdUnit';
 
 interface NativeInContentAdProps {
   slotId?: string;
+  admobUnitId?: string;
   position?: string;
   variant?: 'card' | 'inline' | 'banner';
   title?: string;
@@ -16,9 +17,13 @@ interface NativeInContentAdProps {
  * Native In-Content Ad
  * Blends with the surrounding content for less intrusive monetization
  * Ideal for career/education content where users are focused
+ *
+ * Web: Uses AdSense with custom styling
+ * Native: Uses AdMob banner (BANNER or MEDIUM_RECTANGLE)
  */
 export default function NativeInContentAd({
   slotId,
+  admobUnitId,
   position = 'native_in_content',
   variant = 'card',
   title = 'Sponsored Content',
@@ -43,6 +48,8 @@ export default function NativeInContentAd({
           <LazyAdUnit
             format="horizontal"
             slotId={slotId}
+            admobUnitId={admobUnitId}
+            admobSize="BANNER"
             position={position}
             className="!my-0"
             showUpgradeLink={true}
@@ -64,6 +71,8 @@ export default function NativeInContentAd({
         <LazyAdUnit
           format="horizontal"
           slotId={slotId}
+          admobUnitId={admobUnitId}
+          admobSize="BANNER"
           position={position}
           className="!my-0"
           showUpgradeLink={true}
@@ -84,6 +93,8 @@ export default function NativeInContentAd({
       <LazyAdUnit
         format="horizontal"
         slotId={slotId}
+        admobUnitId={admobUnitId}
+        admobSize="BANNER"
         position={position}
         className="!my-0"
         showUpgradeLink={true}

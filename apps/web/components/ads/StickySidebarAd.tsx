@@ -6,6 +6,7 @@ import LazyAdUnit from '../LazyAdUnit';
 
 interface StickySidebarAdProps {
   slotId?: string;
+  admobUnitId?: string;
   position?: string;
   format?: 'skyscraper' | 'rectangle';
   className?: string;
@@ -16,9 +17,13 @@ interface StickySidebarAdProps {
  * Large format (300x600 skyscraper or 300x250 rectangle)
  * Follows user as they scroll through long content
  * Ideal for career/education content where users read carefully
+ *
+ * Note: This component is desktop-only and primarily uses AdSense.
+ * On native mobile apps, the sidebar isn't shown, so AdMob isn't used here.
  */
 export default function StickySidebarAd({
   slotId,
+  admobUnitId,
   position = 'sticky_sidebar',
   format = 'skyscraper',
   className = '',
@@ -39,6 +44,8 @@ export default function StickySidebarAd({
           <LazyAdUnit
             format={format === 'skyscraper' ? 'vertical' : 'rectangle'}
             slotId={slotId}
+            admobUnitId={admobUnitId}
+            admobSize={format === 'skyscraper' ? 'LARGE_BANNER' : 'MEDIUM_RECTANGLE'}
             position={position}
             className="!my-0"
             showUpgradeLink={true}

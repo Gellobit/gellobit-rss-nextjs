@@ -7,6 +7,8 @@ import { useState, Suspense } from 'react';
 interface Branding {
     logoUrl: string | null;
     appName: string;
+    logoSpinEnabled?: boolean;
+    logoSpinDuration?: number;
 }
 
 interface AuthFormProps {
@@ -20,6 +22,12 @@ function AuthFormInner({ branding }: AuthFormProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const supabase = createClientComponentClient();
+
+  // Logo spin classes
+  const logoClassName = `app-logo h-12 object-contain mx-auto mb-4${branding.logoSpinEnabled ? ' logo-spin' : ''}`;
+  const logoStyle = branding.logoSpinEnabled && branding.logoSpinDuration
+    ? { '--logo-spin-duration': `${branding.logoSpinDuration}s` } as React.CSSProperties
+    : undefined;
 
   // Get redirect URL from query params (default to /account for logged-in users)
   const redirectUrl = searchParams.get('redirect') || '/account';
@@ -79,7 +87,8 @@ function AuthFormInner({ branding }: AuthFormProps) {
             <img
               src={branding.logoUrl}
               alt={branding.appName}
-              className="app-logo h-12 object-contain mx-auto mb-4"
+              className={logoClassName}
+              style={logoStyle}
             />
           ) : (
             <div className="app-logo inline-block bg-[#FFDE59] p-3 rounded-2xl font-black text-2xl shadow-sm mb-4">GB</div>

@@ -12,21 +12,42 @@ const getBranding = unstable_cache(
     async () => {
         const supabase = createAdminClient();
 
-        const { data: logoSetting } = await supabase
-            .from('system_settings')
-            .select('value')
-            .eq('key', 'personalization.app_logo_url')
-            .maybeSingle();
+        const [logoResult, nameResult, spinEnabledResult, spinDurationResult] = await Promise.all([
+            supabase
+                .from('system_settings')
+                .select('value')
+                .eq('key', 'personalization.app_logo_url')
+                .maybeSingle(),
+            supabase
+                .from('system_settings')
+                .select('value')
+                .eq('key', 'personalization.app_name')
+                .maybeSingle(),
+            supabase
+                .from('system_settings')
+                .select('value')
+                .eq('key', 'personalization.logo_spin_enabled')
+                .maybeSingle(),
+            supabase
+                .from('system_settings')
+                .select('value')
+                .eq('key', 'personalization.logo_spin_duration')
+                .maybeSingle(),
+        ]);
 
-        const { data: nameSetting } = await supabase
-            .from('system_settings')
-            .select('value')
-            .eq('key', 'personalization.app_name')
-            .maybeSingle();
+        // Parse logo spin enabled (could be boolean or string)
+        const spinEnabled = spinEnabledResult.data?.value;
+        const logoSpinEnabled = spinEnabled === true || spinEnabled === 'true';
+
+        // Parse logo spin duration (default to 6 seconds)
+        const spinDuration = spinDurationResult.data?.value;
+        const logoSpinDuration = typeof spinDuration === 'number' ? spinDuration : parseInt(spinDuration) || 6;
 
         return {
-            logoUrl: logoSetting?.value || null,
-            appName: nameSetting?.value || 'GelloBit',
+            logoUrl: logoResult.data?.value || null,
+            appName: nameResult.data?.value || 'GelloBit',
+            logoSpinEnabled,
+            logoSpinDuration,
         };
     },
     ['branding'],
@@ -57,7 +78,10 @@ export default async function AccountLayout({
                             <img
                                 src={branding.logoUrl}
                                 alt={branding.appName}
-                                className="app-logo h-8 md:h-10 object-contain"
+                                className={`app-logo h-8 md:h-10 object-contain${branding.logoSpinEnabled ? ' logo-spin' : ''}`}
+                                style={branding.logoSpinEnabled && branding.logoSpinDuration
+                                    ? { '--logo-spin-duration': `${branding.logoSpinDuration}s` } as React.CSSProperties
+                                    : undefined}
                             />
                         ) : (
                             <div className="app-logo bg-[#FFDE59] p-1.5 md:p-2 rounded-lg md:rounded-xl font-black text-sm md:text-xl shadow-sm">GB</div>

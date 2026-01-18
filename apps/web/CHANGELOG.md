@@ -5,6 +5,35 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.0-alpha.25] - 2026-01-18
+
+### Added
+- **Dual AdSense/AdMob Ad System**
+  - Platform detection utility (`lib/utils/platform.ts`) for web vs native app
+  - AdMob components for Capacitor native apps (Banner, Interstitial, Initializer)
+  - Unified `AdProvider` context for managing both ad platforms
+  - AdMob unit ID configuration in Admin Analytics Settings
+  - Automatic ad platform selection based on runtime environment
+
+- **Position-Specific AdSense Slot IDs**
+  - Individual AdSense slot fields for each ad position in Analytics Settings
+  - Supported positions: sticky, sidebar, below_title, in_content, end_of_post, after_cta
+  - `LazyAdUnit` automatically maps positions to configured slot IDs
+  - Fallback to default slot ID if position-specific not configured
+
+- **Logo Spin Animation**
+  - Toggleable spinning logo animation from Personalization settings
+  - Configurable rotation speed (1-20 seconds per rotation)
+  - CSS animation with `@keyframes logo-spin` in globals.css
+  - Pause on hover for better UX
+  - Live preview in admin settings panel
+  - Applied across all pages: header, landing page, auth, account, admin, opportunity detail
+
+### Changed
+- Updated `LazyAdUnit` component to support position-to-slot mapping
+- Updated branding API to return logo spin settings
+- Updated all page layouts to conditionally apply logo spin animation
+
 ## [1.0.0-alpha.24] - 2026-01-18
 
 ### Added

@@ -1,12 +1,15 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { X, ExternalLink, Loader2 } from 'lucide-react';
 import { useShowAds } from '@/context/UserContext';
 import LazyAdUnit from '../LazyAdUnit';
+import { isNativeApp } from '@/lib/utils/platform';
+import { useAdMobInterstitial } from './admob';
 
 interface ExitInterstitialAdProps {
   slotId?: string;
+  admobUnitId?: string;
   position?: string;
   countdownSeconds?: number;
 }
@@ -21,18 +24,32 @@ interface InterstitialState {
  * Exit Interstitial Ad
  * Shows a full-screen ad when user clicks an external link
  * After countdown, redirects to the target URL
+ *
+ * Web: Shows custom modal with AdSense ad
+ * Native: Shows AdMob interstitial ad
  */
 export default function ExitInterstitialAd({
   slotId,
+  admobUnitId,
   position = 'exit_interstitial',
   countdownSeconds = 5,
 }: ExitInterstitialAdProps) {
   const { shouldShowAds, loading } = useShowAds();
+  const [isNative, setIsNative] = useState(false);
+  const pendingUrlRef = useRef<string | null>(null);
   const [state, setState] = useState<InterstitialState>({
     isOpen: false,
     targetUrl: null,
     countdown: countdownSeconds,
   });
+
+  // Initialize AdMob interstitial hook (will be no-op on web)
+  const { show: showAdMobInterstitial, isReady: isAdMobReady } = useAdMobInterstitial(admobUnitId || '');
+
+  // Detect platform
+  useEffect(() => {
+    setIsNative(isNativeApp());
+  }, []);
 
   // Handle external link clicks
   const handleExternalLinkClick = useCallback((e: MouseEvent) => {
@@ -56,13 +73,28 @@ export default function ExitInterstitialAd({
       e.preventDefault();
       e.stopPropagation();
 
+      // For native apps, show AdMob interstitial
+      if (isNative && admobUnitId && isAdMobReady()) {
+        pendingUrlRef.current = href;
+        showAdMobInterstitial({
+          onDismissed: () => {
+            if (pendingUrlRef.current) {
+              window.open(pendingUrlRef.current, '_blank', 'noopener,noreferrer');
+              pendingUrlRef.current = null;
+            }
+          },
+        });
+        return;
+      }
+
+      // For web, show custom interstitial modal
       setState({
         isOpen: true,
         targetUrl: href,
         countdown: countdownSeconds,
       });
     }
-  }, [shouldShowAds, loading, countdownSeconds]);
+  }, [shouldShowAds, loading, countdownSeconds, isNative, admobUnitId, isAdMobReady, showAdMobInterstitial]);
 
   // Attach click listener
   useEffect(() => {

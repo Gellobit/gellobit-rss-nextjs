@@ -20,6 +20,8 @@ type Section = 'dashboard' | 'feeds' | 'posts' | 'blog' | 'pages' | 'users' | 'a
 interface Branding {
     logoUrl: string | null;
     appName: string;
+    logoSpinEnabled?: boolean;
+    logoSpinDuration?: number;
 }
 
 interface AdminLayoutProps {
@@ -66,7 +68,10 @@ export default function AdminLayout({ initialSection, branding }: AdminLayoutPro
                                 <img
                                     src={branding.logoUrl}
                                     alt={branding.appName}
-                                    className="app-logo h-10 object-contain"
+                                    className={`app-logo h-10 object-contain${branding.logoSpinEnabled ? ' logo-spin' : ''}`}
+                                    style={branding.logoSpinEnabled && branding.logoSpinDuration
+                                        ? { '--logo-spin-duration': `${branding.logoSpinDuration}s` } as React.CSSProperties
+                                        : undefined}
                                 />
                             ) : (
                                 <>

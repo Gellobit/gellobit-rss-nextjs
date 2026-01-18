@@ -20,6 +20,8 @@ interface PersonalizationConfig {
     app_logo_url: string | null;
     app_logo_footer_url: string | null;
     app_name: string;
+    logo_spin_enabled: boolean;
+    logo_spin_duration: number; // in seconds
     custom_css: string;
     // Homepage Content
     hero_badge_text: string;
@@ -65,6 +67,8 @@ const DEFAULT_CONFIG: PersonalizationConfig = {
     app_logo_url: null,
     app_logo_footer_url: null,
     app_name: 'GelloBit',
+    logo_spin_enabled: false,
+    logo_spin_duration: 6,
     custom_css: '',
     hero_badge_text: 'New Platform 2.0 Available!',
     hero_title: 'Verified USA Opportunities',
@@ -396,6 +400,63 @@ export default function PersonalizationSettings() {
                         className="w-full max-w-md border border-slate-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                     <p className="text-xs text-slate-500">Displayed next to the logo in the header</p>
+                </div>
+
+                {/* Logo Spin Animation */}
+                <div className="space-y-4 pt-4 border-t border-slate-200">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <label className="block text-sm font-bold text-slate-900">Logo Spin Animation</label>
+                            <p className="text-xs text-slate-500">Make the logo rotate continuously</p>
+                        </div>
+                        <button
+                            type="button"
+                            onClick={() => setConfig({ ...config, logo_spin_enabled: !config.logo_spin_enabled })}
+                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                                config.logo_spin_enabled ? 'bg-blue-600' : 'bg-slate-200'
+                            }`}
+                        >
+                            <span
+                                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                                    config.logo_spin_enabled ? 'translate-x-6' : 'translate-x-1'
+                                }`}
+                            />
+                        </button>
+                    </div>
+
+                    {config.logo_spin_enabled && (
+                        <div className="space-y-3 pl-4 border-l-2 border-blue-200">
+                            <div className="flex items-center gap-4">
+                                <label className="text-sm font-medium text-slate-700 w-32">Speed</label>
+                                <input
+                                    type="range"
+                                    min="2"
+                                    max="12"
+                                    step="1"
+                                    value={config.logo_spin_duration}
+                                    onChange={(e) => setConfig({ ...config, logo_spin_duration: parseInt(e.target.value) })}
+                                    className="flex-1 max-w-xs h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
+                                />
+                                <span className="text-sm font-mono text-slate-600 w-16">{config.logo_spin_duration}s</span>
+                            </div>
+                            <p className="text-xs text-slate-400">Lower = faster rotation. Recommended: 6 seconds</p>
+
+                            {/* Live Preview */}
+                            {previewUrl && (
+                                <div className="flex items-center gap-3 mt-3">
+                                    <span className="text-xs text-slate-500">Preview:</span>
+                                    <div className="w-12 h-12 bg-white rounded-lg border border-slate-200 flex items-center justify-center p-2">
+                                        <img
+                                            src={previewUrl}
+                                            alt="Logo preview"
+                                            className="max-w-full max-h-full object-contain logo-spin"
+                                            style={{ '--logo-spin-duration': `${config.logo_spin_duration}s` } as React.CSSProperties}
+                                        />
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    )}
                 </div>
 
                 {/* Custom CSS */}

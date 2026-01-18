@@ -4,9 +4,12 @@ import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useShowAds } from '@/context/UserContext';
 import Script from 'next/script';
 import Link from 'next/link';
+import { isNativeApp, getAdProvider } from '@/lib/utils/platform';
 
 interface LazyAdUnitProps {
     slotId?: string;
+    admobUnitId?: string; // AdMob unit ID for native apps
+    admobSize?: 'BANNER' | 'LARGE_BANNER' | 'MEDIUM_RECTANGLE' | 'FULL_BANNER' | 'LEADERBOARD' | 'ADAPTIVE_BANNER';
     format?: 'horizontal' | 'rectangle' | 'vertical' | 'auto';
     className?: string;
     position?: string; // For analytics/tracking: 'post_after_first', 'post_middle', 'post_bottom', etc.
@@ -24,6 +27,8 @@ interface AdConfig {
 
 export default function LazyAdUnit({
     slotId,
+    admobUnitId,
+    admobSize,
     format = 'horizontal',
     className = '',
     position = 'default',
@@ -32,6 +37,7 @@ export default function LazyAdUnit({
 }: LazyAdUnitProps) {
     const { shouldShowAds, loading: membershipLoading } = useShowAds();
     const [isVisible, setIsVisible] = useState(false);
+    const [isNative, setIsNative] = useState(false);
     const [adConfig, setAdConfig] = useState<AdConfig>({
         clientId: null,
         slotId: null,
@@ -42,8 +48,14 @@ export default function LazyAdUnit({
     const [configLoaded, setConfigLoaded] = useState(false);
     const [scriptLoaded, setScriptLoaded] = useState(false);
     const [adInitialized, setAdInitialized] = useState(false);
+    const [admobLoaded, setAdmobLoaded] = useState(false);
     const containerRef = useRef<HTMLDivElement>(null);
     const adRef = useRef<HTMLModElement>(null);
+
+    // Detect platform on mount
+    useEffect(() => {
+        setIsNative(isNativeApp());
+    }, []);
 
     // Intersection Observer for lazy loading
     useEffect(() => {
@@ -75,14 +87,77 @@ export default function LazyAdUnit({
     useEffect(() => {
         if (!isVisible || !shouldShowAds || membershipLoading) return;
 
+        // For native apps with AdMob, load AdMob banner
+        if (isNative && admobUnitId) {
+            const loadAdMob = async () => {
+                try {
+                    const { AdMob, BannerAdSize, BannerAdPosition } = await import('@capacitor-community/admob');
+
+                    // Map format to AdMob size
+                    const sizeMap: Record<string, typeof BannerAdSize.BANNER> = {
+                        horizontal: BannerAdSize.BANNER,
+                        rectangle: BannerAdSize.MEDIUM_RECTANGLE,
+                        vertical: BannerAdSize.LARGE_BANNER,
+                        auto: BannerAdSize.ADAPTIVE_BANNER,
+                    };
+
+                    await AdMob.showBanner({
+                        adId: admobUnitId,
+                        adSize: admobSize ? BannerAdSize[admobSize] : sizeMap[format] || BannerAdSize.ADAPTIVE_BANNER,
+                        position: BannerAdPosition.BOTTOM_CENTER,
+                        margin: 0,
+                        isTesting: process.env.NODE_ENV === 'development',
+                    });
+                    setAdmobLoaded(true);
+                } catch (error) {
+                    console.error('AdMob banner error:', error);
+                }
+                setConfigLoaded(true);
+            };
+            loadAdMob();
+            return;
+        }
+
+        // For web, fetch AdSense configuration
         const fetchAdConfig = async () => {
             try {
                 const res = await fetch('/api/analytics');
                 if (res.ok) {
                     const data = await res.json();
+
+                    // Get position-specific slot ID or fallback to default
+                    const getSlotForPosition = (pos: string): string | null => {
+                        // If slotId prop is provided, use it directly
+                        if (slotId) return slotId;
+
+                        // Map position to slot key
+                        const positionToSlotMap: Record<string, string> = {
+                            'sticky_anchor': data.adsense_slot_sticky,
+                            'sticky': data.adsense_slot_sticky,
+                            'sidebar': data.adsense_slot_sidebar,
+                            'sticky_sidebar': data.adsense_slot_sidebar,
+                            'below_title': data.adsense_slot_below_title,
+                            'in_content': data.adsense_slot_in_content,
+                            'native_in_content': data.adsense_slot_in_content,
+                            'end_of_post': data.adsense_slot_end_of_post,
+                            'post_bottom': data.adsense_slot_end_of_post,
+                            'after_cta': data.adsense_slot_after_cta,
+                        };
+
+                        // Check for partial position matches (e.g., "sweepstakes_below_title" -> "below_title")
+                        for (const [key, value] of Object.entries(positionToSlotMap)) {
+                            if (pos.includes(key) && value) {
+                                return value;
+                            }
+                        }
+
+                        // Fallback to default slot
+                        return data.adsense_slot_id || null;
+                    };
+
                     setAdConfig({
                         clientId: data.adsense_client_id || null,
-                        slotId: slotId || data.adsense_slot_id || null,
+                        slotId: getSlotForPosition(position),
                         manualBannerEnabled: data.manual_banner_enabled === true,
                         manualBannerImageUrl: data.manual_banner_image_url || null,
                         manualBannerTargetUrl: data.manual_banner_target_url || null,
@@ -96,7 +171,7 @@ export default function LazyAdUnit({
         };
 
         fetchAdConfig();
-    }, [isVisible, slotId, shouldShowAds, membershipLoading]);
+    }, [isVisible, slotId, shouldShowAds, membershipLoading, isNative, admobUnitId, admobSize, format, position]);
 
     // Initialize AdSense ad after script loads
     const initializeAd = useCallback(() => {
@@ -150,6 +225,22 @@ export default function LazyAdUnit({
                 data-ad-position={position}
             >
                 <div className={`${getPlaceholderStyles(format)} animate-pulse`} />
+            </div>
+        );
+    }
+
+    // Native app with AdMob - the banner is rendered natively, not in React
+    if (isNative && admobLoaded) {
+        // AdMob banners are rendered by the native SDK, not in the React tree
+        // Return a placeholder to maintain layout spacing
+        return (
+            <div
+                ref={containerRef}
+                className={`my-6 ${className}`}
+                data-ad-position={position}
+                data-ad-platform="admob"
+            >
+                <div className={`${getPlaceholderStyles(format)} bg-transparent`} />
             </div>
         );
     }
