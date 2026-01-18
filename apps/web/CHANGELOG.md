@@ -5,6 +5,58 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.0-alpha.23] - 2026-01-18
+
+### Added
+- **Enhanced Scraper Service**
+  - User Agent rotation with 6 different browser agents
+  - URL validation before fetching (protocol, format, blocked domains)
+  - Charset/encoding detection and handling from Content-Type headers
+  - Extended metadata extraction (description, author, publishedDate, image)
+
+- **Automatic Cleanup System**
+  - New `CleanupService` for managing expired opportunities
+  - Per-opportunity-type cleanup configuration (different max age for each type)
+  - Support for evergreen content (types with -1 max age are never deleted)
+  - Cleanup cron job running daily at 3:00 AM UTC
+  - New `/api/cron/cleanup` endpoint for Vercel Cron
+
+- **Cleanup Settings Admin UI**
+  - New "Cleanup" tab in Settings with Trash2 icon
+  - Expiration statistics dashboard (expired, expiring in 7/30 days, no deadline)
+  - Grace period configuration for deadline-based cleanup
+  - Per-type max age configuration with visual cards
+  - Manual "Run Cleanup" button with results display
+  - Info note about blog posts being unaffected by cleanup
+
+- **SEO Implementation**
+  - Created `app/sitemap.ts` - auto-generated sitemap with homepage, posts, and pages
+  - Created `app/robots.ts` - blocks AI crawlers and protected routes
+  - Sitemap excludes opportunities (protected/perishable content)
+
+- **Opportunities Privacy Protection**
+  - 5-layer protection for opportunities content:
+    1. Middleware authentication redirect
+    2. X-Robots-Tag headers (noindex, nofollow, noarchive, nosnippet)
+    3. Metadata robots directives in page components
+    4. API route authentication requirements
+    5. robots.txt disallow rules
+  - Removed Open Graph from opportunity pages to prevent social previews
+
+- **SEO Info in Settings**
+  - Added SEO Configuration section in Settings > General
+  - Shows sitemap.xml and robots.txt status with direct links
+  - Displays protected routes information
+
+### Changed
+- Updated `/api/admin/cleanup` to use cookie-based session auth (matching other admin APIs)
+- Added Cleanup cron to `vercel.json` configuration
+
+### Technical Details
+- New `CleanupMaxAgeByType` interface in settings service
+- Default cleanup ages: contest=30, scholarship=90, promo=14, evergreen=-1, etc.
+- Scraper now uses `ReturnType<typeof cheerio.load>` for proper typing
+
 ## [1.0.0-alpha.22] - 2026-01-17
 
 ### Added

@@ -44,6 +44,11 @@ async function getOpportunity(slug: string): Promise<Opportunity | null> {
   return data;
 }
 
+/**
+ * Generate metadata for opportunity detail page
+ * IMPORTANT: This page is protected and should NOT be indexed by search engines
+ * All opportunities are private content behind authentication
+ */
 export async function generateMetadata({
   params
 }: {
@@ -55,17 +60,28 @@ export async function generateMetadata({
   if (!opportunity) {
     return {
       title: 'Opportunity Not Found',
+      robots: {
+        index: false,
+        follow: false,
+      },
     };
   }
 
   return {
     title: opportunity.title,
     description: opportunity.excerpt || `${opportunity.title} - ${opportunity.opportunity_type}`,
-    openGraph: {
-      title: opportunity.title,
-      description: opportunity.excerpt || undefined,
-      images: opportunity.featured_image_url ? [opportunity.featured_image_url] : undefined,
+    // CRITICAL: Prevent indexing of protected content
+    robots: {
+      index: false,
+      follow: false,
+      nocache: true,
+      googleBot: {
+        index: false,
+        follow: false,
+        noimageindex: true,
+      },
     },
+    // No Open Graph for private content - prevents social media previews
   };
 }
 

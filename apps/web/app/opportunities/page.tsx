@@ -1,9 +1,29 @@
 import { createAdminClient } from '@/lib/utils/supabase-admin';
 import { unstable_cache } from 'next/cache';
 import OpportunitiesBrowser from './OpportunitiesBrowser';
+import { Metadata } from 'next';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
+
+/**
+ * Metadata for opportunities page
+ * IMPORTANT: This page is protected and should NOT be indexed by search engines
+ */
+export const metadata: Metadata = {
+    title: 'Opportunities',
+    description: 'Browse verified opportunities',
+    robots: {
+        index: false,
+        follow: false,
+        nocache: true,
+        googleBot: {
+            index: false,
+            follow: false,
+            noimageindex: true,
+        },
+    },
+};
 
 // Cached function to fetch branding settings
 const getBranding = unstable_cache(

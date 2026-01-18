@@ -4,13 +4,80 @@ import { settingsService } from './settings.service';
 import type { ScrapedContent } from '../../prompts';
 
 /**
+ * Extended scraped content with additional metadata
+ */
+export interface ScrapedContentExtended extends ScrapedContent {
+  description?: string;
+  author?: string;
+  publishedDate?: string;
+  image?: string;
+}
+
+/**
  * Scraper Service - Enhanced web scraping with Google redirect handling
  * Extracts clean content from URLs for AI processing
  */
 export class ScraperService {
   private static instance: ScraperService;
 
+  /**
+   * User Agent rotation array for anti-bot detection
+   * Rotates between different browser signatures
+   */
+  private readonly userAgents: string[] = [
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:121.0) Gecko/20100101 Firefox/121.0',
+    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.2 Safari/605.1.15',
+    'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 Edg/120.0.0.0',
+  ];
+
   private constructor() {}
+
+  /**
+   * Get a random User Agent from the rotation array
+   */
+  private getRandomUserAgent(): string {
+    const index = Math.floor(Math.random() * this.userAgents.length);
+    return this.userAgents[index];
+  }
+
+  /**
+   * Validate URL before attempting to fetch
+   * Checks for valid format and allowed schemes
+   */
+  private validateUrl(url: string): { valid: boolean; error?: string } {
+    try {
+      const parsed = new URL(url);
+
+      // Check for allowed schemes
+      if (!['http:', 'https:'].includes(parsed.protocol)) {
+        return { valid: false, error: `Invalid URL scheme: ${parsed.protocol}` };
+      }
+
+      // Check for valid hostname
+      if (!parsed.hostname || parsed.hostname.length === 0) {
+        return { valid: false, error: 'Missing hostname' };
+      }
+
+      // Block localhost and private IPs for security
+      const hostname = parsed.hostname.toLowerCase();
+      if (
+        hostname === 'localhost' ||
+        hostname === '127.0.0.1' ||
+        hostname.startsWith('192.168.') ||
+        hostname.startsWith('10.') ||
+        hostname.startsWith('172.16.')
+      ) {
+        return { valid: false, error: 'Private/local URLs not allowed' };
+      }
+
+      return { valid: true };
+    } catch {
+      return { valid: false, error: 'Invalid URL format' };
+    }
+  }
 
   static getInstance(): ScraperService {
     if (!ScraperService.instance) {
@@ -24,15 +91,21 @@ export class ScraperService {
    *
    * @param url - URL to scrape
    * @param feedId - Optional feed ID for logging
-   * @returns Scraped content or null if failed
+   * @returns Scraped content with metadata or null if failed
    */
   async scrapeUrl(
     url: string,
     feedId?: string
-  ): Promise<ScrapedContent | null> {
+  ): Promise<ScrapedContentExtended | null> {
     const startTime = Date.now();
 
     try {
+      // Validate URL before proceeding
+      const urlValidation = this.validateUrl(url);
+      if (!urlValidation.valid) {
+        throw new Error(`URL validation failed: ${urlValidation.error}`);
+      }
+
       // Load scraping settings
       const followGoogleFeedproxy = await settingsService.get('scraping.follow_google_feedproxy');
 
@@ -41,21 +114,32 @@ export class ScraperService {
         ? await this.resolveGoogleRedirect(url)
         : url;
 
+      // Validate resolved URL as well (redirect could point to invalid URL)
+      if (resolvedUrl !== url) {
+        const resolvedValidation = this.validateUrl(resolvedUrl);
+        if (!resolvedValidation.valid) {
+          throw new Error(`Resolved URL validation failed: ${resolvedValidation.error}`);
+        }
+      }
+
       // Load settings for scraping
       const timeout = await settingsService.get('scraping.request_timeout');
-      const userAgent = await settingsService.get('scraping.user_agent');
+      const configuredUserAgent = await settingsService.get('scraping.user_agent');
       const minContentLength = await settingsService.get('scraping.min_content_length');
       const maxContentLength = await settingsService.get('scraping.max_content_length');
 
-      // Fetch content
-      const html = await this.fetchHtml(resolvedUrl, userAgent, timeout);
+      // Use configured User Agent or rotate from array
+      const userAgent = configuredUserAgent || this.getRandomUserAgent();
+
+      // Fetch content with charset handling
+      const { html, charset } = await this.fetchHtmlWithCharset(resolvedUrl, userAgent, timeout);
 
       if (!html) {
         throw new Error('Empty response from URL');
       }
 
-      // Extract content with Cheerio
-      const scraped = this.extractContent(html, resolvedUrl, minContentLength, maxContentLength);
+      // Extract content with Cheerio (includes metadata)
+      const scraped = this.extractContentWithMetadata(html, resolvedUrl, minContentLength, maxContentLength);
 
       const executionTime = Date.now() - startTime;
 
@@ -63,6 +147,8 @@ export class ScraperService {
         url: resolvedUrl,
         feed_id: feedId,
         content_length: scraped.content.length,
+        charset_detected: charset,
+        has_metadata: !!(scraped.description || scraped.author || scraped.image),
         execution_time_ms: executionTime,
       });
 
@@ -148,14 +234,18 @@ export class ScraperService {
   }
 
   /**
-   * Fetch HTML content from URL
+   * Fetch HTML content from URL with charset detection and conversion
    *
    * @param url - URL to fetch
    * @param userAgent - User agent string
    * @param timeout - Request timeout in ms
-   * @returns HTML content or null
+   * @returns HTML content and detected charset
    */
-  private async fetchHtml(url: string, userAgent: string, timeout: number): Promise<string | null> {
+  private async fetchHtmlWithCharset(
+    url: string,
+    userAgent: string,
+    timeout: number
+  ): Promise<{ html: string | null; charset: string }> {
     try {
       const response = await fetch(url, {
         headers: {
@@ -163,6 +253,7 @@ export class ScraperService {
           Accept:
             'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
           'Accept-Language': 'en-US,en;q=0.9',
+          'Accept-Charset': 'utf-8, iso-8859-1;q=0.5',
         },
         signal: AbortSignal.timeout(timeout),
       });
@@ -178,13 +269,93 @@ export class ScraperService {
         throw new Error(`Invalid content type: ${contentType}`);
       }
 
-      return await response.text();
+      // Extract charset from Content-Type header
+      let charset = 'utf-8';
+      const charsetMatch = contentType.match(/charset=([^\s;]+)/i);
+      if (charsetMatch) {
+        charset = charsetMatch[1].toLowerCase().replace(/['"]/g, '');
+      }
+
+      // Get response as ArrayBuffer for proper encoding handling
+      const buffer = await response.arrayBuffer();
+
+      // Convert to string with proper encoding
+      let html: string;
+      if (charset === 'utf-8' || charset === 'utf8') {
+        html = new TextDecoder('utf-8').decode(buffer);
+      } else {
+        // Try to decode with detected charset
+        try {
+          const decoder = new TextDecoder(charset);
+          html = decoder.decode(buffer);
+        } catch {
+          // Fallback: try common encodings
+          html = this.decodeWithFallback(buffer, charset);
+        }
+      }
+
+      // Also check for charset in HTML meta tags if not found in header
+      if (charset === 'utf-8') {
+        const metaCharset = this.extractCharsetFromHtml(html);
+        if (metaCharset && metaCharset !== 'utf-8') {
+          // Re-decode with the charset found in HTML
+          try {
+            const decoder = new TextDecoder(metaCharset);
+            html = decoder.decode(buffer);
+            charset = metaCharset;
+          } catch {
+            // Keep the UTF-8 decoded version
+          }
+        }
+      }
+
+      return { html, charset };
     } catch (error) {
       if (error instanceof Error && error.name === 'AbortError') {
         throw new Error('Request timeout');
       }
       throw error;
     }
+  }
+
+  /**
+   * Decode buffer with fallback encodings
+   */
+  private decodeWithFallback(buffer: ArrayBuffer, originalCharset: string): string {
+    const fallbackEncodings = ['utf-8', 'iso-8859-1', 'windows-1252', 'iso-8859-15'];
+
+    for (const encoding of fallbackEncodings) {
+      try {
+        const decoder = new TextDecoder(encoding);
+        return decoder.decode(buffer);
+      } catch {
+        continue;
+      }
+    }
+
+    // Last resort: decode as UTF-8 with replacement characters
+    return new TextDecoder('utf-8', { fatal: false }).decode(buffer);
+  }
+
+  /**
+   * Extract charset from HTML meta tags
+   */
+  private extractCharsetFromHtml(html: string): string | null {
+    // Check <meta charset="...">
+    const metaCharsetMatch = html.match(/<meta\s+charset=["']?([^"'\s>]+)/i);
+    if (metaCharsetMatch) {
+      return metaCharsetMatch[1].toLowerCase();
+    }
+
+    // Check <meta http-equiv="Content-Type" content="...; charset=...">
+    const httpEquivMatch = html.match(
+      /<meta[^>]+http-equiv=["']?content-type["']?[^>]+content=["']?[^"']*charset=([^"'\s;>]+)/i
+    );
+    if (httpEquivMatch) {
+      return httpEquivMatch[1].toLowerCase();
+    }
+
+    return null;
   }
 
   /**
@@ -277,10 +448,138 @@ export class ScraperService {
   }
 
   /**
+   * Extract content with additional metadata from HTML
+   * Enhanced version that includes description, author, date, and image
+   *
+   * @param html - HTML content
+   * @param url - Source URL
+   * @param minLength - Minimum content length
+   * @param maxLength - Maximum content length
+   * @returns Scraped content with metadata
+   */
+  private extractContentWithMetadata(
+    html: string,
+    url: string,
+    minLength: number,
+    maxLength: number
+  ): ScrapedContentExtended {
+    const $ = cheerio.load(html);
+
+    // Remove unwanted elements
+    $('script, style, nav, header, footer, aside, iframe, noscript').remove();
+    $('.advertisement, .ads, .social-share, .comments, .sidebar').remove();
+
+    // Extract title (same as before)
+    let title =
+      $('meta[property="og:title"]').attr('content') ||
+      $('meta[name="twitter:title"]').attr('content') ||
+      $('title').text() ||
+      $('h1').first().text() ||
+      '';
+    title = this.cleanText(title);
+
+    // Extract description
+    let description =
+      $('meta[name="description"]').attr('content') ||
+      $('meta[property="og:description"]').attr('content') ||
+      $('meta[name="twitter:description"]').attr('content') ||
+      '';
+    description = this.cleanText(description);
+
+    // Extract author
+    let author =
+      $('meta[name="author"]').attr('content') ||
+      $('meta[property="article:author"]').attr('content') ||
+      $('[rel="author"]').first().text() ||
+      $('[itemprop="author"]').first().text() ||
+      $('.author-name').first().text() ||
+      $('.byline').first().text() ||
+      '';
+    author = this.cleanText(author);
+
+    // Extract published date
+    let publishedDate =
+      $('meta[property="article:published_time"]').attr('content') ||
+      $('meta[name="pubdate"]').attr('content') ||
+      $('time[datetime]').first().attr('datetime') ||
+      $('[itemprop="datePublished"]').first().attr('content') ||
+      $('[itemprop="datePublished"]').first().text() ||
+      '';
+    publishedDate = this.cleanText(publishedDate);
+
+    // Extract featured image
+    const image = this.extractFeaturedImage($, url);
+
+    // Extract main content
+    let content = '';
+    const contentSelectors = [
+      'article',
+      '[role="main"]',
+      '.post-content',
+      '.entry-content',
+      '.article-content',
+      '.content',
+      'main',
+      '#content',
+      '.post',
+      '.article',
+    ];
+
+    for (const selector of contentSelectors) {
+      const element = $(selector);
+      if (element.length > 0) {
+        content = element.text();
+        if (content.trim().length >= minLength) {
+          break;
+        }
+      }
+    }
+
+    // Fallback: extract all paragraph text
+    if (!content || content.trim().length < minLength) {
+      content = $('p')
+        .filter((_, el) => $(el).text().trim().length > 30)
+        .map((_, el) => $(el).text())
+        .get()
+        .join('\n');
+    }
+
+    // Final fallback: extract body text
+    if (!content || content.trim().length < minLength) {
+      content = $('body').text();
+    }
+
+    // Clean content
+    content = this.cleanText(content);
+
+    // Limit content length
+    if (content.length > maxLength) {
+      const originalLength = content.length;
+      content = content.substring(0, maxLength) + '...';
+
+      logger.warning('Content truncated due to length', {
+        url,
+        original_length: originalLength,
+        truncated_length: maxLength,
+      });
+    }
+
+    return {
+      title,
+      content,
+      url,
+      description: description || undefined,
+      author: author || undefined,
+      publishedDate: publishedDate || undefined,
+      image: image || undefined,
+    };
+  }
+
+  /**
    * Extract featured image from HTML
    * Tries multiple strategies: OG image, Twitter card, first content image
    */
-  private extractFeaturedImage($: cheerio.CheerioAPI, baseUrl: string): string | null {
+  private extractFeaturedImage($: ReturnType<typeof cheerio.load>, baseUrl: string): string | null {
     // 1. Try Open Graph image
     let imageUrl = $('meta[property="og:image"]').attr('content');
 
@@ -399,14 +698,14 @@ export class ScraperService {
    * @param urls - Array of URLs to scrape
    * @param feedId - Optional feed ID for logging
    * @param concurrency - Number of concurrent requests (default 3)
-   * @returns Array of scraped content (null for failed scrapes)
+   * @returns Array of scraped content with metadata (null for failed scrapes)
    */
   async scrapeUrls(
     urls: string[],
     feedId?: string,
     concurrency: number = 3
-  ): Promise<(ScrapedContent | null)[]> {
-    const results: (ScrapedContent | null)[] = [];
+  ): Promise<(ScrapedContentExtended | null)[]> {
+    const results: (ScrapedContentExtended | null)[] = [];
 
     // Process URLs in batches
     for (let i = 0; i < urls.length; i += concurrency) {

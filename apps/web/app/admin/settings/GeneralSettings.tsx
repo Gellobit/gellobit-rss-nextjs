@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Save, RefreshCw } from 'lucide-react';
+import { Save, RefreshCw, Globe, FileText, ExternalLink, CheckCircle } from 'lucide-react';
 
 interface GeneralConfig {
     automatic_processing: boolean;
@@ -110,6 +110,77 @@ export default function GeneralSettings() {
                     {message.text}
                 </div>
             )}
+
+            {/* SEO Information */}
+            <div className="bg-slate-50 border border-slate-200 rounded-lg p-4 space-y-4">
+                <div className="flex items-center gap-2">
+                    <Globe size={18} className="text-slate-700" />
+                    <h3 className="text-sm font-bold text-slate-900">SEO Configuration</h3>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Sitemap */}
+                    <div className="bg-white rounded-lg p-4 border border-slate-200">
+                        <div className="flex items-start gap-3">
+                            <div className="p-2 bg-green-100 rounded-lg">
+                                <FileText size={16} className="text-green-600" />
+                            </div>
+                            <div className="flex-1">
+                                <div className="flex items-center gap-2">
+                                    <span className="text-sm font-bold text-slate-900">Sitemap</span>
+                                    <CheckCircle size={14} className="text-green-500" />
+                                </div>
+                                <p className="text-xs text-slate-500 mt-1">
+                                    Auto-generated sitemap includes homepage, blog posts, and static pages.
+                                    Opportunities are excluded (protected content).
+                                </p>
+                                <a
+                                    href="/sitemap.xml"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 mt-2 font-medium"
+                                >
+                                    View sitemap.xml
+                                    <ExternalLink size={12} />
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Robots.txt */}
+                    <div className="bg-white rounded-lg p-4 border border-slate-200">
+                        <div className="flex items-start gap-3">
+                            <div className="p-2 bg-blue-100 rounded-lg">
+                                <FileText size={16} className="text-blue-600" />
+                            </div>
+                            <div className="flex-1">
+                                <div className="flex items-center gap-2">
+                                    <span className="text-sm font-bold text-slate-900">Robots.txt</span>
+                                    <CheckCircle size={14} className="text-green-500" />
+                                </div>
+                                <p className="text-xs text-slate-500 mt-1">
+                                    Configured to block crawlers from protected routes (/opportunities, /admin, /api).
+                                    AI crawlers are also blocked.
+                                </p>
+                                <a
+                                    href="/robots.txt"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 mt-2 font-medium"
+                                >
+                                    View robots.txt
+                                    <ExternalLink size={12} />
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="text-xs text-slate-500 bg-slate-100 rounded-lg p-3">
+                    <strong>Protected Routes:</strong> /opportunities, /saved, /account, /admin, /auth are protected with multiple layers:
+                    middleware auth redirect, X-Robots-Tag headers, noindex metadata, and robots.txt disallow rules.
+                </div>
+            </div>
 
             {/* Automatic Processing */}
             <div className="space-y-2">

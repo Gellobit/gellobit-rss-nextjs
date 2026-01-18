@@ -10,6 +10,15 @@ const PROTECTED_ROUTES = [
     '/admin',
 ]
 
+// Routes that should never be indexed by search engines
+const NOINDEX_ROUTES = [
+    '/opportunities',
+    '/saved',
+    '/account',
+    '/admin',
+    '/auth',
+]
+
 export async function middleware(req: NextRequest) {
     const res = NextResponse.next()
     const supabase = createMiddlewareClient({ req, res })
@@ -27,6 +36,13 @@ export async function middleware(req: NextRequest) {
         const redirectUrl = new URL('/auth', req.url)
         redirectUrl.searchParams.set('redirect', pathname + req.nextUrl.search)
         return NextResponse.redirect(redirectUrl)
+    }
+
+    // Add X-Robots-Tag header for protected/private routes
+    // This tells crawlers not to index even if they somehow access the page
+    const isNoIndexRoute = NOINDEX_ROUTES.some(route => pathname.startsWith(route))
+    if (isNoIndexRoute) {
+        res.headers.set('X-Robots-Tag', 'noindex, nofollow, noarchive, nosnippet')
     }
 
     return res

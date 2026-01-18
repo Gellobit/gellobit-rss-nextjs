@@ -1,12 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/utils/supabase-admin';
+import { createRouteClient } from '@/lib/utils/supabase-route';
 
 /**
  * GET /api/opportunities
- * Public API to get published opportunities
+ * Protected API to get published opportunities
+ * Requires authentication - opportunities are private content
  */
 export async function GET(request: NextRequest) {
   try {
+    // Verify user is authenticated
+    const supabaseAuth = await createRouteClient();
+    const { data: { user }, error: authError } = await supabaseAuth.auth.getUser();
+
+    if (authError || !user) {
+      return NextResponse.json(
+        { error: 'Authentication required' },
+        { status: 401 }
+      );
+    }
+
     const { searchParams } = new URL(request.url);
     const type = searchParams.get('type');
     const limit = Math.min(parseInt(searchParams.get('limit') || '20'), 100);

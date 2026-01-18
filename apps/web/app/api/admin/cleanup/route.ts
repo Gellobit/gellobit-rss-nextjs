@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cleanupService } from '@/lib/services/cleanup.service';
+import { createRouteClient } from '@/lib/utils/supabase-route';
 import { createAdminClient } from '@/lib/utils/supabase-admin';
 
 /**
@@ -9,23 +10,17 @@ import { createAdminClient } from '@/lib/utils/supabase-admin';
  */
 export async function POST(request: NextRequest) {
   try {
-    // Verify admin authentication
-    const supabase = createAdminClient();
-    const authHeader = request.headers.get('authorization');
+    // Verify admin authentication using cookie-based session
+    const supabase = await createRouteClient();
+    const { data: { user } } = await supabase.auth.getUser();
 
-    if (!authHeader?.startsWith('Bearer ')) {
+    if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const token = authHeader.split(' ')[1];
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
-    }
-
     // Check if user is admin
-    const { data: profile } = await supabase
+    const adminSupabase = createAdminClient();
+    const { data: profile } = await adminSupabase
       .from('profiles')
       .select('role')
       .eq('id', user.id)
@@ -41,8 +36,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: result.success,
       deleted_count: result.deletedCount,
+      deleted_by_type: result.deletedByType,
+      skipped_evergreen: result.skippedEvergreen,
       errors: result.errors,
-      message: `Cleanup completed. Deleted ${result.deletedCount} expired opportunities.`,
+      message: `Cleanup completed. Deleted ${result.deletedCount} expired opportunities. Skipped ${result.skippedEvergreen} evergreen items.`,
     });
   } catch (error) {
     console.error('Cleanup error:', error);
@@ -59,19 +56,24 @@ export async function POST(request: NextRequest) {
  */
 export async function GET(request: NextRequest) {
   try {
-    // Verify admin authentication
-    const supabase = createAdminClient();
-    const authHeader = request.headers.get('authorization');
+    // Verify admin authentication using cookie-based session
+    const supabase = await createRouteClient();
+    const { data: { user } } = await supabase.auth.getUser();
 
-    if (!authHeader?.startsWith('Bearer ')) {
+    if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const token = authHeader.split(' ')[1];
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    // Check if user is admin
+    const adminSupabase = createAdminClient();
+    const { data: profile } = await adminSupabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single();
 
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
+    if (profile?.role !== 'admin') {
+      return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
     }
 
     // Get stats

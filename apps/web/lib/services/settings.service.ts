@@ -1,5 +1,25 @@
 import { createAdminClient } from '../utils/supabase-admin';
 
+/**
+ * Cleanup configuration per opportunity type
+ * Values represent days after which to delete opportunities without deadline
+ * Use -1 to never delete (for evergreen content)
+ */
+export interface CleanupMaxAgeByType {
+    contest: number;
+    giveaway: number;
+    sweepstakes: number;
+    dream_job: number;
+    get_paid_to: number;
+    instant_win: number;
+    job_fair: number;
+    scholarship: number;
+    volunteer: number;
+    free_training: number;
+    promo: number;
+    evergreen: number;
+}
+
 interface SystemSettings {
     // General
     'general.automatic_processing': boolean;
@@ -23,6 +43,7 @@ interface SystemSettings {
     // Cleanup
     'cleanup.days_after_deadline': number;
     'cleanup.max_age_days_no_deadline': number;
+    'cleanup.max_age_by_type': CleanupMaxAgeByType;
 }
 
 type SettingKey = keyof SystemSettings;
@@ -232,6 +253,20 @@ class SettingsService {
             'personalization.app_name': 'GelloBit',
             'cleanup.days_after_deadline': 7,
             'cleanup.max_age_days_no_deadline': 30,
+            'cleanup.max_age_by_type': {
+                contest: 30,
+                giveaway: 30,
+                sweepstakes: 30,
+                dream_job: 60,
+                get_paid_to: 45,
+                instant_win: 14,
+                job_fair: 30,
+                scholarship: 90,
+                volunteer: 60,
+                free_training: 60,
+                promo: 14,
+                evergreen: -1, // Never delete
+            },
         };
         return defaults[key];
     }

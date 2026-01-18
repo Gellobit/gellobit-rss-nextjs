@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Settings as SettingsIcon, Sparkles, FileText, Globe, Wrench, Image as ImageIcon, Palette, BarChart3, Crown, Mail, Bell } from 'lucide-react';
+import { Settings as SettingsIcon, Sparkles, FileText, Globe, Wrench, Image as ImageIcon, Palette, BarChart3, Crown, Mail, Bell, Trash2 } from 'lucide-react';
 import GeneralSettings from './settings/GeneralSettings';
 import AISettings from './settings/AISettings';
 import PromptsSettings from './settings/PromptsSettings';
@@ -13,8 +13,9 @@ import AnalyticsSettings from './settings/AnalyticsSettings';
 import MembershipSettings from './settings/MembershipSettings';
 import EmailSettings from './settings/EmailSettings';
 import PushSettings from './settings/PushSettings';
+import CleanupSettings from './settings/CleanupSettings';
 
-type SettingsTab = 'general' | 'ai' | 'prompts' | 'scraping' | 'media' | 'personalization' | 'membership' | 'email' | 'push' | 'analytics' | 'advanced';
+type SettingsTab = 'general' | 'ai' | 'prompts' | 'scraping' | 'media' | 'personalization' | 'membership' | 'email' | 'push' | 'analytics' | 'cleanup' | 'advanced';
 
 export default function Settings() {
     const [activeTab, setActiveTab] = useState<SettingsTab>('general');
@@ -30,6 +31,7 @@ export default function Settings() {
         { id: 'email', label: 'Email', icon: Mail },
         { id: 'push', label: 'Push', icon: Bell },
         { id: 'analytics', label: 'Analytics & Ads', icon: BarChart3 },
+        { id: 'cleanup', label: 'Cleanup', icon: Trash2 },
         { id: 'advanced', label: 'Advanced', icon: Wrench },
     ] as const;
 
@@ -73,6 +75,7 @@ export default function Settings() {
                     {activeTab === 'email' && <EmailSettings />}
                     {activeTab === 'push' && <PushSettings />}
                     {activeTab === 'analytics' && <AnalyticsSettings />}
+                    {activeTab === 'cleanup' && <CleanupSettings />}
                     {activeTab === 'advanced' && <AdvancedSettings />}
                 </div>
             </div>

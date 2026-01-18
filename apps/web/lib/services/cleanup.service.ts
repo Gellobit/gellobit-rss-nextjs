@@ -1,10 +1,12 @@
 import { createAdminClient } from '../utils/supabase-admin';
 import { logger } from '../utils/logger';
-import { settingsService } from './settings.service';
+import { settingsService, CleanupMaxAgeByType } from './settings.service';
+import { OpportunityType } from '../types/database.types';
 
 /**
  * Cleanup Service - Manages expired opportunities
  * Removes opportunities that have passed their deadline to keep database clean
+ * Supports per-opportunity-type configuration for max age
  */
 export class CleanupService {
   private static instance: CleanupService;
@@ -22,45 +24,48 @@ export class CleanupService {
    * Find and delete expired opportunities
    * An opportunity is considered expired if:
    * - It has a deadline AND the deadline has passed (plus grace period)
-   * - OR it has no deadline AND it's older than max age days
+   * - OR it has no deadline AND it's older than max age days for its type
+   *
+   * Types with max_age = -1 are NEVER deleted (evergreen content)
    *
    * @returns Cleanup result with counts
    */
   async cleanupExpiredOpportunities(): Promise<{
     success: boolean;
     deletedCount: number;
+    deletedByType: Record<string, number>;
+    skippedEvergreen: number;
     errors: string[];
   }> {
     const startTime = Date.now();
     const errors: string[] = [];
     let deletedCount = 0;
+    const deletedByType: Record<string, number> = {};
+    let skippedEvergreen = 0;
 
     try {
       const supabase = createAdminClient();
 
       // Get settings
       const daysAfterDeadline = await settingsService.get('cleanup.days_after_deadline') || 7;
-      const maxAgeDaysNoDeadline = await settingsService.get('cleanup.max_age_days_no_deadline') || 30;
+      const maxAgeByType = await settingsService.get('cleanup.max_age_by_type');
 
-      // Calculate cutoff dates
+      // Calculate deadline cutoff (same for all types)
       const now = new Date();
       const deadlineCutoff = new Date(now);
       deadlineCutoff.setDate(deadlineCutoff.getDate() - daysAfterDeadline);
 
-      const noDeadlineCutoff = new Date(now);
-      noDeadlineCutoff.setDate(noDeadlineCutoff.getDate() - maxAgeDaysNoDeadline);
-
       await logger.info('Starting cleanup of expired opportunities', {
         days_after_deadline: daysAfterDeadline,
         deadline_cutoff: deadlineCutoff.toISOString(),
-        max_age_days_no_deadline: maxAgeDaysNoDeadline,
-        no_deadline_cutoff: noDeadlineCutoff.toISOString(),
+        max_age_by_type: maxAgeByType,
       });
 
-      // 1. Find opportunities with deadline that have expired (deadline + grace period)
+      // 1. Find opportunities WITH deadline that have expired (deadline + grace period)
+      // These are deleted regardless of type (except evergreen types)
       const { data: expiredWithDeadline, error: error1 } = await supabase
         .from('opportunities')
-        .select('id, title, deadline, opportunity_type')
+        .select('id, title, deadline, opportunity_type, created_at')
         .eq('status', 'published')
         .not('deadline', 'is', null)
         .lt('deadline', deadlineCutoff.toISOString());
@@ -70,33 +75,66 @@ export class CleanupService {
         await logger.error('Failed to query expired opportunities with deadline', { error: error1.message });
       }
 
-      // 2. Find opportunities without deadline that are too old
-      const { data: expiredNoDeadline, error: error2 } = await supabase
+      // Filter out types that should never be deleted
+      const expiredWithDeadlineFiltered = (expiredWithDeadline || []).filter(o => {
+        const typeKey = o.opportunity_type as keyof CleanupMaxAgeByType;
+        const maxAge = maxAgeByType[typeKey];
+        if (maxAge === -1) {
+          skippedEvergreen++;
+          return false;
+        }
+        return true;
+      });
+
+      // 2. Find opportunities WITHOUT deadline - need to check per type
+      const { data: allNoDeadline, error: error2 } = await supabase
         .from('opportunities')
         .select('id, title, created_at, opportunity_type')
         .eq('status', 'published')
-        .is('deadline', null)
-        .lt('created_at', noDeadlineCutoff.toISOString());
+        .is('deadline', null);
 
       if (error2) {
-        errors.push(`Failed to query expired without deadline: ${error2.message}`);
-        await logger.error('Failed to query expired opportunities without deadline', { error: error2.message });
+        errors.push(`Failed to query opportunities without deadline: ${error2.message}`);
+        await logger.error('Failed to query opportunities without deadline', { error: error2.message });
       }
+
+      // Filter opportunities without deadline based on per-type max age
+      const expiredNoDeadlineFiltered = (allNoDeadline || []).filter(o => {
+        const typeKey = o.opportunity_type as keyof CleanupMaxAgeByType;
+        const maxAgeDays = maxAgeByType[typeKey];
+
+        // Skip types that should never be deleted
+        if (maxAgeDays === -1) {
+          skippedEvergreen++;
+          return false;
+        }
+
+        // Calculate cutoff for this specific type
+        const typeCutoff = new Date(now);
+        typeCutoff.setDate(typeCutoff.getDate() - maxAgeDays);
+
+        // Check if opportunity is older than the type-specific cutoff
+        const createdAt = new Date(o.created_at);
+        return createdAt < typeCutoff;
+      });
 
       // Combine all expired opportunities
       const allExpired = [
-        ...(expiredWithDeadline || []).map(o => ({ ...o, reason: 'deadline_passed' })),
-        ...(expiredNoDeadline || []).map(o => ({ ...o, reason: 'max_age_exceeded' })),
+        ...expiredWithDeadlineFiltered.map(o => ({ ...o, reason: 'deadline_passed' as const })),
+        ...expiredNoDeadlineFiltered.map(o => ({ ...o, reason: 'max_age_exceeded' as const })),
       ];
 
       if (allExpired.length === 0) {
-        await logger.info('No expired opportunities found');
-        return { success: true, deletedCount: 0, errors };
+        await logger.info('No expired opportunities found', {
+          skipped_evergreen: skippedEvergreen,
+        });
+        return { success: true, deletedCount: 0, deletedByType: {}, skippedEvergreen, errors };
       }
 
       await logger.info(`Found ${allExpired.length} expired opportunities`, {
-        with_deadline: expiredWithDeadline?.length || 0,
-        without_deadline: expiredNoDeadline?.length || 0,
+        with_deadline: expiredWithDeadlineFiltered.length,
+        without_deadline: expiredNoDeadlineFiltered.length,
+        skipped_evergreen: skippedEvergreen,
       });
 
       // Delete expired opportunities
@@ -127,14 +165,18 @@ export class CleanupService {
         deletedCount = deleted?.length || 0;
       }
 
-      // Log each deleted opportunity
+      // Log each deleted opportunity and count by type
       for (const opp of allExpired) {
+        const typeKey = opp.opportunity_type;
+        deletedByType[typeKey] = (deletedByType[typeKey] || 0) + 1;
+
         await logger.info('Deleted expired opportunity', {
           opportunity_id: opp.id,
           title: opp.title,
           opportunity_type: opp.opportunity_type,
           reason: opp.reason,
           deadline: (opp as any).deadline,
+          created_at: opp.created_at,
         });
       }
 
@@ -142,6 +184,8 @@ export class CleanupService {
 
       await logger.info('Cleanup completed', {
         deleted_count: deletedCount,
+        deleted_by_type: deletedByType,
+        skipped_evergreen: skippedEvergreen,
         execution_time_ms: executionTime,
         errors_count: errors.length,
       });
@@ -149,6 +193,8 @@ export class CleanupService {
       return {
         success: errors.length === 0,
         deletedCount,
+        deletedByType,
+        skippedEvergreen,
         errors,
       };
     } catch (error) {
@@ -159,6 +205,8 @@ export class CleanupService {
       return {
         success: false,
         deletedCount,
+        deletedByType,
+        skippedEvergreen,
         errors,
       };
     }
