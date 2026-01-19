@@ -75,7 +75,7 @@ export async function PUT(
         }
 
         const body = await request.json();
-        const { title, slug, excerpt, content, featured_image_url, meta_title, meta_description, status, published_at, created_at } = body;
+        const { title, slug, excerpt, content, featured_image_url, meta_title, meta_description, status, category_id, published_at, created_at } = body;
 
         // Check if slug is unique (excluding current post)
         if (slug) {
@@ -111,6 +111,7 @@ export async function PUT(
         if (meta_title !== undefined) updateData.meta_title = meta_title;
         if (meta_description !== undefined) updateData.meta_description = meta_description;
         if (status !== undefined) updateData.status = status;
+        if (category_id !== undefined) updateData.category_id = category_id || null;
 
         // Handle dates
         if (published_at !== undefined) {

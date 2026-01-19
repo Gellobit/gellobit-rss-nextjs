@@ -23,12 +23,12 @@ export class PromptService {
    * Get prompt for a specific opportunity type and scraped content
    * First checks database for custom prompt, falls back to TypeScript default
    *
-   * @param opportunityType - Type of opportunity
+   * @param opportunityType - Type of opportunity (includes 'blog_post')
    * @param scrapedContent - Scraped content to analyze
    * @returns Complete prompt ready for AI processing
    */
   async getPrompt(
-    opportunityType: OpportunityType,
+    opportunityType: OpportunityType | 'blog_post',
     scrapedContent: ScrapedContent
   ): Promise<string> {
     try {
@@ -65,22 +65,22 @@ export class PromptService {
    * @returns Custom prompt template or null
    */
   private async getCustomPrompt(
-    opportunityType: OpportunityType
+    opportunityType: OpportunityType | 'blog_post'
   ): Promise<string | null> {
     const supabase = createAdminClient();
 
     const { data, error } = await supabase
       .from('prompt_templates')
-      .select('prompt_text')
+      .select('unified_prompt, is_customized')
       .eq('opportunity_type', opportunityType)
-      .eq('is_active', true)
       .single();
 
-    if (error || !data) {
+    // Return custom prompt only if it has been customized and is not empty
+    if (error || !data || !data.is_customized || !data.unified_prompt) {
       return null;
     }
 
-    return data.prompt_text;
+    return data.unified_prompt;
   }
 
   /**
@@ -115,18 +115,18 @@ ${scrapedContent.content}
   /**
    * Save or update a custom prompt in the database
    *
-   * @param opportunityType - Type of opportunity
+   * @param opportunityType - Type of opportunity (includes 'blog_post')
    * @param promptText - Custom prompt text
    * @returns Success status
    */
   async saveCustomPrompt(
-    opportunityType: OpportunityType,
+    opportunityType: OpportunityType | 'blog_post',
     promptText: string
   ): Promise<{ success: boolean; error?: string }> {
     try {
       const supabase = createAdminClient();
 
-      // Check if custom prompt already exists
+      // Check if prompt already exists for this type
       const { data: existing } = await supabase
         .from('prompt_templates')
         .select('id')
@@ -138,7 +138,8 @@ ${scrapedContent.content}
         const { error } = await supabase
           .from('prompt_templates')
           .update({
-            prompt_text: promptText,
+            unified_prompt: promptText,
+            is_customized: true,
             updated_at: new Date().toISOString(),
           })
           .eq('id', existing.id);
@@ -149,11 +150,12 @@ ${scrapedContent.content}
           opportunity_type: opportunityType,
         });
       } else {
-        // Insert new prompt
+        // Insert new prompt entry
         const { error } = await supabase.from('prompt_templates').insert({
           opportunity_type: opportunityType,
-          prompt_text: promptText,
-          is_active: true,
+          unified_prompt: promptText,
+          default_prompt: promptText,
+          is_customized: true,
         });
 
         if (error) throw error;
@@ -178,25 +180,30 @@ ${scrapedContent.content}
   }
 
   /**
-   * Delete a custom prompt and revert to default
+   * Delete/reset a custom prompt and revert to default
    *
-   * @param opportunityType - Type of opportunity
+   * @param opportunityType - Type of opportunity (includes 'blog_post')
    * @returns Success status
    */
   async deleteCustomPrompt(
-    opportunityType: OpportunityType
+    opportunityType: OpportunityType | 'blog_post'
   ): Promise<{ success: boolean; error?: string }> {
     try {
       const supabase = createAdminClient();
 
+      // Reset to default by clearing unified_prompt and setting is_customized to false
       const { error } = await supabase
         .from('prompt_templates')
-        .delete()
+        .update({
+          unified_prompt: '',
+          is_customized: false,
+          updated_at: new Date().toISOString(),
+        })
         .eq('opportunity_type', opportunityType);
 
       if (error) throw error;
 
-      await logger.info('Custom prompt deleted, reverted to default', {
+      await logger.info('Custom prompt reset to default', {
         opportunity_type: opportunityType,
       });
 
@@ -205,7 +212,7 @@ ${scrapedContent.content}
       const errorMessage =
         error instanceof Error ? error.message : 'Unknown error';
 
-      await logger.error('Error deleting custom prompt', {
+      await logger.error('Error resetting custom prompt', {
         opportunity_type: opportunityType,
         error: errorMessage,
       });
@@ -240,12 +247,12 @@ ${scrapedContent.content}
   /**
    * Test a prompt by validating it can be parsed and built
    *
-   * @param opportunityType - Type of opportunity
+   * @param opportunityType - Type of opportunity (includes 'blog_post')
    * @param promptText - Prompt text to test
    * @returns Validation result
    */
   async testPrompt(
-    opportunityType: OpportunityType,
+    opportunityType: OpportunityType | 'blog_post',
     promptText: string
   ): Promise<{
     valid: boolean;
@@ -303,7 +310,7 @@ ${scrapedContent.content}
 
     const { data: customPrompts } = await supabase
       .from('prompt_templates')
-      .select('opportunity_type, is_active');
+      .select('opportunity_type, is_customized');
 
     const { data: recentLogs } = await supabase
       .from('processing_logs')
@@ -315,8 +322,8 @@ ${scrapedContent.content}
 
     return {
       total_custom_prompts: customPrompts?.length || 0,
-      active_custom_prompts:
-        customPrompts?.filter((p) => p.is_active).length || 0,
+      customized_prompts:
+        customPrompts?.filter((p) => p.is_customized).length || 0,
       prompt_usage_last_7_days: recentLogs?.length || 0,
     };
   }

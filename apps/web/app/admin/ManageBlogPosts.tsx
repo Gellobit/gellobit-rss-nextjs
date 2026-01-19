@@ -16,6 +16,7 @@ import {
     Globe,
     Clock,
     FolderOpen,
+    Tag,
 } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import MediaModal from '@/components/MediaModal';
@@ -40,9 +41,18 @@ interface Post {
     meta_title: string | null;
     meta_description: string | null;
     status: 'draft' | 'published' | 'archived';
+    category_id: string | null;
     published_at: string | null;
     created_at: string;
     updated_at: string;
+}
+
+interface Category {
+    id: string;
+    name: string;
+    slug: string;
+    color: string;
+    is_default: boolean;
 }
 
 interface PostFormData {
@@ -54,6 +64,7 @@ interface PostFormData {
     meta_title: string;
     meta_description: string;
     status: 'draft' | 'published' | 'archived';
+    category_id: string;
     published_at: string;
     created_at: string;
 }
@@ -67,6 +78,7 @@ const initialFormData: PostFormData = {
     meta_title: '',
     meta_description: '',
     status: 'draft',
+    category_id: '',
     published_at: '',
     created_at: '',
 };
@@ -91,11 +103,32 @@ export default function ManageBlogPosts() {
     // Media modal state
     const [mediaModalOpen, setMediaModalOpen] = useState(false);
 
+    // Categories
+    const [categories, setCategories] = useState<Category[]>([]);
+
     const editorRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         fetchPosts();
+        fetchCategories();
     }, [statusFilter, searchQuery]);
+
+    const fetchCategories = async () => {
+        try {
+            const res = await fetch('/api/admin/categories');
+            const data = await res.json();
+            if (data.categories) {
+                setCategories(data.categories.filter((c: Category) => c.is_default || true)); // All active
+                // Set default category for new posts
+                const defaultCat = data.categories.find((c: Category) => c.is_default);
+                if (defaultCat && !editingPost) {
+                    setFormData(prev => ({ ...prev, category_id: prev.category_id || defaultCat.id }));
+                }
+            }
+        } catch (error) {
+            console.error('Error fetching categories:', error);
+        }
+    };
 
     const fetchPosts = async () => {
         setLoading(true);
@@ -204,6 +237,7 @@ export default function ManageBlogPosts() {
             meta_title: post.meta_title || '',
             meta_description: post.meta_description || '',
             status: post.status,
+            category_id: post.category_id || '',
             published_at: post.published_at || '',
             created_at: post.created_at || '',
         });
@@ -344,6 +378,26 @@ export default function ManageBlogPosts() {
                                         <option value="draft">Draft</option>
                                         <option value="published">Published</option>
                                         <option value="archived">Archived</option>
+                                    </select>
+                                </div>
+
+                                {/* Category */}
+                                <div>
+                                    <label className="block text-sm font-bold text-slate-700 mb-2">
+                                        <Tag size={12} className="inline mr-1" />
+                                        Category
+                                    </label>
+                                    <select
+                                        value={formData.category_id}
+                                        onChange={(e) => setFormData(prev => ({ ...prev, category_id: e.target.value }))}
+                                        className="w-full border border-slate-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    >
+                                        <option value="">Uncategorized</option>
+                                        {categories.map((cat) => (
+                                            <option key={cat.id} value={cat.id}>
+                                                {cat.name} {cat.is_default ? '(Default)' : ''}
+                                            </option>
+                                        ))}
                                     </select>
                                 </div>
 
@@ -614,6 +668,7 @@ export default function ManageBlogPosts() {
                         <thead className="bg-slate-50 border-b border-slate-200">
                             <tr>
                                 <th className="text-left px-6 py-3 text-xs font-bold text-slate-500 uppercase">Post</th>
+                                <th className="text-left px-6 py-3 text-xs font-bold text-slate-500 uppercase">Category</th>
                                 <th className="text-left px-6 py-3 text-xs font-bold text-slate-500 uppercase">Status</th>
                                 <th className="text-left px-6 py-3 text-xs font-bold text-slate-500 uppercase">Date</th>
                                 <th className="text-right px-6 py-3 text-xs font-bold text-slate-500 uppercase">Actions</th>
@@ -640,6 +695,26 @@ export default function ManageBlogPosts() {
                                                 <p className="text-sm text-slate-500">/{post.slug}</p>
                                             </div>
                                         </div>
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        {post.category_id ? (
+                                            (() => {
+                                                const cat = categories.find(c => c.id === post.category_id);
+                                                return cat ? (
+                                                    <span
+                                                        className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold"
+                                                        style={{ backgroundColor: `${cat.color}20`, color: cat.color }}
+                                                    >
+                                                        <span className="w-2 h-2 rounded-full" style={{ backgroundColor: cat.color }} />
+                                                        {cat.name}
+                                                    </span>
+                                                ) : (
+                                                    <span className="text-slate-400 text-sm">-</span>
+                                                );
+                                            })()
+                                        ) : (
+                                            <span className="text-slate-400 text-sm">Uncategorized</span>
+                                        )}
                                     </td>
                                     <td className="px-6 py-4">
                                         {getStatusBadge(post.status)}

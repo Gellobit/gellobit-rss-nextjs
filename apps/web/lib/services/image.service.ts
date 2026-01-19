@@ -10,12 +10,14 @@ interface UploadResult {
   mediaId?: string;
 }
 
+type EntityType = 'opportunity' | 'feed' | 'setting' | 'post';
+
 interface MediaFile {
   id: string;
   file_name: string;
   file_path: string;
   file_url: string;
-  entity_type: 'opportunity' | 'feed' | 'setting';
+  entity_type: EntityType;
   entity_id: string | null;
 }
 
@@ -30,7 +32,7 @@ export class ImageService {
     options: {
       fileName?: string;
       folder?: string;
-      entityType: 'opportunity' | 'feed' | 'setting';
+      entityType: EntityType;
       entityId?: string;
       isBase64?: boolean;
     }
@@ -116,7 +118,7 @@ export class ImageService {
     imageUrl: string,
     options: {
       folder?: string;
-      entityType: 'opportunity' | 'feed' | 'setting';
+      entityType: EntityType;
       entityId?: string;
     }
   ): Promise<UploadResult> {
@@ -285,7 +287,7 @@ export class ImageService {
    */
   async linkImageToEntity(
     mediaId: string,
-    entityType: 'opportunity' | 'feed' | 'setting',
+    entityType: EntityType,
     entityId: string
   ): Promise<boolean> {
     try {
@@ -299,6 +301,228 @@ export class ImageService {
       console.error('Error linking image to entity:', error);
       return false;
     }
+  }
+
+  /**
+   * Check if a URL is a valid image URL
+   */
+  private isValidImageUrl(url: string): boolean {
+    if (!url || typeof url !== 'string') return false;
+
+    // Must be http or https
+    if (!url.startsWith('http://') && !url.startsWith('https://')) return false;
+
+    // Check for common image extensions or image-related paths
+    const imagePatterns = /\.(jpg|jpeg|png|gif|webp|svg|bmp|ico)(\?.*)?$/i;
+    const imagePathPatterns = /(\/image\/|\/images\/|\/img\/|\/media\/|\/uploads\/|\/wp-content\/)/i;
+
+    return imagePatterns.test(url) || imagePathPatterns.test(url);
+  }
+
+  /**
+   * Check if URL should be skipped (tracking pixels, icons, etc.)
+   */
+  private shouldSkipImage(url: string): boolean {
+    const skipPatterns = [
+      /avatar/i,
+      /icon/i,
+      /logo/i,
+      /button/i,
+      /sprite/i,
+      /badge/i,
+      /pixel/i,
+      /tracking/i,
+      /beacon/i,
+      /1x1/i,
+      /spacer/i,
+      /blank\./i,
+      /gravatar/i,
+      /emoji/i,
+      /\.gif$/i, // Often tracking pixels
+    ];
+
+    return skipPatterns.some(pattern => pattern.test(url));
+  }
+
+  /**
+   * Process HTML content and upload all images to storage
+   * Returns the modified HTML with local image URLs
+   */
+  async processContentImages(
+    htmlContent: string,
+    options: {
+      entityType: EntityType;
+      entityId?: string;
+      folder?: string;
+      baseUrl?: string;
+    }
+  ): Promise<{ content: string; uploadedCount: number; failedCount: number }> {
+    const { entityType, entityId, folder = 'posts/content', baseUrl } = options;
+
+    let uploadedCount = 0;
+    let failedCount = 0;
+    let processedContent = htmlContent;
+
+    // Find all image tags with src attributes
+    const imgRegex = /<img[^>]+src=["']([^"']+)["'][^>]*>/gi;
+    const matches: Array<{ fullMatch: string; src: string }> = [];
+
+    let match;
+    while ((match = imgRegex.exec(htmlContent)) !== null) {
+      matches.push({
+        fullMatch: match[0],
+        src: match[1]
+      });
+    }
+
+    // Also check for data-src (lazy loaded images)
+    const dataSrcRegex = /<img[^>]+data-src=["']([^"']+)["'][^>]*>/gi;
+    while ((match = dataSrcRegex.exec(htmlContent)) !== null) {
+      // Only add if not already matched by src
+      if (!matches.some(m => m.src === match[1])) {
+        matches.push({
+          fullMatch: match[0],
+          src: match[1]
+        });
+      }
+    }
+
+    // Process each image
+    for (const img of matches) {
+      let imageUrl = img.src;
+
+      // Resolve relative URLs
+      if (baseUrl && !imageUrl.startsWith('http')) {
+        try {
+          imageUrl = new URL(imageUrl, baseUrl).href;
+        } catch {
+          console.warn('Failed to resolve image URL:', imageUrl);
+          failedCount++;
+          continue;
+        }
+      }
+
+      // Skip invalid or unwanted images
+      if (!this.isValidImageUrl(imageUrl) || this.shouldSkipImage(imageUrl)) {
+        continue;
+      }
+
+      // Upload the image
+      const result = await this.uploadFromUrl(imageUrl, {
+        folder,
+        entityType,
+        entityId
+      });
+
+      if (result.success && result.url) {
+        // Replace the original URL with the new one
+        processedContent = processedContent.replace(img.src, result.url);
+        uploadedCount++;
+      } else {
+        console.warn('Failed to upload image:', imageUrl, result.error);
+        failedCount++;
+      }
+    }
+
+    return {
+      content: processedContent,
+      uploadedCount,
+      failedCount
+    };
+  }
+
+  /**
+   * Process featured image for a blog post
+   * Downloads and stores the image, returns the new URL
+   */
+  async processFeaturedImage(
+    imageUrl: string | null | undefined,
+    options: {
+      entityType: EntityType;
+      entityId?: string;
+      fallbackUrl?: string | null;
+    }
+  ): Promise<string | null> {
+    const { entityType, entityId, fallbackUrl } = options;
+
+    // If no image URL provided, use fallback
+    if (!imageUrl) {
+      return fallbackUrl || null;
+    }
+
+    // Skip if it's not a valid image URL
+    if (!this.isValidImageUrl(imageUrl)) {
+      console.warn('Invalid featured image URL:', imageUrl);
+      return fallbackUrl || null;
+    }
+
+    // Skip tracking pixels and icons
+    if (this.shouldSkipImage(imageUrl)) {
+      console.warn('Skipping unwanted image type:', imageUrl);
+      return fallbackUrl || null;
+    }
+
+    // Upload the image
+    const result = await this.uploadFromUrl(imageUrl, {
+      folder: 'posts/featured',
+      entityType,
+      entityId
+    });
+
+    if (result.success && result.url) {
+      return result.url;
+    }
+
+    console.warn('Failed to upload featured image:', imageUrl, result.error);
+    return fallbackUrl || null;
+  }
+
+  /**
+   * Process all images for a blog post (featured + content)
+   */
+  async processPostImages(
+    featuredImageUrl: string | null | undefined,
+    htmlContent: string,
+    options: {
+      postId?: string;
+      fallbackFeaturedUrl?: string | null;
+      baseUrl?: string;
+    }
+  ): Promise<{
+    featuredImageUrl: string | null;
+    content: string;
+    stats: {
+      featuredUploaded: boolean;
+      contentImagesUploaded: number;
+      contentImagesFailed: number;
+    };
+  }> {
+    const { postId, fallbackFeaturedUrl, baseUrl } = options;
+
+    // Process featured image
+    const processedFeaturedUrl = await this.processFeaturedImage(featuredImageUrl, {
+      entityType: 'post',
+      entityId: postId,
+      fallbackUrl: fallbackFeaturedUrl
+    });
+
+    // Process content images
+    const contentResult = await this.processContentImages(htmlContent, {
+      entityType: 'post',
+      entityId: postId,
+      folder: 'posts/content',
+      baseUrl
+    });
+
+    return {
+      featuredImageUrl: processedFeaturedUrl,
+      content: contentResult.content,
+      stats: {
+        featuredUploaded: processedFeaturedUrl !== fallbackFeaturedUrl && processedFeaturedUrl !== null,
+        contentImagesUploaded: contentResult.uploadedCount,
+        contentImagesFailed: contentResult.failedCount
+      }
+    };
   }
 }
 

@@ -4,7 +4,7 @@ import { createRouteClient } from '@/lib/utils/supabase-route';
 import { createAdminClient } from '@/lib/utils/supabase-admin';
 import { promptService } from '@/lib/services/prompt.service';
 import { getPromptForType } from '@/prompts';
-import type { OpportunityType } from '@/lib/types/database.types';
+import type { PromptType } from '@/lib/types/database.types';
 
 /**
  * GET /api/admin/prompts/[type]
@@ -38,20 +38,19 @@ export async function GET(
 
     // Next.js 15: await params before accessing
     const { type } = await params;
-    const opportunityType = type as OpportunityType;
+    const opportunityType = type as PromptType;
 
     // Check if custom prompt exists in database
     const { data: customPrompt } = await adminSupabase
       .from('prompt_templates')
-      .select('prompt_text')
+      .select('unified_prompt, is_customized')
       .eq('opportunity_type', opportunityType)
-      .eq('is_active', true)
       .single();
 
-    if (customPrompt) {
+    if (customPrompt && customPrompt.is_customized && customPrompt.unified_prompt) {
       // Return custom prompt
       return NextResponse.json(
-        { prompt: customPrompt.prompt_text, source: 'custom' },
+        { prompt: customPrompt.unified_prompt, source: 'custom' },
         { status: 200 }
       );
     }
@@ -110,7 +109,7 @@ export async function POST(
 
     // Next.js 15: await params before accessing
     const { type } = await params;
-    const opportunityType = type as OpportunityType;
+    const opportunityType = type as PromptType;
     const body = await request.json();
     const { prompt } = body;
 
@@ -177,7 +176,7 @@ export async function DELETE(
 
     // Next.js 15: await params before accessing
     const { type } = await params;
-    const opportunityType = type as OpportunityType;
+    const opportunityType = type as PromptType;
 
     // Delete custom prompt
     const result = await promptService.deleteCustomPrompt(opportunityType);

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { RefreshCw, Trash2, Plus, ExternalLink, Play, Pencil, X, Save } from 'lucide-react';
+import { RefreshCw, Trash2, Plus, ExternalLink, Play, Pencil, X, Save, Tag } from 'lucide-react';
 import ImageUpload from '@/components/ImageUpload';
 
 interface Feed {
@@ -11,6 +11,7 @@ interface Feed {
     status: 'active' | 'inactive' | 'error';
     output_type?: 'opportunity' | 'blog_post';
     opportunity_type: string;
+    blog_category_id?: string | null;
     enable_scraping: boolean;
     enable_ai_processing: boolean;
     auto_publish: boolean;
@@ -33,11 +34,20 @@ interface Feed {
     processing_status?: 'idle' | 'fetching' | 'processing';
 }
 
+interface Category {
+    id: string;
+    name: string;
+    slug: string;
+    color: string;
+    is_default: boolean;
+}
+
 interface FeedFormValues {
     name: string;
     url: string;
     output_type: 'opportunity' | 'blog_post';
     opportunity_type: string;
+    blog_category_id: string;
     enable_scraping: boolean;
     enable_ai_processing: boolean;
     auto_publish: boolean;
@@ -60,6 +70,7 @@ const defaultFeedValues: FeedFormValues = {
     url: '',
     output_type: 'opportunity',
     opportunity_type: 'giveaway',
+    blog_category_id: '',
     enable_scraping: true,
     enable_ai_processing: true,
     auto_publish: false,
@@ -138,11 +149,13 @@ const minuteOptions = [
 function FeedForm({
     values,
     onChange,
-    isEdit = false
+    isEdit = false,
+    categories = []
 }: {
     values: FeedFormValues;
     onChange: (field: keyof FeedFormValues, value: any) => void;
     isEdit?: boolean;
+    categories?: Category[];
 }) {
     const handleAIProviderChange = (provider: string) => {
         const selectedProvider = aiProviders.find(p => p.value === provider);
@@ -213,6 +226,26 @@ function FeedForm({
                         >
                             {opportunityTypes.map(t => (
                                 <option key={t.value} value={t.value}>{t.label}</option>
+                            ))}
+                        </select>
+                    </div>
+                )}
+                {values.output_type === 'blog_post' && (
+                    <div>
+                        <label className="block text-xs text-slate-500 mb-1">
+                            <Tag size={12} className="inline mr-1" />
+                            Blog Category
+                        </label>
+                        <select
+                            className="border p-2 rounded w-full"
+                            value={values.blog_category_id}
+                            onChange={e => onChange('blog_category_id', e.target.value)}
+                        >
+                            <option value="">Use Default Category</option>
+                            {categories.map(c => (
+                                <option key={c.id} value={c.id}>
+                                    {c.name} {c.is_default ? '(Default)' : ''}
+                                </option>
                             ))}
                         </select>
                     </div>
@@ -442,9 +475,25 @@ export default function ManageFeeds() {
     const [editForm, setEditForm] = useState<FeedFormValues>(defaultFeedValues);
     const [saving, setSaving] = useState(false);
 
+    // Categories for blog posts
+    const [categories, setCategories] = useState<Category[]>([]);
+
     useEffect(() => {
         fetchFeeds();
+        fetchCategories();
     }, []);
+
+    const fetchCategories = async () => {
+        try {
+            const res = await fetch('/api/admin/categories');
+            const data = await res.json();
+            if (data.categories) {
+                setCategories(data.categories);
+            }
+        } catch (error) {
+            console.error('Error fetching categories:', error);
+        }
+    };
 
     const fetchFeeds = async () => {
         setLoading(true);
@@ -546,6 +595,7 @@ export default function ManageFeeds() {
             url: feed.url,
             output_type: feed.output_type || 'opportunity',
             opportunity_type: feed.opportunity_type,
+            blog_category_id: feed.blog_category_id || '',
             enable_scraping: feed.enable_scraping,
             enable_ai_processing: feed.enable_ai_processing,
             auto_publish: feed.auto_publish,
@@ -619,7 +669,7 @@ export default function ManageFeeds() {
                             <X size={18} />
                         </button>
                     </div>
-                    <FeedForm values={newFeed} onChange={handleNewFeedChange} />
+                    <FeedForm values={newFeed} onChange={handleNewFeedChange} categories={categories} />
                     <div className="flex gap-3 mt-4">
                         <button
                             type="submit"
@@ -783,7 +833,7 @@ export default function ManageFeeds() {
                             </button>
                         </div>
                         <div className="p-4">
-                            <FeedForm values={editForm} onChange={handleEditFormChange} isEdit />
+                            <FeedForm values={editForm} onChange={handleEditFormChange} isEdit categories={categories} />
                             <div className="flex gap-3 mt-6 pt-4 border-t">
                                 <button
                                     onClick={handleSaveEdit}

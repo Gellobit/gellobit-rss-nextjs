@@ -2,7 +2,7 @@ import React from 'react';
 import { notFound } from 'next/navigation';
 import { unstable_cache } from 'next/cache';
 import { Metadata } from 'next';
-import { Calendar, Share2, ArrowLeft } from 'lucide-react';
+import { Calendar, Share2, ArrowLeft, Tag } from 'lucide-react';
 import Link from 'next/link';
 import { createAdminClient } from '@/lib/utils/supabase-admin';
 import MobileNavBar from '@/components/MobileNavBar';
@@ -10,6 +10,7 @@ import UserNav from '@/components/UserNav';
 import ShareButton from '@/components/ShareButton';
 import Sidebar, { SidebarCTA } from '@/components/Sidebar';
 import ContentWithAds from '@/components/ContentWithAds';
+import AdContainer from '@/components/AdContainer';
 
 // Revalidate page every 60 seconds
 export const revalidate = 60;
@@ -61,6 +62,50 @@ const getBranding = unstable_cache(
     { revalidate: 300, tags: ['branding'] }
 );
 
+// Cached function to fetch category by slug
+const getCategory = unstable_cache(
+    async (slug: string) => {
+        const supabase = createAdminClient();
+
+        const { data, error } = await supabase
+            .from('categories')
+            .select('*')
+            .eq('slug', slug)
+            .eq('is_active', true)
+            .single();
+
+        if (error || !data) {
+            return null;
+        }
+
+        return { ...data, type: 'category' as const };
+    },
+    ['category'],
+    { revalidate: 60, tags: ['categories'] }
+);
+
+// Cached function to fetch posts by category
+const getPostsByCategory = unstable_cache(
+    async (categoryId: string) => {
+        const supabase = createAdminClient();
+
+        const { data, error } = await supabase
+            .from('posts')
+            .select('id, title, slug, excerpt, featured_image_url, published_at, created_at')
+            .eq('status', 'published')
+            .eq('category_id', categoryId)
+            .order('published_at', { ascending: false, nullsFirst: false });
+
+        if (error || !data) {
+            return [];
+        }
+
+        return data;
+    },
+    ['category-posts'],
+    { revalidate: 60, tags: ['posts', 'categories'] }
+);
+
 // Cached function to fetch page by slug
 const getPage = unstable_cache(
     async (slug: string) => {
@@ -105,13 +150,17 @@ const getPost = unstable_cache(
     { revalidate: 60, tags: ['posts'] }
 );
 
-// Get content by slug (checks pages first, then posts)
+// Get content by slug (checks categories first, then pages, then posts)
 async function getContent(slug: string) {
-    // First check if it's a page
+    // First check if it's a category
+    const category = await getCategory(slug);
+    if (category) return category;
+
+    // Then check if it's a page
     const page = await getPage(slug);
     if (page) return page;
 
-    // Then check if it's a post
+    // Finally check if it's a post
     const post = await getPost(slug);
     if (post) return post;
 
@@ -168,11 +217,51 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
         };
     }
 
-    const title = content.meta_title || content.title;
-    const description = content.meta_description || (content.type === 'post' ? content.excerpt : undefined);
+    const isCategory = content.type === 'category';
     const isPost = content.type === 'post';
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://gellobit.com';
-    const canonicalUrl = `${siteUrl}/${slug}`;
+    const canonicalUrl = `${siteUrl}/${slug}${isCategory ? '/' : ''}`;
+
+    // For categories
+    if (isCategory) {
+        const title = content.meta_title || `${content.name} - ${branding.appName}`;
+        const description = content.meta_description || content.description || `Browse all ${content.name} articles and posts.`;
+
+        return {
+            title,
+            description,
+            alternates: {
+                canonical: canonicalUrl,
+            },
+            openGraph: {
+                title,
+                description,
+                url: canonicalUrl,
+                siteName: branding.appName,
+                type: 'website',
+            },
+            twitter: {
+                card: 'summary',
+                title,
+                description,
+            },
+            robots: {
+                index: true,
+                follow: true,
+                googleBot: {
+                    index: true,
+                    follow: true,
+                    'max-video-preview': -1,
+                    'max-image-preview': 'large',
+                    'max-snippet': -1,
+                },
+            },
+        };
+    }
+
+    // For pages and posts
+    const title = content.meta_title || content.title;
+    const description = content.meta_description || (isPost ? content.excerpt : undefined);
 
     return {
         title,
@@ -230,8 +319,204 @@ export default async function ContentPage({ params }: { params: Promise<{ slug: 
         notFound();
     }
 
+    const isCategory = content.type === 'category';
     const isPost = content.type === 'post';
 
+    // For categories, render the category page
+    if (isCategory) {
+        const posts = await getPostsByCategory(content.id);
+        const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://gellobit.com';
+
+        // JSON-LD for category (CollectionPage)
+        const categoryJsonLd = {
+            '@context': 'https://schema.org',
+            '@type': 'CollectionPage',
+            name: content.name,
+            description: content.description || `Articles in ${content.name} category`,
+            url: `${siteUrl}/${slug}/`,
+            publisher: {
+                '@type': 'Organization',
+                name: branding.appName,
+                url: siteUrl,
+            },
+        };
+
+        return (
+            <div className="min-h-screen bg-slate-50 font-sans text-slate-900 pb-20 md:pb-0">
+                {/* JSON-LD Structured Data */}
+                <script
+                    type="application/ld+json"
+                    dangerouslySetInnerHTML={{ __html: JSON.stringify(categoryJsonLd) }}
+                />
+
+                {/* Navigation - Desktop */}
+                <nav className="bg-white border-b border-slate-100 sticky top-0 z-50 hidden md:block">
+                    <div className="max-w-7xl mx-auto px-4 h-20 flex items-center justify-between">
+                        <a href="/" className="flex items-center gap-2">
+                            {branding.logoUrl ? (
+                                <img
+                                    src={branding.logoUrl}
+                                    alt={branding.appName}
+                                    className={`app-logo h-10 object-contain${branding.logoSpinEnabled ? ' logo-spin' : ''}`}
+                                    style={branding.logoSpinEnabled && branding.logoSpinDuration
+                                        ? { '--logo-spin-duration': `${branding.logoSpinDuration}s` } as React.CSSProperties
+                                        : undefined}
+                                />
+                            ) : (
+                                <div className="app-logo bg-[#FFDE59] p-2 rounded-xl font-black text-xl shadow-sm">GB</div>
+                            )}
+                            <span className="app-name text-sm font-bold text-[#1a1a1a]">{branding.appName}</span>
+                        </a>
+                        <UserNav />
+                    </div>
+                </nav>
+
+                {/* Mobile Header */}
+                <div className="md:hidden bg-white border-b border-slate-100 px-4 py-4">
+                    <div className="flex items-center justify-between">
+                        <a href="/" className="flex items-center gap-2">
+                            {branding.logoUrl ? (
+                                <img
+                                    src={branding.logoUrl}
+                                    alt={branding.appName}
+                                    className={`app-logo h-8 object-contain${branding.logoSpinEnabled ? ' logo-spin' : ''}`}
+                                    style={branding.logoSpinEnabled && branding.logoSpinDuration
+                                        ? { '--logo-spin-duration': `${branding.logoSpinDuration}s` } as React.CSSProperties
+                                        : undefined}
+                                />
+                            ) : (
+                                <div className="app-logo bg-[#FFDE59] p-1.5 rounded-lg font-black text-sm shadow-sm">GB</div>
+                            )}
+                            <span className="app-name font-black text-lg tracking-tighter text-[#1a1a1a]">{branding.appName}</span>
+                        </a>
+                    </div>
+                </div>
+
+                <main className="max-w-7xl mx-auto px-4 py-12">
+                    {/* Category Header */}
+                    <div className="text-center mb-12">
+                        <div
+                            className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold mb-4"
+                            style={{ backgroundColor: `${content.color}20`, color: content.color }}
+                        >
+                            <Tag size={16} />
+                            Category
+                        </div>
+                        <h1 className="text-4xl md:text-5xl font-black text-[#1a1a1a] mb-4">{content.name}</h1>
+                        {content.description && (
+                            <p className="text-lg text-slate-600 max-w-2xl mx-auto">
+                                {content.description}
+                            </p>
+                        )}
+                    </div>
+
+                    {/* Ad Unit */}
+                    <AdContainer format="horizontal" position="top" className="mb-8" />
+
+                    {/* Posts Grid */}
+                    {posts.length === 0 ? (
+                        <div className="text-center py-20 bg-white rounded-3xl border border-slate-100">
+                            <p className="text-slate-500 text-lg">No posts in this category yet.</p>
+                            <p className="text-slate-400 text-sm mt-2">Check back soon for new content!</p>
+                            <Link
+                                href="/blog"
+                                className="inline-flex items-center gap-2 mt-6 px-6 py-3 bg-slate-900 text-white font-bold rounded-lg hover:bg-slate-800 transition-colors"
+                            >
+                                <ArrowLeft size={16} />
+                                Browse All Posts
+                            </Link>
+                        </div>
+                    ) : (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                            {posts.map((post) => {
+                                const formattedDate = new Date(post.published_at || post.created_at).toLocaleDateString('en-US', {
+                                    year: 'numeric',
+                                    month: 'short',
+                                    day: 'numeric'
+                                });
+
+                                return (
+                                    <Link
+                                        key={post.id}
+                                        href={`/${post.slug}`}
+                                        className="bg-white rounded-3xl overflow-hidden border border-slate-100 hover:shadow-lg transition-all group"
+                                    >
+                                        {/* Featured Image */}
+                                        {post.featured_image_url ? (
+                                            <div className="aspect-video w-full overflow-hidden">
+                                                <img
+                                                    src={post.featured_image_url}
+                                                    alt={post.title}
+                                                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                                                />
+                                            </div>
+                                        ) : (
+                                            <div
+                                                className="aspect-video w-full flex items-center justify-center"
+                                                style={{ backgroundColor: `${content.color}20` }}
+                                            >
+                                                <span className="text-6xl font-black" style={{ color: `${content.color}40` }}>
+                                                    {content.name.charAt(0)}
+                                                </span>
+                                            </div>
+                                        )}
+
+                                        <div className="p-6">
+                                            {/* Date */}
+                                            <div className="flex items-center gap-2 text-slate-400 text-sm mb-3">
+                                                <Calendar size={14} />
+                                                <time dateTime={post.published_at || post.created_at}>{formattedDate}</time>
+                                            </div>
+
+                                            {/* Title */}
+                                            <h2 className="text-xl font-bold text-[#1a1a1a] mb-3 group-hover:text-yellow-600 transition-colors line-clamp-2">
+                                                {post.title}
+                                            </h2>
+
+                                            {/* Excerpt */}
+                                            {post.excerpt && (
+                                                <p className="text-slate-600 text-sm line-clamp-3">
+                                                    {post.excerpt}
+                                                </p>
+                                            )}
+
+                                            {/* Read More */}
+                                            <div className="mt-4 text-sm font-bold text-yellow-600 group-hover:text-yellow-700">
+                                                Read more &rarr;
+                                            </div>
+                                        </div>
+                                    </Link>
+                                );
+                            })}
+                        </div>
+                    )}
+
+                    {/* Back link */}
+                    <div className="text-center mt-12">
+                        <Link
+                            href="/blog"
+                            className="inline-flex items-center gap-2 text-sm font-bold text-slate-500 hover:text-[#1a1a1a] transition-colors"
+                        >
+                            <ArrowLeft size={16} />
+                            Back to all posts
+                        </Link>
+                    </div>
+                </main>
+
+                {/* Footer - desktop only */}
+                <footer className="hidden md:block bg-white border-t border-slate-100 py-8 mt-12">
+                    <div className="max-w-4xl mx-auto px-4 text-center text-sm text-slate-500">
+                        <p>&copy; {new Date().getFullYear()} {branding.appName}. All rights reserved.</p>
+                    </div>
+                </footer>
+
+                {/* Mobile Nav Bar */}
+                <MobileNavBar />
+            </div>
+        );
+    }
+
+    // For pages and posts
     // Fetch related posts only for blog posts
     const relatedPosts = isPost ? await getRelatedPosts(slug) : [];
     const readingTime = isPost ? calculateReadingTime(content.content) : undefined;

@@ -45,6 +45,7 @@ export interface RSSFeed {
     status: FeedStatus;
     output_type: FeedOutputType;
     opportunity_type: OpportunityType;
+    blog_category_id: string | null;
     enable_scraping: boolean;
     enable_ai_processing: boolean;
     auto_publish: boolean;
@@ -163,13 +164,49 @@ export interface ProcessingHistory {
     created_at: string;
 }
 
+// PromptType includes all opportunity types plus 'blog_post' for blog content generation
+export type PromptType = OpportunityType | 'blog_post';
+
 export interface PromptTemplate {
     id: string;
-    opportunity_type: OpportunityType;
+    opportunity_type: PromptType;
     unified_prompt: string;
     default_prompt: string;
     is_customized: boolean;
     version: number;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface Category {
+    id: string;
+    name: string;
+    slug: string;
+    description: string | null;
+    meta_title: string | null;
+    meta_description: string | null;
+    color: string;
+    icon: string | null;
+    display_order: number;
+    is_active: boolean;
+    is_default: boolean;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface Post {
+    id: string;
+    title: string;
+    slug: string;
+    excerpt: string | null;
+    content: string;
+    featured_image_url: string | null;
+    meta_title: string | null;
+    meta_description: string | null;
+    status: 'draft' | 'published' | 'archived';
+    category_id: string | null;
+    author_id: string | null;
+    published_at: string | null;
     created_at: string;
     updated_at: string;
 }
@@ -230,6 +267,16 @@ export interface Database {
                 Row: PromptTemplate;
                 Insert: Omit<PromptTemplate, 'id' | 'created_at' | 'updated_at'>;
                 Update: Partial<Omit<PromptTemplate, 'id' | 'created_at' | 'updated_at'>>;
+            };
+            categories: {
+                Row: Category;
+                Insert: Omit<Category, 'id' | 'created_at' | 'updated_at'>;
+                Update: Partial<Omit<Category, 'id' | 'created_at' | 'updated_at'>>;
+            };
+            posts: {
+                Row: Post;
+                Insert: Omit<Post, 'id' | 'created_at' | 'updated_at'>;
+                Update: Partial<Omit<Post, 'id' | 'created_at' | 'updated_at'>>;
             };
         };
     };

@@ -9,6 +9,7 @@ import { opportunityService } from './opportunity.service';
 import { postService } from './post.service';
 import { analyticsService } from './analytics.service';
 import { settingsService } from './settings.service';
+import { imageService } from './image.service';
 import { buildBlogPostPrompt } from '../../prompts/blog_post.prompt';
 import type { OpportunityType, FeedOutputType } from '../types/database.types';
 
@@ -388,31 +389,83 @@ export class RSSProcessorService {
           // Determine auto-publish (feed setting takes priority, then global default)
           const shouldAutoPublish = feed.auto_publish ?? globalAutoPublish ?? false;
 
-          // Use feed's fallback featured image (no scraping since posts are private)
-          const featuredImageUrl = feed.fallback_featured_image_url || null;
-
           // Create content based on output type
           let createdId: string | null = null;
 
           if (outputType === 'blog_post') {
-            // Create blog post
+            // For blog posts: scrape and store images locally
+            let processedFeaturedImage: string | null = null;
+            let processedContent = aiContent.content || '';
+
+            try {
+              // Get scraped featured image (from scraper result or RSS item)
+              const scrapedFeaturedImage = (scrapedContent as any).image ||
+                                           (scrapedContent as any).featuredImage ||
+                                           normalized.featuredImage ||
+                                           null;
+
+              // Process images: download and store in Supabase Storage
+              const imageResult = await imageService.processPostImages(
+                scrapedFeaturedImage,
+                processedContent,
+                {
+                  fallbackFeaturedUrl: feed.fallback_featured_image_url || null,
+                  baseUrl: normalized.link,
+                }
+              );
+
+              processedFeaturedImage = imageResult.featuredImageUrl;
+              processedContent = imageResult.content;
+
+              // Log image processing stats
+              if (imageResult.stats.featuredUploaded || imageResult.stats.contentImagesUploaded > 0) {
+                await logger.info('Blog post images processed', {
+                  feed_id: feedId,
+                  featured_uploaded: imageResult.stats.featuredUploaded,
+                  content_images_uploaded: imageResult.stats.contentImagesUploaded,
+                  content_images_failed: imageResult.stats.contentImagesFailed,
+                });
+              }
+            } catch (imageError) {
+              await logger.warning('Image processing failed, using fallback', {
+                feed_id: feedId,
+                error: imageError instanceof Error ? imageError.message : 'Unknown error',
+              });
+              processedFeaturedImage = feed.fallback_featured_image_url || null;
+            }
+
+            // Update aiContent with processed content
+            const aiContentWithImages = {
+              ...aiContent,
+              content: processedContent,
+            };
+
+            // Create blog post with category from feed settings
             createdId = await postService.createFromAI(
-              aiContent,
+              aiContentWithImages,
               normalized.link,
               feedId,
               shouldAutoPublish,
-              featuredImageUrl
+              processedFeaturedImage,
+              feed.blog_category_id || null // Pass the feed's category or let service use default
             );
 
             if (createdId) {
               result.postsCreated++;
+
+              // Link uploaded images to the created post
+              // Note: Images are already tracked during upload, but we can update entity_id now
               await logger.info('Blog post created successfully', {
                 feed_id: feedId,
                 post_id: createdId,
                 auto_published: shouldAutoPublish,
+                category_id: feed.blog_category_id || 'default',
+                has_featured_image: !!processedFeaturedImage,
               });
             }
           } else {
+            // For opportunities: use fallback featured image only (no scraping)
+            const featuredImageUrl = feed.fallback_featured_image_url || null;
             // Create opportunity
             createdId = await opportunityService.createFromAI(
               aiContent,

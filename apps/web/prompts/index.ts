@@ -55,7 +55,7 @@ const PROMPT_BUILDERS: Record<OpportunityType, PromptBuilder> = {
 /**
  * Get the appropriate prompt for a given opportunity type and scraped content
  *
- * @param opportunityType - The type of opportunity
+ * @param opportunityType - The type of opportunity (or 'blog_post' for blog content)
  * @param scrapedContent - The scraped content to analyze
  * @returns Formatted prompt ready for AI processing
  *
@@ -71,9 +71,14 @@ const PROMPT_BUILDERS: Record<OpportunityType, PromptBuilder> = {
  * ```
  */
 export function getPromptForType(
-  opportunityType: OpportunityType,
+  opportunityType: OpportunityType | 'blog_post',
   scrapedContent: ScrapedContent
 ): string {
+  // Handle blog_post as a special case
+  if (opportunityType === 'blog_post') {
+    return buildBlogPostPrompt(scrapedContent);
+  }
+
   const builder = PROMPT_BUILDERS[opportunityType];
 
   if (!builder) {
@@ -90,7 +95,7 @@ export function getPromptForType(
  * @returns True if the type is supported
  */
 export function isSupportedOpportunityType(type: string): type is OpportunityType {
-  return type in PROMPT_BUILDERS;
+  return type in PROMPT_BUILDERS || type === 'blog_post';
 }
 
 /**

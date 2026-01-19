@@ -26,6 +26,12 @@ export const createFeedSchema = z.object({
         'promo',
         'evergreen'
     ]),
+    // Blog category for blog_post output type
+    blog_category_id: z.union([
+        z.string().uuid(),
+        z.literal('').transform(() => null),
+        z.null()
+    ]).optional(),
     status: z.enum(['active', 'inactive', 'error']).optional().default('active'),
     enable_scraping: z.boolean().optional().default(true),
     enable_ai_processing: z.boolean().optional().default(true),

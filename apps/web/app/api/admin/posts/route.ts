@@ -90,7 +90,7 @@ export async function POST(request: NextRequest) {
         }
 
         const body = await request.json();
-        const { title, slug, excerpt, content, featured_image_url, meta_title, meta_description, status } = body;
+        const { title, slug, excerpt, content, featured_image_url, meta_title, meta_description, status, category_id } = body;
 
         // Validate required fields
         if (!title || !slug || !content) {
@@ -124,6 +124,7 @@ export async function POST(request: NextRequest) {
             meta_title: meta_title || null,
             meta_description: meta_description || null,
             status: status || 'draft',
+            category_id: category_id || null,
             author_id: user.id,
         };
 

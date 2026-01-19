@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Settings as SettingsIcon, Sparkles, FileText, Globe, Wrench, Image as ImageIcon, Palette, BarChart3, Crown, Mail, Bell, Trash2 } from 'lucide-react';
+import { Settings as SettingsIcon, Sparkles, FileText, Globe, Wrench, Image as ImageIcon, Palette, BarChart3, Crown, Mail, Bell, Trash2, Tag } from 'lucide-react';
 import GeneralSettings from './settings/GeneralSettings';
 import AISettings from './settings/AISettings';
 import PromptsSettings from './settings/PromptsSettings';
@@ -14,8 +14,9 @@ import MembershipSettings from './settings/MembershipSettings';
 import EmailSettings from './settings/EmailSettings';
 import PushSettings from './settings/PushSettings';
 import CleanupSettings from './settings/CleanupSettings';
+import CategoriesSettings from './settings/CategoriesSettings';
 
-type SettingsTab = 'general' | 'ai' | 'prompts' | 'scraping' | 'media' | 'personalization' | 'membership' | 'email' | 'push' | 'analytics' | 'cleanup' | 'advanced';
+type SettingsTab = 'general' | 'ai' | 'prompts' | 'categories' | 'scraping' | 'media' | 'personalization' | 'membership' | 'email' | 'push' | 'analytics' | 'cleanup' | 'advanced';
 
 export default function Settings() {
     const [activeTab, setActiveTab] = useState<SettingsTab>('general');
@@ -24,6 +25,7 @@ export default function Settings() {
         { id: 'general', label: 'General', icon: SettingsIcon },
         { id: 'ai', label: 'AI Settings', icon: Sparkles },
         { id: 'prompts', label: 'Prompts', icon: FileText },
+        { id: 'categories', label: 'Categories', icon: Tag },
         { id: 'scraping', label: 'Scraping', icon: Globe },
         { id: 'media', label: 'Media', icon: ImageIcon },
         { id: 'personalization', label: 'Personalization', icon: Palette },
@@ -68,6 +70,7 @@ export default function Settings() {
                     {activeTab === 'general' && <GeneralSettings />}
                     {activeTab === 'ai' && <AISettings />}
                     {activeTab === 'prompts' && <PromptsSettings />}
+                    {activeTab === 'categories' && <CategoriesSettings />}
                     {activeTab === 'scraping' && <ScrapingSettings />}
                     {activeTab === 'media' && <MediaSettings />}
                     {activeTab === 'personalization' && <PersonalizationSettings />}

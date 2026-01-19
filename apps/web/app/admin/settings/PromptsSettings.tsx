@@ -22,6 +22,7 @@ const opportunityTypes = [
     { value: 'volunteer', label: 'Volunteering' },
     { value: 'free_training', label: 'Free Training' },
     { value: 'promo', label: 'Promo' },
+    { value: 'blog_post', label: 'Blog Post' },
 ];
 
 export default function PromptsSettings() {
@@ -202,7 +203,14 @@ export default function PromptsSettings() {
                 <div className="text-xs text-slate-700 space-y-1">
                     <p><code className="bg-slate-200 px-1 py-0.5 rounded">[matched_content]</code> - Full scraped content (title + URL + content)</p>
                     <p><code className="bg-slate-200 px-1 py-0.5 rounded">[original_title]</code> - Original RSS item title</p>
-                    <p className="text-slate-500 mt-2 italic">The AI must return valid JSON with: valid, title, excerpt, content, deadline, prize_value, requirements, location, confidence_score</p>
+                    <div className="mt-3 pt-3 border-t border-slate-200">
+                        <p className="font-bold text-slate-800 mb-1">Opportunity Prompts Output:</p>
+                        <p className="text-slate-500 italic">valid, title, excerpt, content, deadline, prize_value, requirements, location, confidence_score</p>
+                    </div>
+                    <div className="mt-2">
+                        <p className="font-bold text-slate-800 mb-1">Blog Post Prompt Output:</p>
+                        <p className="text-slate-500 italic">valid, title, excerpt, content, meta_title, meta_description, confidence_score</p>
+                    </div>
                 </div>
             </div>
 

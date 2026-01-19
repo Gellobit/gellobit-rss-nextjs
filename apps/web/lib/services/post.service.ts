@@ -20,6 +20,7 @@ export interface CreatePostData {
   featured_image_url?: string | null;
   meta_title?: string | null;
   meta_description?: string | null;
+  category_id?: string | null;
   status?: PostStatus;
 }
 
@@ -47,6 +48,7 @@ export class PostService {
    * @param sourceFeedId - Source feed ID
    * @param autoPublish - Auto-publish based on feed settings
    * @param featuredImageUrl - Featured image URL (from scraper or fallback)
+   * @param categoryId - Category ID (from feed settings or default)
    * @returns Created post ID or null
    */
   async createFromAI(
@@ -54,7 +56,8 @@ export class PostService {
     sourceUrl: string,
     sourceFeedId: string,
     autoPublish: boolean = false,
-    featuredImageUrl?: string | null
+    featuredImageUrl?: string | null,
+    categoryId?: string | null
   ): Promise<string | null> {
     if (!aiContent.valid || !aiContent.title || !aiContent.content) {
       await logger.warning('Cannot create post from invalid AI content', {
@@ -67,6 +70,12 @@ export class PostService {
     try {
       const slug = this.generateSlug(aiContent.title);
 
+      // Get default category if no category specified
+      let finalCategoryId = categoryId;
+      if (!finalCategoryId) {
+        finalCategoryId = await this.getDefaultCategoryId();
+      }
+
       const postData: CreatePostData = {
         title: aiContent.title,
         slug,
@@ -77,6 +86,7 @@ export class PostService {
         featured_image_url: featuredImageUrl || null,
         meta_title: aiContent.meta_title || aiContent.title,
         meta_description: aiContent.meta_description || aiContent.excerpt,
+        category_id: finalCategoryId,
         status: autoPublish ? 'published' : 'draft',
       };
 
@@ -87,6 +97,28 @@ export class PostService {
         feed_id: sourceFeedId,
         error: error instanceof Error ? error.message : 'Unknown error',
       });
+      return null;
+    }
+  }
+
+  /**
+   * Get the default category ID
+   *
+   * @returns Default category ID or null
+   */
+  private async getDefaultCategoryId(): Promise<string | null> {
+    try {
+      const supabase = createAdminClient();
+
+      const { data } = await supabase
+        .from('categories')
+        .select('id')
+        .eq('is_default', true)
+        .eq('is_active', true)
+        .single();
+
+      return data?.id || null;
+    } catch {
       return null;
     }
   }
@@ -109,6 +141,7 @@ export class PostService {
         featured_image_url: data.featured_image_url || null,
         meta_title: data.meta_title || null,
         meta_description: data.meta_description || null,
+        category_id: data.category_id || null,
         status: data.status || 'draft',
       };
 
