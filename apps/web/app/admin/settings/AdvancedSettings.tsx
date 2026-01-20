@@ -72,7 +72,7 @@ export default function AdvancedSettings() {
     const fetchCronStatus = async () => {
         setCronLoading(true);
         try {
-            const res = await fetch('/api/cron/check-and-run');
+            const res = await fetch('/api/admin/settings/cron');
             if (res.ok) {
                 const data = await res.json();
                 setCronStatus({
