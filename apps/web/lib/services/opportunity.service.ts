@@ -21,6 +21,7 @@ export interface CreateOpportunityData {
   location?: string | null;
   confidence_score?: number | null;
   featured_image_url?: string | null;
+  apply_url?: string | null;
   status?: OpportunityStatus;
   auto_publish?: boolean;
 }
@@ -85,6 +86,7 @@ export class OpportunityService {
         location: aiContent.location || null,
         confidence_score: aiContent.confidence_score || null,
         featured_image_url: featuredImageUrl || null,
+        apply_url: aiContent.apply_url || null,
         status: autoPublish ? 'published' : 'draft',
       };
 

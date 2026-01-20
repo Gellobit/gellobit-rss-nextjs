@@ -15,6 +15,7 @@ export async function GET() {
             .select('key, value')
             .eq('category', 'membership')
             .in('key', [
+                'membership.system_enabled',
                 'membership.monthly_price',
                 'membership.annual_price',
                 'membership.paypal_enabled',
@@ -30,6 +31,7 @@ export async function GET() {
         if (error) {
             console.error('Error fetching pricing settings:', error);
             return NextResponse.json({
+                systemEnabled: true,
                 monthlyPrice: 4.99,
                 annualPrice: 39.99,
                 paypalEnabled: false,
@@ -62,6 +64,7 @@ export async function GET() {
         }
 
         return NextResponse.json({
+            systemEnabled: settings.system_enabled !== false && settings.system_enabled !== 'false',
             monthlyPrice: Number(settings.monthly_price) || 4.99,
             annualPrice: Number(settings.annual_price) || 39.99,
             paypalEnabled: settings.paypal_enabled === true || settings.paypal_enabled === 'true',

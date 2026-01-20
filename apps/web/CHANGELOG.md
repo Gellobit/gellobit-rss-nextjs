@@ -5,6 +5,63 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.0-alpha.28] - 2026-01-20
+
+### Added
+- **Automatic Feed Error Handling**
+  - Feeds now track consecutive errors with `error_count` and `last_error` fields
+  - After 5 consecutive failures, feed status automatically changes to 'error'
+  - Successful processing resets the error count to 0
+  - New `/api/admin/feeds/[id]/reactivate` endpoint to reactivate error feeds
+  - ManageFeeds UI shows error count (X/5) and last error message
+  - Reactivate button (RotateCcw icon) for feeds in error status
+  - "Run Now" button disabled for error feeds until reactivated
+
+- **Bulk Delete by Opportunity Type**
+  - New "Danger Zone" section in Admin → Settings → Cleanup
+  - Delete all opportunities of a specific type with triple verification
+  - Step 1: Select type and review counts (opportunities, feeds, history)
+  - Step 2: Type the opportunity type name to confirm
+  - Step 3: Checkbox to confirm understanding of irreversible action
+  - Resets associated feed counters (processed, published) after deletion
+  - Only affects opportunity feeds, not blog post feeds
+
+- **Apply URL Feature for Opportunities**
+  - New `apply_url` field in opportunities table (migration 040)
+  - AI prompts extract direct application/entry URLs from content
+  - "Apply Now" button uses `apply_url` when available, falls back to `source_url`
+  - 3-column button layout: Apply Now, Visit Source, Save
+  - Editable in admin ManagePosts opportunity editor
+
+- **Improved Deadline Extraction in AI Prompts**
+  - All 11 opportunity prompts updated with explicit deadline extraction rules
+  - Type-specific guidance (e.g., job fairs use event date as deadline)
+  - Fallback rules for implicit deadlines ("limited time" → 14 days, etc.)
+  - Deadlines are now mandatory in AI responses
+
+### Fixed
+- **Membership Flash Issue**
+  - Fixed blurred content flash when membership toggle is disabled
+  - Added `membershipLoading` check to assume unlocked during loading
+  - Prevents brief blur effect before settings load
+
+- **Bulk Delete Blog Post Feed Exclusion**
+  - Fixed bulk delete including blog post feeds incorrectly
+  - Now filters by `output_type = 'opportunity'` to exclude blog feeds
+
+### Changed
+- **Cleanup Settings UI**
+  - "Skipped Evergreen" renamed to "Skipped (Never Expire)" for clarity
+  - Messages now conditionally show skip count only when > 0
+
+### Removed
+- **Evergreen from Cleanup Configuration**
+  - Removed `evergreen` from `CleanupMaxAgeByType` interface
+  - Removed from OPPORTUNITY_TYPES array in CleanupSettings
+  - Removed from default cleanup configuration
+  - Removed from ad-layouts, email service, notification service
+  - Fixed `OpportunityPreviewGrid` fallback to use inline default colors
+
 ## [1.0.0-alpha.27] - 2026-01-20
 
 ### Added

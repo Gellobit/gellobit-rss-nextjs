@@ -84,7 +84,7 @@ export default function OpportunitiesBrowser({ opportunities, branding, initialS
         : undefined;
 
     // Get membership access info
-    const { hasFullAccess, limits, loading: membershipLoading } = useMembershipAccess();
+    const { hasFullAccess, limits, loading: membershipLoading, membershipEnabled } = useMembershipAccess();
 
     // Filter opportunities and add locked status
     const filteredOpportunities = useMemo(() => {
@@ -115,9 +115,19 @@ export default function OpportunitiesBrowser({ opportunities, branding, initialS
             // Check if this opportunity is locked
             let isLocked = false;
 
+            // While loading membership status, assume everything is unlocked (prevents flash of blurred content)
+            if (membershipLoading) {
+                return { ...opp, isLocked: false };
+            }
+
+            // If membership system is disabled, nothing is locked
+            if (!membershipEnabled) {
+                return { ...opp, isLocked: false };
+            }
+
             if (!hasFullAccess) {
                 // Check delay period (newest opportunities within delay period are locked)
-                const withinDelay = isWithinDelayPeriod(opp.published_at, limits.freeDelayHours);
+                const withinDelay = isWithinDelayPeriod(opp.published_at, limits.freeDelayHours, limits.systemEnabled);
                 if (withinDelay) {
                     isLocked = true;
                 }
@@ -132,7 +142,7 @@ export default function OpportunitiesBrowser({ opportunities, branding, initialS
 
             return { ...opp, isLocked };
         });
-    }, [opportunities, searchQuery, selectedTypes, hasFullAccess, limits]);
+    }, [opportunities, searchQuery, selectedTypes, hasFullAccess, limits, membershipEnabled, membershipLoading]);
 
     const openFilters = () => {
         setTempSelectedTypes([...selectedTypes]);

@@ -9,6 +9,7 @@ const DEFAULT_LIMITS = {
     freeFavoritesLimit: 5,
     showLockedContent: true,
     lockedContentBlur: true,
+    systemEnabled: true,
 };
 
 // Cache the limits for 5 minutes
@@ -26,6 +27,7 @@ const getMembershipLimits = unstable_cache(
                 'membership.free_favorites_limit',
                 'membership.show_locked_content',
                 'membership.locked_content_blur',
+                'membership.system_enabled',
             ]);
 
         if (error || !data) {
@@ -62,6 +64,9 @@ const getMembershipLimits = unstable_cache(
                     break;
                 case 'membership.locked_content_blur':
                     limits.lockedContentBlur = value === true || value === 'true';
+                    break;
+                case 'membership.system_enabled':
+                    limits.systemEnabled = value !== false && value !== 'false';
                     break;
             }
         }

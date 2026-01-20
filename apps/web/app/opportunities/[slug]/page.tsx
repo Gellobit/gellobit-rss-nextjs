@@ -33,6 +33,12 @@ interface Opportunity {
   featured_image_url: string | null;
   published_at: string | null;
   created_at: string;
+  // SEO fields
+  meta_title: string | null;
+  meta_description: string | null;
+  is_public: boolean;
+  // Application URL
+  apply_url: string | null;
 }
 
 async function getOpportunity(slug: string): Promise<Opportunity | null> {
@@ -101,8 +107,8 @@ function getDaysUntilDeadline(deadline: string | null): { days: number; isExpire
 
 /**
  * Generate metadata for opportunity detail page
- * IMPORTANT: This page is protected and should NOT be indexed by search engines
- * All opportunities are private content behind authentication
+ * - Public opportunities (is_public: true) are indexable with full SEO
+ * - Private opportunities are protected with noindex
  */
 export async function generateMetadata({
   params
@@ -122,11 +128,43 @@ export async function generateMetadata({
     };
   }
 
-  return {
-    title: opportunity.title,
-    description: opportunity.excerpt || `${opportunity.title} - ${opportunity.opportunity_type}`,
-    // CRITICAL: Prevent indexing of protected content
-    robots: {
+  // Use custom SEO fields with fallbacks
+  const title = opportunity.meta_title || opportunity.title;
+  const description = opportunity.meta_description || opportunity.excerpt || `${opportunity.title} - ${opportunity.opportunity_type.replace('_', ' ')}`;
+
+  // Check if this opportunity is public and should be indexed
+  const isPublic = opportunity.is_public === true;
+
+  // Base metadata
+  const metadata: Metadata = {
+    title,
+    description,
+  };
+
+  if (isPublic) {
+    // Public opportunity: full SEO with indexing and social sharing
+    metadata.robots = {
+      index: true,
+      follow: true,
+    };
+    metadata.openGraph = {
+      title,
+      description,
+      type: 'article',
+      publishedTime: opportunity.published_at || opportunity.created_at,
+      ...(opportunity.featured_image_url && {
+        images: [{ url: opportunity.featured_image_url, width: 1200, height: 630 }],
+      }),
+    };
+    metadata.twitter = {
+      card: opportunity.featured_image_url ? 'summary_large_image' : 'summary',
+      title,
+      description,
+      ...(opportunity.featured_image_url && { images: [opportunity.featured_image_url] }),
+    };
+  } else {
+    // Private opportunity: prevent indexing and social previews
+    metadata.robots = {
       index: false,
       follow: false,
       nocache: true,
@@ -135,9 +173,10 @@ export async function generateMetadata({
         follow: false,
         noimageindex: true,
       },
-    },
-    // No Open Graph for private content - prevents social media previews
-  };
+    };
+  }
+
+  return metadata;
 }
 
 export default async function OpportunityPage({
@@ -286,21 +325,30 @@ export default async function OpportunityPage({
 
             {/* CTA Buttons */}
             <div className="border-t border-slate-200 pt-6">
-              <div className="flex flex-wrap items-center gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <a
+                  href={opportunity.apply_url || opportunity.source_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center justify-center gap-2 px-4 py-3 bg-[#FFDE59] text-[#1a1a1a] font-black rounded-lg hover:bg-yellow-400 transition-colors"
+                >
+                  Apply Now
+                  <ExternalLink size={18} />
+                </a>
                 <a
                   href={opportunity.source_url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 px-6 py-3 bg-[#FFDE59] text-[#1a1a1a] font-black rounded-lg hover:bg-yellow-400 transition-colors"
+                  className="inline-flex items-center justify-center gap-2 px-4 py-3 bg-slate-100 text-slate-700 font-bold rounded-lg hover:bg-slate-200 transition-colors"
                 >
-                  Visit Original Source
+                  Visit Source
                   <ExternalLink size={18} />
                 </a>
                 <FavoriteButton
                   opportunityId={opportunity.id}
                   size={20}
                   showLabel={true}
-                  className="px-4 py-3 bg-slate-100 hover:bg-slate-200 rounded-lg"
+                  className="px-4 py-3 bg-slate-100 hover:bg-slate-200 rounded-lg justify-center"
                 />
               </div>
               <p className="text-xs text-slate-400 mt-3">
@@ -382,12 +430,21 @@ export default async function OpportunityPage({
             <SidebarWidget title="Quick Actions">
               <div className="space-y-3">
                 <a
-                  href={opportunity.source_url}
+                  href={opportunity.apply_url || opportunity.source_url}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center justify-center gap-2 w-full px-4 py-3 bg-[#FFDE59] text-[#1a1a1a] font-bold rounded-lg hover:bg-yellow-400 transition-colors text-sm"
                 >
                   Apply Now
+                  <ExternalLink size={16} />
+                </a>
+                <a
+                  href={opportunity.source_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-center gap-2 w-full px-4 py-3 bg-slate-100 text-slate-700 font-bold rounded-lg hover:bg-slate-200 transition-colors text-sm"
+                >
+                  Visit Source
                   <ExternalLink size={16} />
                 </a>
                 <FavoriteButton

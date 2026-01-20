@@ -278,7 +278,6 @@ export class EmailService {
             instant_win: 'Instant Win',
             volunteer: 'Volunteer Opportunity',
             promo: 'Promo',
-            evergreen: 'Opportunity',
         };
         return labels[type] || 'Opportunity';
     }

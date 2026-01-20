@@ -231,17 +231,30 @@ From valid scholarship content, identify and extract:
 - Maintain encouraging, supportive tone throughout
 - Provide practical application preparation tips
 
+**CRITICAL DEADLINE EXTRACTION RULES:**
+The deadline field is MANDATORY for scholarships. You MUST extract a deadline date:
+- **Application Deadline**: The last date to apply IS the deadline
+- **"Applications due by"**: That date IS the deadline
+- **Academic Year Reference**: Convert "Fall 2025" to typical deadline (e.g., 2025-03-15)
+- **"Rolling Admissions"**: Use 90 days from today as deadline
+- **Priority Deadline**: Use the priority deadline if mentioned
+- **Semester-Based**: Spring scholarships typically due in October, Fall due in March
+- **"Annual Scholarship"**: Research typical deadline or use 60 days from today
+- **ALWAYS provide a deadline** - scholarships have application windows
+- **NEVER return null** - missing deadlines means students miss opportunities
+
 **RETURN THIS EXACT JSON STRUCTURE:**
 {
   "valid": true,
   "title": "Scholarship title here (max 70 chars, format: Amount Scholarship Name - Year/Benefit)",
   "excerpt": "Exactly 20 words maximum describing the scholarship opportunity with amount and deadline",
   "content": "<h2>Complete HTML content with all sections above...</h2>",
-  "deadline": "YYYY-MM-DD format or null if no specific date",
-  "award_amount": "$10000 per year (renewable) or total scholarship value",
+  "deadline": "YYYY-MM-DD format - REQUIRED: extract application deadline, priority deadline, or estimate from academic year",
+  "prize_value": "$10000 per year (renewable) or total scholarship value",
   "requirements": "3.5 GPA, Engineering major, US citizen - key eligibility summary",
   "location": "Nationwide or State University, CA or institution location",
-  "confidence_score": 0.0-1.0 based on content quality and completeness
+  "confidence_score": 0.0-1.0 based on content quality and completeness,
+  "apply_url": "Direct URL to scholarship application page, or null if not found"
 }
 
 **SOURCE CONTENT TO ANALYZE:**

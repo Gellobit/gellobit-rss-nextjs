@@ -241,17 +241,29 @@ From valid instant win game content, identify and extract:
 - Make content actionable for interested players
 - Maintain exciting but responsible tone throughout
 
+**CRITICAL DEADLINE EXTRACTION RULES:**
+The deadline field is MANDATORY for instant win games. You MUST extract a deadline date:
+- **Promotion End Date**: When the instant win game ends IS the deadline
+- **Game Period End**: If "game runs until [date]", that date IS the deadline
+- **"While supplies last"**: Use 14 days from today as deadline
+- **Daily/Weekly Reset Mentioned**: Use the overall promotion end date
+- **Seasonal Promotion**: Convert "Summer 2025" to approximate end date (e.g., 2025-08-31)
+- **"Limited time"**: Use 7 days from today as deadline
+- **No end date mentioned**: Use 30 days from today as deadline (instant wins are short promotions)
+- **ALWAYS provide a deadline** - instant win games have finite promotional periods
+
 **RETURN THIS EXACT JSON STRUCTURE:**
 {
   "valid": true,
   "title": "Instant win game title here (max 60 chars, format: Game Name - Win Prize Instantly)",
   "excerpt": "Exactly 20 words maximum describing the instant win opportunity",
   "content": "<h2>Complete HTML content with all sections above...</h2>",
-  "deadline": "YYYY-MM-DD format or null if no specific date",
+  "deadline": "YYYY-MM-DD format - REQUIRED: extract promotion end date or game period end",
   "prize_value": "$1000 Cash Grand Prize or maximum prize value",
   "requirements": "18+, US only, free registration required - key eligibility",
   "location": "United States or Nationwide or specific states",
-  "confidence_score": 0.0-1.0 based on content quality and completeness
+  "confidence_score": 0.0-1.0 based on content quality and completeness,
+  "apply_url": "Direct URL to play the instant win game, or null if not found"
 }
 
 **SOURCE CONTENT TO ANALYZE:**

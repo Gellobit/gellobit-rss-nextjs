@@ -19,6 +19,7 @@ export interface MembershipLimits {
     freeFavoritesLimit: number;
     showLockedContent: boolean;
     lockedContentBlur: boolean;
+    systemEnabled: boolean;
 }
 
 /**
@@ -30,6 +31,7 @@ export const DEFAULT_MEMBERSHIP_LIMITS: MembershipLimits = {
     freeFavoritesLimit: 5,
     showLockedContent: true,
     lockedContentBlur: true,
+    systemEnabled: true,
 };
 
 /**
@@ -114,12 +116,17 @@ export function getMembershipBadgeClasses(membershipType: string | null | undefi
 }
 
 /**
- * Check if user has full content access (premium/lifetime)
+ * Check if user has full content access (premium/lifetime or system disabled)
+ * When membership system is disabled, all users have full access
  */
 export function hasFullContentAccess(
     membershipType: string | null | undefined,
-    expiresAt: string | null | undefined
+    expiresAt: string | null | undefined,
+    systemEnabled: boolean = true
 ): boolean {
+    // If membership system is disabled, everyone has full access
+    if (!systemEnabled) return true;
+
     if (!membershipType) return false;
 
     // Lifetime always has full access
@@ -146,8 +153,11 @@ export function isOpportunityAccessible(
     totalOpportunities: number,
     limits: MembershipLimits
 ): boolean {
+    // If membership system is disabled, all content is accessible
+    if (!limits.systemEnabled) return true;
+
     // Premium users have full access
-    if (hasFullContentAccess(membershipType, expiresAt)) {
+    if (hasFullContentAccess(membershipType, expiresAt, limits.systemEnabled)) {
         return true;
     }
 
@@ -162,11 +172,16 @@ export function isOpportunityAccessible(
 
 /**
  * Check if an opportunity is within the delay period for free users
+ * When membership system is disabled, there is no delay
  */
 export function isWithinDelayPeriod(
     publishedAt: string | null | undefined,
-    delayHours: number
+    delayHours: number,
+    systemEnabled: boolean = true
 ): boolean {
+    // If membership system is disabled, no delay applies
+    if (!systemEnabled) return false;
+
     if (!publishedAt) return false;
 
     const publishDate = new Date(publishedAt);
@@ -178,15 +193,20 @@ export function isWithinDelayPeriod(
 
 /**
  * Check if user can add more favorites
+ * When membership system is disabled, no limits apply
  */
 export function canAddFavorite(
     membershipType: string | null | undefined,
     expiresAt: string | null | undefined,
     currentFavoritesCount: number,
-    freeFavoritesLimit: number
+    freeFavoritesLimit: number,
+    systemEnabled: boolean = true
 ): boolean {
+    // If membership system is disabled, unlimited favorites for all
+    if (!systemEnabled) return true;
+
     // Premium users have unlimited favorites
-    if (hasFullContentAccess(membershipType, expiresAt)) {
+    if (hasFullContentAccess(membershipType, expiresAt, systemEnabled)) {
         return true;
     }
 
@@ -196,15 +216,20 @@ export function canAddFavorite(
 
 /**
  * Get the number of remaining favorites for free users
+ * Returns null when unlimited (premium or system disabled)
  */
 export function getRemainingFavorites(
     membershipType: string | null | undefined,
     expiresAt: string | null | undefined,
     currentFavoritesCount: number,
-    freeFavoritesLimit: number
+    freeFavoritesLimit: number,
+    systemEnabled: boolean = true
 ): number | null {
+    // If membership system is disabled, unlimited for all
+    if (!systemEnabled) return null;
+
     // Premium users have unlimited
-    if (hasFullContentAccess(membershipType, expiresAt)) {
+    if (hasFullContentAccess(membershipType, expiresAt, systemEnabled)) {
         return null; // null = unlimited
     }
 

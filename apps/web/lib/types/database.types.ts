@@ -92,6 +92,12 @@ export interface Opportunity {
     created_at: string;
     updated_at: string;
     created_by: string | null;
+    // SEO fields
+    meta_title: string | null;
+    meta_description: string | null;
+    is_public: boolean;
+    // Application URL
+    apply_url: string | null;
 }
 
 export interface AISettings {
@@ -220,6 +226,27 @@ export interface Post {
     updated_at: string;
 }
 
+export type PageStatus = 'draft' | 'published' | 'archived';
+
+export interface Page {
+    id: string;
+    title: string;
+    slug: string;
+    content: string;
+    featured_image_url: string | null;
+    meta_title: string | null;
+    meta_description: string | null;
+    show_in_footer: boolean;
+    show_in_menu: boolean;
+    sort_order: number;
+    linked_opportunity_type: OpportunityType | null;
+    status: PageStatus;
+    author_id: string | null;
+    published_at: string | null;
+    created_at: string;
+    updated_at: string;
+}
+
 // ============================================================================
 // Database Schema Type
 // ============================================================================
@@ -286,6 +313,11 @@ export interface Database {
                 Row: Post;
                 Insert: Omit<Post, 'id' | 'created_at' | 'updated_at'>;
                 Update: Partial<Omit<Post, 'id' | 'created_at' | 'updated_at'>>;
+            };
+            pages: {
+                Row: Page;
+                Insert: Omit<Page, 'id' | 'created_at' | 'updated_at'>;
+                Update: Partial<Omit<Page, 'id' | 'created_at' | 'updated_at'>>;
             };
         };
     };

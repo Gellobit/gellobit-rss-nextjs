@@ -52,7 +52,6 @@ export const OPPORTUNITY_TYPE_CATEGORIES: Record<string, OpportunityCategory> = 
 
   // Default for any other types
   'get_paid_to': 'default',
-  'evergreen': 'default',
 };
 
 // Ad layouts by category

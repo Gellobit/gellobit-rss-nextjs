@@ -3,7 +3,7 @@ import { createAdminClient } from '../utils/supabase-admin';
 /**
  * Cleanup configuration per opportunity type
  * Values represent days after which to delete opportunities without deadline
- * Use -1 to never delete (for evergreen content)
+ * Use -1 to never delete (content configured to never expire)
  */
 export interface CleanupMaxAgeByType {
     contest: number;
@@ -17,7 +17,6 @@ export interface CleanupMaxAgeByType {
     volunteer: number;
     free_training: number;
     promo: number;
-    evergreen: number;
 }
 
 interface SystemSettings {
@@ -265,7 +264,6 @@ class SettingsService {
                 volunteer: 60,
                 free_training: 60,
                 promo: 14,
-                evergreen: -1, // Never delete
             },
         };
         return defaults[key];

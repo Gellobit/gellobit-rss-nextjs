@@ -26,7 +26,7 @@ export class CleanupService {
    * - It has a deadline AND the deadline has passed (plus grace period)
    * - OR it has no deadline AND it's older than max age days for its type
    *
-   * Types with max_age = -1 are NEVER deleted (evergreen content)
+   * Types with max_age = -1 are NEVER deleted (configured to never expire)
    *
    * @returns Cleanup result with counts
    */
@@ -62,7 +62,7 @@ export class CleanupService {
       });
 
       // 1. Find opportunities WITH deadline that have expired (deadline + grace period)
-      // These are deleted regardless of type (except evergreen types)
+      // These are deleted regardless of type (except types configured to never expire)
       const { data: expiredWithDeadline, error: error1 } = await supabase
         .from('opportunities')
         .select('id, title, deadline, opportunity_type, created_at')

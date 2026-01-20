@@ -183,17 +183,30 @@ Identify and extract these details from the source content:
 ✅ Make content actionable and ready to publish
 ✅ Maintain all functional links and contact information
 
+**CRITICAL DEADLINE EXTRACTION RULES:**
+The deadline field is MANDATORY for giveaways. You MUST extract a deadline date:
+- **Entry End Date**: The last date to enter the giveaway IS the deadline
+- **Giveaway End Date**: If "giveaway ends on [date]", that date IS the deadline
+- **Drawing Date**: If winners are drawn on a specific date, that IS the deadline
+- **"Ends at midnight"**: Use that date as the deadline
+- **Relative Dates**: Convert "ends in 3 days" to actual YYYY-MM-DD date
+- **Seasonal References**: Convert "ends this summer" to approximate date
+- **"While supplies last"**: Use 30 days from today as deadline
+- **"Limited time"**: Use 14 days from today as deadline
+- **NEVER return null if ANY date or time reference exists** - always convert to YYYY-MM-DD
+
 **RETURN THIS EXACT JSON STRUCTURE:**
 {
   "valid": true,
   "title": "Giveaway title here (max 70 chars)",
   "excerpt": "Exactly 20 words maximum describing the giveaway opportunity",
   "content": "<h2>Complete HTML content with all sections above...</h2>",
-  "deadline": "YYYY-MM-DD format or null if no specific date",
+  "deadline": "YYYY-MM-DD format - REQUIRED: extract entry end date, giveaway end date, or drawing date",
   "prize_value": "Prize description and/or value",
   "requirements": "Age and eligibility requirements",
   "location": "City, State" or "Nationwide" or "Online",
-  "confidence_score": 0.0-1.0 based on content quality and completeness
+  "confidence_score": 0.0-1.0 based on content quality and completeness,
+  "apply_url": "Direct URL to enter the giveaway, or null if not found"
 }
 
 **SOURCE CONTENT TO ANALYZE:**

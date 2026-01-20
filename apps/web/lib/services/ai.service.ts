@@ -218,6 +218,7 @@ Never invent details not present in the source material.`;
                 requirements: parsed.requirements || null,
                 location: parsed.location || null,
                 confidence_score: parsed.confidence_score || 1.0,
+                apply_url: parsed.apply_url || null,
                 meta_title: parsed.meta_title || null,
                 meta_description: parsed.meta_description || null
             };

@@ -4,6 +4,7 @@ import { createAdminClient } from '@/lib/utils/supabase-admin';
 
 // Default membership settings
 const DEFAULT_SETTINGS = {
+    system_enabled: true,
     free_content_percentage: 60,
     free_delay_hours: 24,
     free_favorites_limit: 5,

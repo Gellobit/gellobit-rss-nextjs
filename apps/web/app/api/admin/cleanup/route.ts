@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
       deleted_by_type: result.deletedByType,
       skipped_evergreen: result.skippedEvergreen,
       errors: result.errors,
-      message: `Cleanup completed. Deleted ${result.deletedCount} expired opportunities. Skipped ${result.skippedEvergreen} evergreen items.`,
+      message: `Cleanup completed. Deleted ${result.deletedCount} expired opportunities.${result.skippedEvergreen > 0 ? ` Skipped ${result.skippedEvergreen} items (never expire).` : ''}`,
     });
   } catch (error) {
     console.error('Cleanup error:', error);

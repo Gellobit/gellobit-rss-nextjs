@@ -181,17 +181,29 @@ Before processing, verify the content contains a REAL job fair announcement wher
 ✅ Provide contact information for organizers
 ✅ Make content actionable for job seekers in the region
 
+**CRITICAL DEADLINE EXTRACTION RULES:**
+The deadline field is MANDATORY for job fairs. The EVENT DATE IS THE DEADLINE:
+- **Event Date**: If the job fair is on January 20, 2025, the deadline IS "2025-01-20"
+- **Multi-Day Events**: Use the LAST day of the event as the deadline
+- **Registration Deadline**: If registration closes before the event, use registration deadline
+- **"Spring 2025" Events**: Convert to approximate date (e.g., 2025-04-15)
+- **Recurring Events**: Use the next occurrence date
+- **Virtual Events**: Use the event date, not the registration deadline
+- **ALWAYS provide the event date as deadline** - you cannot attend a job fair after it happens
+- **NEVER return null** - every job fair has an event date
+
 **RETURN THIS EXACT JSON STRUCTURE:**
 {
   "valid": true,
   "title": "Job fair title here (max 70 chars, format: Event Name – City, State Job Fair)",
   "excerpt": "Exactly 20 words maximum describing the job fair opportunity with key details",
   "content": "<h2>Complete HTML content with all sections above...</h2>",
-  "deadline": "YYYY-MM-DD format or null if no specific date",
+  "deadline": "YYYY-MM-DD format - REQUIRED: the job fair event date IS the deadline",
   "prize_value": "Free Admission" or "X+ Employers Hiring" or specific benefit,
   "requirements": "Target audience and what to bring",
   "location": "City, State" or "Virtual Event",
-  "confidence_score": 0.0-1.0 based on content quality and completeness
+  "confidence_score": 0.0-1.0 based on content quality and completeness,
+  "apply_url": "Direct URL to register for the job fair, or null if not found"
 }
 
 **SOURCE CONTENT TO ANALYZE:**

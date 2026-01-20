@@ -254,17 +254,28 @@ From valid contest content, identify and extract:
 - Make content actionable for creative participants
 - Maintain inspiring, encouraging tone throughout
 
+**CRITICAL DEADLINE EXTRACTION RULES:**
+The deadline field is MANDATORY for contests. You MUST extract a deadline date:
+- **Submission Deadline**: The last date to submit entries IS the deadline
+- **Entry Period End Date**: If "entries accepted until [date]", that date IS the deadline
+- **Contest End Date**: If the contest ends on a specific date, that IS the deadline
+- **Relative Dates**: Convert "entries due in 2 weeks" to actual YYYY-MM-DD date
+- **Seasonal References**: Convert "Winter 2025" to approximate date (e.g., 2025-02-28)
+- **"Ongoing" or "Rolling"**: Use 6 months from today as deadline
+- **NEVER return null if ANY date reference exists** - always convert to YYYY-MM-DD
+
 **RETURN THIS EXACT JSON STRUCTURE:**
 {
   "valid": true,
   "title": "Contest title here (max 80 chars, format: Contest Name - Prize or Category)",
   "excerpt": "Exactly 20 words maximum describing the contest opportunity with prize and deadline",
   "content": "<h2>Complete HTML content with all sections above...</h2>",
-  "deadline": "YYYY-MM-DD format or null if no specific date",
+  "deadline": "YYYY-MM-DD format - REQUIRED: extract submission deadline, contest end date, or entry period end",
   "prize_value": "$5000 First Prize or Total Prize Pool amount",
   "requirements": "Amateur photographers, 18+, US only - key eligibility summary",
   "location": "United States or International",
-  "confidence_score": 0.0-1.0 based on content quality and completeness
+  "confidence_score": 0.0-1.0 based on content quality and completeness,
+  "apply_url": "Direct URL to submit entry/application form, or null if not found"
 }
 
 **SOURCE CONTENT TO ANALYZE:**

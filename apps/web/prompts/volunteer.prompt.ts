@@ -282,17 +282,29 @@ From valid volunteer opportunity content, identify and extract:
 - Make content actionable for interested volunteers
 - Maintain inspiring, motivational tone throughout
 
+**CRITICAL DEADLINE EXTRACTION RULES:**
+The deadline field is IMPORTANT for volunteer opportunities. Extract a deadline when available:
+- **Event Date**: For one-time volunteer events, the event date IS the deadline
+- **Registration Deadline**: If "sign up by [date]", that date IS the deadline
+- **Orientation Date**: If orientation is required, use 7 days before orientation
+- **Seasonal Programs**: Convert "Summer program" to start date (e.g., 2025-06-01)
+- **"Ongoing" Programs**: Use 60 days from today as deadline
+- **"Immediate need"**: Use 14 days from today as deadline
+- **Limited Spots**: If "first 20 volunteers", use 21 days from today
+- **ALWAYS provide a deadline** - helps users act on volunteer opportunities
+
 **RETURN THIS EXACT JSON STRUCTURE:**
 {
   "valid": true,
   "title": "Volunteer opportunity title here (max 60 chars, format: Activity with Organization)",
   "excerpt": "Exactly 20 words maximum describing the volunteer opportunity",
   "content": "<h2>Complete HTML content with all sections above...</h2>",
-  "deadline": "YYYY-MM-DD format or null if ongoing",
+  "deadline": "YYYY-MM-DD format - REQUIRED: extract event date, registration deadline, or estimate based on program type",
   "prize_value": "Volunteer Service - Certificate Available or benefits offered",
   "requirements": "18+, background check required, 3-month commitment - key requirements",
   "location": "Denver, CO or Remote or City, State",
-  "confidence_score": 0.0-1.0 based on content quality and completeness
+  "confidence_score": 0.0-1.0 based on content quality and completeness,
+  "apply_url": "Direct URL to volunteer sign-up page, or null if not found"
 }
 
 **SOURCE CONTENT TO ANALYZE:**

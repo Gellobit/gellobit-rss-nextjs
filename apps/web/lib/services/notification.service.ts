@@ -17,7 +17,6 @@ const OPPORTUNITY_TYPE_LABELS: Record<string, string> = {
     instant_win: 'Instant Win',
     volunteer: 'Volunteer',
     promo: 'Promo',
-    evergreen: 'Evergreen',
 };
 
 export interface CreateNotificationParams {

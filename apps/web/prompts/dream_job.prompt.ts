@@ -265,17 +265,29 @@ From valid dream job content, identify and extract:
 - Make content actionable for qualified candidates
 - Maintain exciting, aspirational tone throughout
 
+**CRITICAL DEADLINE EXTRACTION RULES:**
+The deadline field is IMPORTANT for job postings. Extract a deadline when available:
+- **Application Deadline**: If "apply by [date]", that date IS the deadline
+- **Position Closes**: If "position closes on [date]", that date IS the deadline
+- **"Apply ASAP"/"Immediate"**: Use 30 days from today as deadline
+- **"Until filled"**: Use 45 days from today as deadline
+- **Start Date Given**: If job starts on specific date, use 14 days before as deadline
+- **Seasonal Hiring**: Convert "summer positions" to appropriate deadline
+- **No date mentioned**: Use 60 days from today as deadline (jobs don't stay open forever)
+- **ALWAYS provide a deadline** - job postings are time-sensitive by nature
+
 **RETURN THIS EXACT JSON STRUCTURE:**
 {
   "valid": true,
   "title": "Dream job title here (max 75 chars, format: Job Title at Company - Key Benefit)",
   "excerpt": "Exactly 20 words maximum describing the dream job opportunity",
   "content": "<h2>Complete HTML content with all sections above...</h2>",
-  "deadline": "YYYY-MM-DD format or null if no specific date",
+  "deadline": "YYYY-MM-DD format - REQUIRED: extract application deadline, or estimate based on job posting age",
   "prize_value": "$150000-$200000 + equity + travel perks or total compensation",
   "requirements": "5+ years experience, Bachelor's degree, willing to travel - key requirements",
   "location": "Remote Worldwide or City, State",
-  "confidence_score": 0.0-1.0 based on content quality and uniqueness
+  "confidence_score": 0.0-1.0 based on content quality and uniqueness,
+  "apply_url": "Direct URL to job application page, or null if not found"
 }
 
 **SOURCE CONTENT TO ANALYZE:**

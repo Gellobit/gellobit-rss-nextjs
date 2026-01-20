@@ -1,9 +1,12 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Save, RefreshCw, Lock, DollarSign, Bell, Eye } from 'lucide-react';
+import { Save, RefreshCw, Lock, DollarSign, Bell, Eye, Power } from 'lucide-react';
 
 interface MembershipConfig {
+    // System toggle
+    system_enabled: boolean;
+
     // Content access
     free_content_percentage: number;
     free_delay_hours: number;
@@ -32,6 +35,7 @@ interface MembershipConfig {
 }
 
 const DEFAULT_CONFIG: MembershipConfig = {
+    system_enabled: true,
     free_content_percentage: 60,
     free_delay_hours: 24,
     free_favorites_limit: 5,
@@ -144,6 +148,43 @@ export default function MembershipSettings() {
                     {message.text}
                 </div>
             )}
+
+            {/* System Toggle Section */}
+            <div className={`rounded-xl p-6 border-2 ${config.system_enabled ? 'bg-green-50 border-green-200' : 'bg-amber-50 border-amber-200'}`}>
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                        <div className={`p-2 rounded-lg ${config.system_enabled ? 'bg-green-100' : 'bg-amber-100'}`}>
+                            <Power size={24} className={config.system_enabled ? 'text-green-600' : 'text-amber-600'} />
+                        </div>
+                        <div>
+                            <h3 className="text-lg font-bold text-slate-900">Membership System</h3>
+                            <p className={`text-sm ${config.system_enabled ? 'text-green-700' : 'text-amber-700'}`}>
+                                {config.system_enabled
+                                    ? 'Active - Free users have limited access, Premium users have full access'
+                                    : 'Disabled - All users have full access to all content (ads still show)'
+                                }
+                            </p>
+                        </div>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                        <input
+                            type="checkbox"
+                            checked={config.system_enabled}
+                            onChange={(e) => setConfig({ ...config, system_enabled: e.target.checked })}
+                            className="sr-only peer"
+                        />
+                        <div className="w-14 h-7 bg-slate-300 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-green-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[4px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-green-500"></div>
+                    </label>
+                </div>
+                {!config.system_enabled && (
+                    <div className="mt-4 p-3 bg-amber-100 rounded-lg">
+                        <p className="text-sm text-amber-800">
+                            <strong>Note:</strong> When disabled, the pricing page will show a message that all content is free.
+                            Ads will continue to display to all users for monetization.
+                        </p>
+                    </div>
+                )}
+            </div>
 
             {/* Content Access Section */}
             <div className="bg-slate-50 rounded-xl p-6">

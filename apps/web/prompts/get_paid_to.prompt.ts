@@ -237,17 +237,29 @@ From valid paid opportunity content, identify and extract:
 - Include safety or legal considerations if applicable
 - Make content actionable for interested participants
 
+**CRITICAL DEADLINE EXTRACTION RULES:**
+The deadline field is IMPORTANT for paid opportunities. Extract a deadline when available:
+- **Study/Survey End Date**: If study ends on [date], that IS the deadline
+- **Application Deadline**: If "apply by [date]", that IS the deadline
+- **Limited Spots**: If "first 100 participants", use 14 days from today
+- **"Currently recruiting"**: Use 30 days from today as deadline
+- **Focus Group Date**: If event is on specific date, use 3 days before as deadline
+- **Product Testing Period**: Use the testing end date as deadline
+- **"Ongoing opportunity"**: Use 45 days from today as deadline
+- **ALWAYS provide a deadline** - paid opportunities are time-sensitive
+
 **RETURN THIS EXACT JSON STRUCTURE:**
 {
   "valid": true,
   "title": "Paid task title here (max 60 chars, format: Task - Get Paid Amount)",
   "excerpt": "Exactly 20 words maximum describing the paid opportunity",
   "content": "<h2>Complete HTML content with all sections above...</h2>",
-  "deadline": "YYYY-MM-DD format or null if no specific date",
+  "deadline": "YYYY-MM-DD format - REQUIRED: extract application deadline, study end date, or estimate based on opportunity type",
   "prize_value": "$500 total or $25 per hour - payment amount",
   "requirements": "18+, smartphone required, no experience needed - key requirements",
   "location": "Los Angeles, CA or Remote",
-  "confidence_score": 0.0-1.0 based on content quality and completeness
+  "confidence_score": 0.0-1.0 based on content quality and completeness,
+  "apply_url": "Direct URL to apply or sign up, or null if not found"
 }
 
 **SOURCE CONTENT TO ANALYZE:**

@@ -1,6 +1,7 @@
 import React from 'react';
 import { notFound } from 'next/navigation';
 import { unstable_cache } from 'next/cache';
+import { Metadata } from 'next';
 import {
     Share2,
     Flag,
@@ -105,6 +106,61 @@ const getOpportunity = unstable_cache(
     ['opportunity'],
     { revalidate: 60, tags: ['opportunities'] }
 );
+
+// Generate metadata for SEO
+export async function generateMetadata({
+    params,
+}: {
+    params: Promise<{ slug: string }>;
+}): Promise<Metadata> {
+    const { slug } = await params;
+    const [opportunity, branding] = await Promise.all([
+        getOpportunity(slug),
+        getBranding(),
+    ]);
+
+    if (!opportunity) {
+        return {
+            title: 'Opportunity Not Found',
+            robots: { index: false, follow: false },
+        };
+    }
+
+    const title = opportunity.meta_title || opportunity.title;
+    const description = opportunity.meta_description || opportunity.excerpt || `${opportunity.title} - ${categoryLabels[opportunity.opportunity_type] || opportunity.opportunity_type}`;
+
+    // Check if this opportunity should be indexable (public)
+    const isPublic = opportunity.is_public === true;
+
+    const metadata: Metadata = {
+        title: `${title} | ${branding.appName}`,
+        description,
+        robots: isPublic
+            ? { index: true, follow: true }
+            : { index: false, follow: false, nocache: true },
+    };
+
+    // Add Open Graph and rich metadata only for public opportunities
+    if (isPublic) {
+        metadata.openGraph = {
+            title,
+            description,
+            type: 'article',
+            publishedTime: opportunity.published_at || opportunity.created_at,
+            ...(opportunity.featured_image_url && {
+                images: [{ url: opportunity.featured_image_url, width: 1200, height: 630 }],
+            }),
+        };
+        metadata.twitter = {
+            card: opportunity.featured_image_url ? 'summary_large_image' : 'summary',
+            title,
+            description,
+            ...(opportunity.featured_image_url && { images: [opportunity.featured_image_url] }),
+        };
+    }
+
+    return metadata;
+}
 
 export default async function ArticlePage({ params }: { params: Promise<{ slug: string }> }) {
     const { slug } = await params;

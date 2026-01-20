@@ -53,6 +53,11 @@ export class RSSProcessorService {
     'daily': 24 * 60 * 60 * 1000,
   };
 
+  /**
+   * Error threshold - after this many consecutive errors, feed status is set to 'error'
+   */
+  private static readonly ERROR_THRESHOLD = 5;
+
   private constructor() {}
 
   static getInstance(): RSSProcessorService {
@@ -643,6 +648,9 @@ export class RSSProcessorService {
       result.executionTimeMs = Date.now() - startTime;
       result.success = true;
 
+      // Reset error count on successful processing
+      await this.resetFeedErrors(feedId);
+
       // Record analytics
       await analyticsService.recordProcessing(result);
 
@@ -669,6 +677,9 @@ export class RSSProcessorService {
         error: result.error,
         execution_time_ms: result.executionTimeMs,
       });
+
+      // Record the error and potentially mark feed as 'error' status
+      await this.handleFeedError(feedId, result.error);
 
       return result;
     }
@@ -860,6 +871,152 @@ export class RSSProcessorService {
       await logger.warning('Failed to clean up orphaned images', {
         error: error instanceof Error ? error.message : 'Unknown error',
       });
+    }
+  }
+
+  /**
+   * Handle feed error - increment error count and optionally set status to 'error'
+   *
+   * @param feedId - Feed ID
+   * @param errorMessage - Error message to store
+   * @returns Whether the feed was marked as error (threshold exceeded)
+   */
+  private async handleFeedError(feedId: string, errorMessage: string): Promise<boolean> {
+    try {
+      const supabase = createAdminClient();
+
+      // Get current error count
+      const { data: feed } = await supabase
+        .from('rss_feeds')
+        .select('error_count, name')
+        .eq('id', feedId)
+        .single();
+
+      if (!feed) return false;
+
+      const newErrorCount = (feed.error_count || 0) + 1;
+      const shouldMarkAsError = newErrorCount >= RSSProcessorService.ERROR_THRESHOLD;
+
+      const updateData: Record<string, any> = {
+        error_count: newErrorCount,
+        last_error: errorMessage,
+      };
+
+      // If threshold exceeded, mark feed as error
+      if (shouldMarkAsError) {
+        updateData.status = 'error';
+        await logger.warning('Feed marked as error due to consecutive failures', {
+          feed_id: feedId,
+          feed_name: feed.name,
+          error_count: newErrorCount,
+          threshold: RSSProcessorService.ERROR_THRESHOLD,
+          last_error: errorMessage,
+        });
+      }
+
+      await supabase
+        .from('rss_feeds')
+        .update(updateData)
+        .eq('id', feedId);
+
+      await logger.debug('Feed error recorded', {
+        feed_id: feedId,
+        error_count: newErrorCount,
+        marked_as_error: shouldMarkAsError,
+      });
+
+      return shouldMarkAsError;
+    } catch (error) {
+      await logger.error('Failed to record feed error', {
+        feed_id: feedId,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+      return false;
+    }
+  }
+
+  /**
+   * Reset feed error count after successful processing
+   *
+   * @param feedId - Feed ID
+   */
+  private async resetFeedErrors(feedId: string): Promise<void> {
+    try {
+      const supabase = createAdminClient();
+
+      // Only reset if there were errors before
+      const { data: feed } = await supabase
+        .from('rss_feeds')
+        .select('error_count')
+        .eq('id', feedId)
+        .single();
+
+      if (feed && feed.error_count > 0) {
+        await supabase
+          .from('rss_feeds')
+          .update({
+            error_count: 0,
+            last_error: null,
+          })
+          .eq('id', feedId);
+
+        await logger.debug('Feed error count reset after successful processing', {
+          feed_id: feedId,
+          previous_error_count: feed.error_count,
+        });
+      }
+    } catch (error) {
+      await logger.error('Failed to reset feed error count', {
+        feed_id: feedId,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+    }
+  }
+
+  /**
+   * Reactivate a feed that was marked as error
+   * Resets error count and sets status back to active
+   *
+   * @param feedId - Feed ID to reactivate
+   * @returns Success status
+   */
+  async reactivateFeed(feedId: string): Promise<boolean> {
+    try {
+      const supabase = createAdminClient();
+
+      const { data: feed } = await supabase
+        .from('rss_feeds')
+        .select('name, status')
+        .eq('id', feedId)
+        .single();
+
+      if (!feed) {
+        await logger.error('Feed not found for reactivation', { feed_id: feedId });
+        return false;
+      }
+
+      await supabase
+        .from('rss_feeds')
+        .update({
+          status: 'active',
+          error_count: 0,
+          last_error: null,
+        })
+        .eq('id', feedId);
+
+      await logger.info('Feed reactivated', {
+        feed_id: feedId,
+        feed_name: feed.name,
+        previous_status: feed.status,
+      });
+
+      return true;
+    } catch (error) {
+      await logger.error('Failed to reactivate feed', {
+        feed_id: feedId,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+      return false;
     }
   }
 }

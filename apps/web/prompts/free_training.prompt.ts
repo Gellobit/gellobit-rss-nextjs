@@ -265,17 +265,29 @@ From valid free training content, identify and extract:
 - Make content actionable for interested learners
 - Maintain trustworthy, educational tone throughout
 
+**CRITICAL DEADLINE EXTRACTION RULES:**
+The deadline field is IMPORTANT for free training. Extract a deadline when available:
+- **Enrollment Deadline**: If "registration closes [date]", that IS the deadline
+- **Class Start Date**: If class starts on specific date, use 3 days before as deadline
+- **Cohort-Based**: Use the enrollment window end date
+- **"Limited spots"**: Use 14 days from today as deadline
+- **"Self-paced" with No Deadline**: Use 90 days from today (courses get updated/retired)
+- **Bootcamp Start Date**: Use 7 days before bootcamp starts
+- **"Always available"**: Use 120 days from today
+- **ALWAYS provide a deadline** - even self-paced courses benefit from urgency
+
 **RETURN THIS EXACT JSON STRUCTURE:**
 {
   "valid": true,
   "title": "Free training title here (max 70 chars, format: Topic - Free Program/Course)",
   "excerpt": "Exactly 20 words maximum describing the free training opportunity",
   "content": "<h2>Complete HTML content with all sections above...</h2>",
-  "deadline": "YYYY-MM-DD format or null if ongoing",
+  "deadline": "YYYY-MM-DD format - REQUIRED: extract enrollment deadline, class start date, or estimate based on program type",
   "prize_value": "Free Training + Certificate of Completion or program value",
   "requirements": "Beginner-friendly, computer required, no experience needed - key prerequisites",
   "location": "Online or City, State or Hybrid",
-  "confidence_score": 0.0-1.0 based on content quality and truly free status
+  "confidence_score": 0.0-1.0 based on content quality and truly free status,
+  "apply_url": "Direct URL to enroll in the training, or null if not found"
 }
 
 **SOURCE CONTENT TO ANALYZE:**

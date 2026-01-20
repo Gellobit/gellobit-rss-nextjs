@@ -187,17 +187,30 @@ From valid sweepstakes content, identify and extract:
 - Make content actionable with clear next steps
 - Maintain professional, trustworthy tone throughout
 
+**CRITICAL DEADLINE EXTRACTION RULES:**
+The deadline field is MANDATORY for sweepstakes. You MUST extract a deadline date:
+- **Entry Period End**: The last date to enter the sweepstakes IS the deadline
+- **Sweepstakes End Date**: If "sweepstakes ends on [date]", that date IS the deadline
+- **Drawing Date**: If winners are selected on a specific date, that IS the deadline
+- **"Entries must be received by"**: That date IS the deadline
+- **Relative Dates**: Convert "ends next month" to actual YYYY-MM-DD date
+- **Seasonal References**: Convert "Fall Sweepstakes" to approximate end date
+- **Daily/Weekly Entry**: Use the overall sweepstakes end date, not entry frequency
+- **"Ongoing promotion"**: Use 60 days from today as deadline
+- **NEVER return null if ANY date reference exists** - always convert to YYYY-MM-DD
+
 **RETURN THIS EXACT JSON STRUCTURE:**
 {
   "valid": true,
   "title": "Sweepstakes title here (max 70 chars, format: Name - Grand Prize Value)",
   "excerpt": "Exactly 20 words maximum describing the sweepstakes opportunity with prize and deadline",
   "content": "<h2>Complete HTML content with all sections above...</h2>",
-  "deadline": "YYYY-MM-DD format or null if no specific date",
+  "deadline": "YYYY-MM-DD format - REQUIRED: extract entry period end, sweepstakes end date, or drawing date",
   "prize_value": "$50000 Grand Prize or Total Prize Pool",
   "requirements": "18+, US residents, no purchase necessary - key eligibility summary",
   "location": "United States or Nationwide or specific states",
-  "confidence_score": 0.0-1.0 based on content quality and completeness
+  "confidence_score": 0.0-1.0 based on content quality and completeness,
+  "apply_url": "Direct URL to enter the sweepstakes, or null if not found"
 }
 
 **SOURCE CONTENT TO ANALYZE:**

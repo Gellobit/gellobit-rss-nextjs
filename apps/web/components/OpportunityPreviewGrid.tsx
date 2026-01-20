@@ -52,7 +52,7 @@ export default function OpportunityPreviewGrid({
     opportunityType,
     opportunityTypeLabel,
 }: OpportunityPreviewGridProps) {
-    const colors = typeColors[opportunityType] || typeColors.evergreen;
+    const colors = typeColors[opportunityType] || { bg: 'bg-slate-50', text: 'text-slate-700', accent: 'bg-slate-100' };
     const icon = typeIcons[opportunityType] || typeIcons.default;
 
     if (opportunities.length === 0) {

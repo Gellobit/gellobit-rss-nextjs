@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { RefreshCw, Trash2, Plus, ExternalLink, Play, Pencil, X, Save, Tag, Copy } from 'lucide-react';
+import { RefreshCw, Trash2, Plus, ExternalLink, Play, Pencil, X, Save, Tag, Copy, AlertTriangle, RotateCcw } from 'lucide-react';
 import ImageUpload from '@/components/ImageUpload';
 
 interface Feed {
@@ -29,6 +29,8 @@ interface Feed {
     last_fetched?: string;
     total_processed?: number;
     total_published?: number;
+    error_count?: number;
+    last_error?: string | null;
     // New scheduling fields
     schedule_type?: 'interval' | 'daily';
     scheduled_hour?: number | null;
@@ -577,6 +579,7 @@ export default function ManageFeeds() {
     const [feeds, setFeeds] = useState<Feed[]>([]);
     const [loading, setLoading] = useState(true);
     const [syncing, setSyncing] = useState<string | null>(null);
+    const [reactivating, setReactivating] = useState<string | null>(null);
     const [newFeed, setNewFeed] = useState<FeedFormValues>(defaultFeedValues);
     const [adding, setAdding] = useState(false);
     const [showAddForm, setShowAddForm] = useState(false);
@@ -700,6 +703,23 @@ export default function ManageFeeds() {
             alert('Error syncing feed: ' + error);
         }
         setSyncing(null);
+    };
+
+    const handleReactivate = async (id: string) => {
+        setReactivating(id);
+        try {
+            const res = await fetch(`/api/admin/feeds/${id}/reactivate`, { method: 'POST' });
+            const data = await res.json();
+            if (res.ok) {
+                alert('Feed reactivated successfully! Error count has been reset.');
+                fetchFeeds();
+            } else {
+                alert('Error reactivating feed: ' + data.error);
+            }
+        } catch (error) {
+            alert('Error reactivating feed: ' + error);
+        }
+        setReactivating(null);
     };
 
     const handleClearDuplicates = async (id: string) => {
@@ -985,14 +1005,46 @@ export default function ManageFeeds() {
                                         {feed.items_pending != null && feed.items_pending > 0 && (
                                             <span className="text-amber-600 font-medium">{feed.items_pending} pending</span>
                                         )}
+                                        {feed.error_count != null && feed.error_count > 0 && (
+                                            <span className="text-red-600 font-medium">Errors: {feed.error_count}/5</span>
+                                        )}
                                     </div>
+                                    {/* Error message display */}
+                                    {feed.status === 'error' && feed.last_error && (
+                                        <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded-lg">
+                                            <div className="flex items-start gap-2">
+                                                <AlertTriangle size={14} className="text-red-500 mt-0.5 flex-shrink-0" />
+                                                <div className="text-xs text-red-700">
+                                                    <span className="font-semibold">Last Error:</span>{' '}
+                                                    {feed.last_error.length > 150
+                                                        ? feed.last_error.substring(0, 150) + '...'
+                                                        : feed.last_error}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                                 <div className="flex items-center gap-1">
+                                    {/* Reactivate button for error feeds */}
+                                    {feed.status === 'error' && (
+                                        <button
+                                            onClick={() => handleReactivate(feed.id)}
+                                            disabled={reactivating === feed.id}
+                                            className="p-2 text-red-500 hover:text-green-600 hover:bg-green-50 rounded transition-colors disabled:opacity-50"
+                                            title="Reactivate Feed"
+                                        >
+                                            {reactivating === feed.id ? (
+                                                <RefreshCw size={18} className="animate-spin" />
+                                            ) : (
+                                                <RotateCcw size={18} />
+                                            )}
+                                        </button>
+                                    )}
                                     <button
                                         onClick={() => handleSync(feed.id)}
-                                        disabled={syncing === feed.id}
+                                        disabled={syncing === feed.id || feed.status === 'error'}
                                         className="p-2 text-slate-500 hover:text-green-600 hover:bg-green-50 rounded transition-colors disabled:opacity-50"
-                                        title="Run Now"
+                                        title={feed.status === 'error' ? 'Reactivate feed first' : 'Run Now'}
                                     >
                                         {syncing === feed.id ? (
                                             <RefreshCw size={18} className="animate-spin" />

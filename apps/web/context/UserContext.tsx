@@ -171,10 +171,13 @@ export function useMembershipAccess() {
     }, []);
 
     const hasFullAccess = useMemo(() => {
+        // If membership system is disabled, everyone has full access
+        if (!limits.systemEnabled) return true;
+
         if (profileLoading) return false;
         if (!profile) return false;
-        return hasFullContentAccess(profile.membership_type, profile.membership_expires_at);
-    }, [profile, profileLoading]);
+        return hasFullContentAccess(profile.membership_type, profile.membership_expires_at, limits.systemEnabled);
+    }, [profile, profileLoading, limits.systemEnabled]);
 
     return {
         profile,
@@ -183,5 +186,6 @@ export function useMembershipAccess() {
         hasFullAccess,
         membershipType: profile?.membership_type || 'free',
         membershipExpiresAt: profile?.membership_expires_at || null,
+        membershipEnabled: limits.systemEnabled,
     };
 }

@@ -22,6 +22,8 @@ export interface AIGeneratedContent {
     location?: string | null;
     confidence_score?: number;
     reason?: string; // Rejection reason if valid=false
+    // Application URL extracted from content
+    apply_url?: string | null;
     // Blog post specific fields
     meta_title?: string | null;
     meta_description?: string | null;

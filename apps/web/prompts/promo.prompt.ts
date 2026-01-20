@@ -244,17 +244,31 @@ From valid discount content, identify and extract:
 - Make content actionable for shoppers
 - Maintain trustworthy, helpful tone throughout
 
+**CRITICAL DEADLINE EXTRACTION RULES:**
+The deadline field is MANDATORY for promotions. You MUST extract a deadline date:
+- **Expiration Date**: If "offer expires [date]", that date IS the deadline
+- **"Valid until"**: That date IS the deadline
+- **"Limited time offer"**: Use 7 days from today as deadline
+- **Sale End Date**: If "sale ends Sunday", convert to actual YYYY-MM-DD
+- **Holiday Promotions**: Use the day after the holiday (Black Friday deal = 2025-11-29)
+- **"While supplies last"**: Use 14 days from today as deadline
+- **Seasonal Sales**: Convert "Winter Sale" to appropriate end date
+- **Coupon Code with No Date**: Use 30 days from today as deadline
+- **ALWAYS provide a deadline** - promotions are inherently time-limited
+- **NEVER return null** - every promo has an expiration, even if implicit
+
 **RETURN THIS EXACT JSON STRUCTURE:**
 {
   "valid": true,
   "title": "Promo title here (max 60 chars, format: Merchant - Discount Off Category)",
   "excerpt": "Exactly 20 words maximum describing the discount opportunity",
   "content": "<h2>Complete HTML content with all sections above...</h2>",
-  "deadline": "YYYY-MM-DD format or null if ongoing",
+  "deadline": "YYYY-MM-DD format - REQUIRED: extract expiration date, sale end date, or estimate based on promo type",
   "prize_value": "25% Off Sitewide or specific discount amount",
   "requirements": "Minimum $50 purchase, new customers only, excludes sale items - key terms",
   "location": "Online - Nationwide Shipping or In-Store locations",
-  "confidence_score": 0.0-1.0 based on content quality and legitimacy (NOT gambling)
+  "confidence_score": 0.0-1.0 based on content quality and legitimacy (NOT gambling),
+  "apply_url": "Direct URL to shop or redeem the discount, or null if not found"
 }
 
 **SOURCE CONTENT TO ANALYZE:**

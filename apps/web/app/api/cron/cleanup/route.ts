@@ -78,8 +78,8 @@ export async function POST(request: NextRequest) {
       stats_before: statsBefore,
       execution_time_ms: executionTime,
       message: result.deletedCount > 0
-        ? `Cleanup completed. Deleted ${result.deletedCount} expired opportunities. Skipped ${result.skippedEvergreen} evergreen items.`
-        : `Cleanup completed. No expired opportunities found. Skipped ${result.skippedEvergreen} evergreen items.`,
+        ? `Cleanup completed. Deleted ${result.deletedCount} expired opportunities.${result.skippedEvergreen > 0 ? ` Skipped ${result.skippedEvergreen} items (never expire).` : ''}`
+        : `Cleanup completed. No expired opportunities found.${result.skippedEvergreen > 0 ? ` Skipped ${result.skippedEvergreen} items (never expire).` : ''}`,
     });
   } catch (error) {
     const executionTime = Date.now() - startTime;

@@ -8,6 +8,7 @@ import PayPalProvider from '@/components/PayPalProvider';
 import PayPalSubscribeButton from '@/components/PayPalSubscribeButton';
 
 interface PricingConfig {
+    systemEnabled: boolean;
     monthlyPrice: number;
     annualPrice: number;
     paypalEnabled: boolean;
@@ -108,6 +109,37 @@ export default function PricingPage() {
         return (
             <div className="min-h-screen flex items-center justify-center bg-gray-50">
                 <p className="text-gray-600">Unable to load pricing. Please try again later.</p>
+            </div>
+        );
+    }
+
+    // Show free access message when membership system is disabled
+    if (!pricing.systemEnabled) {
+        return (
+            <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white py-12 px-4 sm:px-6 lg:px-8">
+                <div className="max-w-2xl mx-auto text-center">
+                    <div className="bg-green-50 border border-green-200 rounded-2xl p-8 mb-8">
+                        <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                            <Check className="w-10 h-10 text-green-600" />
+                        </div>
+                        <h1 className="text-3xl font-bold text-gray-900 mb-4">
+                            All Content is Free!
+                        </h1>
+                        <p className="text-lg text-gray-600 mb-6">
+                            Great news! {branding.appName} is currently offering free access to all opportunities.
+                            No premium subscription required.
+                        </p>
+                        <button
+                            onClick={() => router.push('/opportunities')}
+                            className="bg-green-600 text-white px-8 py-3 rounded-xl font-bold hover:bg-green-700 transition-colors"
+                        >
+                            Browse All Opportunities
+                        </button>
+                    </div>
+                    <p className="text-sm text-gray-500">
+                        Premium subscriptions may be available in the future.
+                    </p>
+                </div>
             </div>
         );
     }

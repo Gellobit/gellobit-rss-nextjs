@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import dynamic from 'next/dynamic';
 import {
     FileText,
     RefreshCw,
@@ -16,8 +17,26 @@ import {
     ChevronRight,
     Pencil,
     X,
-    Save
+    Save,
+    Plus,
+    Calendar,
+    MapPin,
+    Gift,
+    Link,
+    Image,
+    Globe,
+    Type
 } from 'lucide-react';
+
+// Dynamic import for WYSIWYG editor (SSR-safe)
+const WysiwygEditor = dynamic(() => import('@/components/WysiwygEditor'), {
+    ssr: false,
+    loading: () => (
+        <div className="border border-slate-200 rounded-lg bg-slate-50 min-h-[300px] flex items-center justify-center">
+            <p className="text-slate-400">Loading editor...</p>
+        </div>
+    ),
+});
 
 interface Opportunity {
     id: string;
@@ -38,7 +57,49 @@ interface Opportunity {
     prize_value: string | null;
     location: string | null;
     feed_name?: string;
+    // SEO fields
+    meta_title: string | null;
+    meta_description: string | null;
+    is_public: boolean;
+    // Application URL
+    apply_url: string | null;
 }
+
+interface OpportunityForm {
+    title: string;
+    slug: string;
+    excerpt: string;
+    content: string;
+    opportunity_type: string;
+    status: 'draft' | 'published' | 'rejected';
+    deadline: string;
+    prize_value: string;
+    location: string;
+    source_url: string;
+    apply_url: string;
+    featured_image_url: string;
+    meta_title: string;
+    meta_description: string;
+    is_public: boolean;
+}
+
+const emptyForm: OpportunityForm = {
+    title: '',
+    slug: '',
+    excerpt: '',
+    content: '',
+    opportunity_type: 'giveaway',
+    status: 'draft',
+    deadline: '',
+    prize_value: '',
+    location: '',
+    source_url: '',
+    apply_url: '',
+    featured_image_url: '',
+    meta_title: '',
+    meta_description: '',
+    is_public: false,
+};
 
 interface Feed {
     id: string;
@@ -79,9 +140,10 @@ export default function ManagePosts() {
     const [totalCount, setTotalCount] = useState(0);
     const limit = 20;
 
-    // Edit modal
+    // Edit/Create modal
     const [editingPost, setEditingPost] = useState<Opportunity | null>(null);
-    const [editForm, setEditForm] = useState({ title: '', excerpt: '', status: 'draft' as 'draft' | 'published' | 'rejected' });
+    const [isCreating, setIsCreating] = useState(false);
+    const [editForm, setEditForm] = useState<OpportunityForm>(emptyForm);
     const [saving, setSaving] = useState(false);
 
     // Stats
@@ -226,32 +288,121 @@ export default function ManagePosts() {
 
     const openEditModal = (post: Opportunity) => {
         setEditingPost(post);
+        setIsCreating(false);
         setEditForm({
             title: post.title,
+            slug: post.slug,
             excerpt: post.excerpt || '',
-            status: post.status
+            content: post.content || '',
+            opportunity_type: post.opportunity_type,
+            status: post.status,
+            deadline: post.deadline ? post.deadline.split('T')[0] : '',
+            prize_value: post.prize_value || '',
+            location: post.location || '',
+            source_url: post.source_url || '',
+            apply_url: post.apply_url || '',
+            featured_image_url: post.featured_image_url || '',
+            meta_title: post.meta_title || '',
+            meta_description: post.meta_description || '',
+            is_public: post.is_public || false,
         });
+    };
+
+    const openCreateModal = () => {
+        setEditingPost(null);
+        setIsCreating(true);
+        setEditForm({ ...emptyForm });
+    };
+
+    const closeModal = () => {
+        setEditingPost(null);
+        setIsCreating(false);
+        setEditForm(emptyForm);
+    };
+
+    // Generate slug from title
+    const generateSlug = (title: string) => {
+        return title
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, '-')
+            .replace(/(^-|-$)/g, '')
+            .substring(0, 100);
     };
 
     const handleSaveEdit = async () => {
         if (!editingPost) return;
         setSaving(true);
         try {
+            const payload = {
+                ...editForm,
+                deadline: editForm.deadline || null,
+                prize_value: editForm.prize_value || null,
+                location: editForm.location || null,
+                apply_url: editForm.apply_url || null,
+                featured_image_url: editForm.featured_image_url || null,
+                meta_title: editForm.meta_title || null,
+                meta_description: editForm.meta_description || null,
+            };
+
             const res = await fetch(`/api/admin/opportunities/${editingPost.id}`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(editForm),
+                body: JSON.stringify(payload),
             });
 
             if (res.ok) {
-                setEditingPost(null);
+                closeModal();
                 fetchOpportunities();
             } else {
                 const data = await res.json();
-                alert('Error updating post: ' + data.error);
+                alert('Error updating opportunity: ' + data.error);
             }
         } catch (error) {
-            alert('Error updating post: ' + error);
+            alert('Error updating opportunity: ' + error);
+        }
+        setSaving(false);
+    };
+
+    const handleCreate = async () => {
+        if (!editForm.title.trim()) {
+            alert('Title is required');
+            return;
+        }
+        if (!editForm.source_url.trim()) {
+            alert('Source URL is required');
+            return;
+        }
+
+        setSaving(true);
+        try {
+            const slug = editForm.slug || generateSlug(editForm.title);
+            const payload = {
+                ...editForm,
+                slug,
+                deadline: editForm.deadline || null,
+                prize_value: editForm.prize_value || null,
+                location: editForm.location || null,
+                apply_url: editForm.apply_url || null,
+                featured_image_url: editForm.featured_image_url || null,
+                meta_title: editForm.meta_title || null,
+                meta_description: editForm.meta_description || null,
+            };
+
+            const res = await fetch('/api/admin/opportunities', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+            });
+
+            if (res.ok) {
+                closeModal();
+                fetchOpportunities();
+            } else {
+                const data = await res.json();
+                alert('Error creating opportunity: ' + data.error);
+            }
+        } catch (error) {
+            alert('Error creating opportunity: ' + error);
         }
         setSaving(false);
     };
@@ -312,14 +463,23 @@ export default function ManagePosts() {
             {/* Header */}
             <div className="flex items-center justify-between">
                 <h1 className="text-3xl font-black text-[#1a1a1a]">Opportunities</h1>
-                <button
-                    onClick={() => fetchOpportunities()}
-                    disabled={refreshing}
-                    className="p-2 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors"
-                    title="Refresh"
-                >
-                    <RefreshCw size={20} className={refreshing ? 'animate-spin' : ''} />
-                </button>
+                <div className="flex items-center gap-2">
+                    <button
+                        onClick={openCreateModal}
+                        className="flex items-center gap-2 bg-[#FFDE59] text-[#1a1a1a] px-4 py-2 rounded-lg font-bold hover:bg-yellow-400 transition-colors"
+                    >
+                        <Plus size={18} />
+                        New Opportunity
+                    </button>
+                    <button
+                        onClick={() => fetchOpportunities()}
+                        disabled={refreshing}
+                        className="p-2 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors"
+                        title="Refresh"
+                    >
+                        <RefreshCw size={20} className={refreshing ? 'animate-spin' : ''} />
+                    </button>
+                </div>
             </div>
 
             {/* Stats Cards */}
@@ -564,60 +724,276 @@ export default function ManagePosts() {
                 </div>
             )}
 
-            {/* Edit Modal */}
-            {editingPost && (
+            {/* Edit/Create Modal */}
+            {(editingPost || isCreating) && (
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-                    <div className="bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-                        <div className="sticky top-0 bg-white border-b border-slate-200 p-4 flex items-center justify-between">
-                            <h3 className="text-lg font-bold">Edit Post</h3>
+                    <div className="bg-white rounded-xl shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+                        <div className="sticky top-0 bg-white border-b border-slate-200 p-4 flex items-center justify-between z-10">
+                            <h3 className="text-lg font-bold">
+                                {isCreating ? 'New Opportunity' : 'Edit Opportunity'}
+                            </h3>
                             <button
-                                onClick={() => setEditingPost(null)}
+                                onClick={closeModal}
                                 className="p-2 text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded"
                             >
                                 <X size={20} />
                             </button>
                         </div>
-                        <div className="p-4 space-y-4">
-                            <div>
-                                <label className="block text-xs text-slate-500 mb-1">Title</label>
-                                <input
-                                    type="text"
-                                    value={editForm.title}
-                                    onChange={(e) => setEditForm({ ...editForm, title: e.target.value })}
-                                    className="border p-2 rounded w-full"
-                                />
+                        <div className="p-6 space-y-6">
+                            {/* Basic Info Section */}
+                            <div className="space-y-4">
+                                <h4 className="font-bold text-slate-900 flex items-center gap-2">
+                                    <Type size={16} />
+                                    Basic Information
+                                </h4>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="md:col-span-2">
+                                        <label className="block text-xs font-bold text-slate-500 mb-1">Title *</label>
+                                        <input
+                                            type="text"
+                                            value={editForm.title}
+                                            onChange={(e) => {
+                                                setEditForm({ ...editForm, title: e.target.value });
+                                                if (isCreating && !editForm.slug) {
+                                                    // Auto-generate slug while creating
+                                                }
+                                            }}
+                                            className="border border-slate-200 p-2.5 rounded-lg w-full focus:ring-2 focus:ring-yellow-400 focus:border-yellow-400"
+                                            placeholder="Enter opportunity title"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-bold text-slate-500 mb-1">Slug</label>
+                                        <div className="flex gap-2">
+                                            <input
+                                                type="text"
+                                                value={editForm.slug}
+                                                onChange={(e) => setEditForm({ ...editForm, slug: e.target.value })}
+                                                className="border border-slate-200 p-2.5 rounded-lg w-full focus:ring-2 focus:ring-yellow-400 focus:border-yellow-400"
+                                                placeholder="url-friendly-slug"
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={() => setEditForm({ ...editForm, slug: generateSlug(editForm.title) })}
+                                                className="px-3 py-2 bg-slate-100 text-slate-600 rounded-lg text-xs font-bold hover:bg-slate-200 whitespace-nowrap"
+                                            >
+                                                Generate
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-bold text-slate-500 mb-1">Type</label>
+                                        <select
+                                            value={editForm.opportunity_type}
+                                            onChange={(e) => setEditForm({ ...editForm, opportunity_type: e.target.value })}
+                                            className="border border-slate-200 p-2.5 rounded-lg w-full focus:ring-2 focus:ring-yellow-400 focus:border-yellow-400"
+                                        >
+                                            {opportunityTypes.filter(t => t.value).map(t => (
+                                                <option key={t.value} value={t.value}>{t.label}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-bold text-slate-500 mb-1">Status</label>
+                                        <select
+                                            value={editForm.status}
+                                            onChange={(e) => setEditForm({ ...editForm, status: e.target.value as 'draft' | 'published' | 'rejected' })}
+                                            className="border border-slate-200 p-2.5 rounded-lg w-full focus:ring-2 focus:ring-yellow-400 focus:border-yellow-400"
+                                        >
+                                            <option value="draft">Draft</option>
+                                            <option value="published">Published</option>
+                                            <option value="rejected">Rejected</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-bold text-slate-500 mb-1">Source URL *</label>
+                                        <div className="flex items-center gap-2">
+                                            <Link size={16} className="text-slate-400" />
+                                            <input
+                                                type="url"
+                                                value={editForm.source_url}
+                                                onChange={(e) => setEditForm({ ...editForm, source_url: e.target.value })}
+                                                className="border border-slate-200 p-2.5 rounded-lg w-full focus:ring-2 focus:ring-yellow-400 focus:border-yellow-400"
+                                                placeholder="https://example.com/opportunity"
+                                            />
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-bold text-slate-500 mb-1">Apply URL</label>
+                                        <div className="flex items-center gap-2">
+                                            <ExternalLink size={16} className="text-slate-400" />
+                                            <input
+                                                type="url"
+                                                value={editForm.apply_url}
+                                                onChange={(e) => setEditForm({ ...editForm, apply_url: e.target.value })}
+                                                className="border border-slate-200 p-2.5 rounded-lg w-full focus:ring-2 focus:ring-yellow-400 focus:border-yellow-400"
+                                                placeholder="https://example.com/apply (optional, falls back to source URL)"
+                                            />
+                                        </div>
+                                        <p className="text-xs text-slate-400 mt-1">
+                                            Direct link to apply/enter. If empty, "Apply Now" button will use Source URL.
+                                        </p>
+                                    </div>
+                                </div>
                             </div>
+
+                            {/* Excerpt */}
                             <div>
-                                <label className="block text-xs text-slate-500 mb-1">Excerpt</label>
+                                <label className="block text-xs font-bold text-slate-500 mb-1">Excerpt</label>
                                 <textarea
                                     value={editForm.excerpt}
                                     onChange={(e) => setEditForm({ ...editForm, excerpt: e.target.value })}
-                                    className="border p-2 rounded w-full h-24"
+                                    className="border border-slate-200 p-2.5 rounded-lg w-full h-20 focus:ring-2 focus:ring-yellow-400 focus:border-yellow-400"
+                                    placeholder="Brief summary of the opportunity"
                                 />
                             </div>
+
+                            {/* Content - WYSIWYG Editor */}
                             <div>
-                                <label className="block text-xs text-slate-500 mb-1">Status</label>
-                                <select
-                                    value={editForm.status}
-                                    onChange={(e) => setEditForm({ ...editForm, status: e.target.value as 'draft' | 'published' | 'rejected' })}
-                                    className="border p-2 rounded w-full"
-                                >
-                                    <option value="draft">Draft</option>
-                                    <option value="published">Published</option>
-                                    <option value="rejected">Rejected</option>
-                                </select>
+                                <label className="block text-xs font-bold text-slate-500 mb-1">Content</label>
+                                <WysiwygEditor
+                                    value={editForm.content}
+                                    onChange={(html) => setEditForm({ ...editForm, content: html })}
+                                    placeholder="Write the full opportunity description..."
+                                />
                             </div>
-                            <div className="flex gap-3 pt-4 border-t">
+
+                            {/* Details Section */}
+                            <div className="space-y-4">
+                                <h4 className="font-bold text-slate-900 flex items-center gap-2">
+                                    <Gift size={16} />
+                                    Opportunity Details
+                                </h4>
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                    <div>
+                                        <label className="block text-xs font-bold text-slate-500 mb-1">
+                                            <span className="flex items-center gap-1"><Calendar size={12} /> Deadline</span>
+                                        </label>
+                                        <input
+                                            type="date"
+                                            value={editForm.deadline}
+                                            onChange={(e) => setEditForm({ ...editForm, deadline: e.target.value })}
+                                            className="border border-slate-200 p-2.5 rounded-lg w-full focus:ring-2 focus:ring-yellow-400 focus:border-yellow-400"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-bold text-slate-500 mb-1">
+                                            <span className="flex items-center gap-1"><Gift size={12} /> Prize Value</span>
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={editForm.prize_value}
+                                            onChange={(e) => setEditForm({ ...editForm, prize_value: e.target.value })}
+                                            className="border border-slate-200 p-2.5 rounded-lg w-full focus:ring-2 focus:ring-yellow-400 focus:border-yellow-400"
+                                            placeholder="$1,000 or Varies"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-bold text-slate-500 mb-1">
+                                            <span className="flex items-center gap-1"><MapPin size={12} /> Location</span>
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={editForm.location}
+                                            onChange={(e) => setEditForm({ ...editForm, location: e.target.value })}
+                                            className="border border-slate-200 p-2.5 rounded-lg w-full focus:ring-2 focus:ring-yellow-400 focus:border-yellow-400"
+                                            placeholder="USA, Worldwide, etc."
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Media Section */}
+                            <div>
+                                <label className="block text-xs font-bold text-slate-500 mb-1">
+                                    <span className="flex items-center gap-1"><Image size={12} /> Featured Image URL</span>
+                                </label>
+                                <input
+                                    type="url"
+                                    value={editForm.featured_image_url}
+                                    onChange={(e) => setEditForm({ ...editForm, featured_image_url: e.target.value })}
+                                    className="border border-slate-200 p-2.5 rounded-lg w-full focus:ring-2 focus:ring-yellow-400 focus:border-yellow-400"
+                                    placeholder="https://example.com/image.jpg"
+                                />
+                                {editForm.featured_image_url && (
+                                    <div className="mt-2">
+                                        <img
+                                            src={editForm.featured_image_url}
+                                            alt="Preview"
+                                            className="h-24 object-cover rounded-lg border border-slate-200"
+                                            onError={(e) => (e.currentTarget.style.display = 'none')}
+                                        />
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* SEO Section */}
+                            <div className="space-y-4 bg-slate-50 p-4 rounded-lg border border-slate-200">
+                                <h4 className="font-bold text-slate-900 flex items-center gap-2">
+                                    <Globe size={16} />
+                                    SEO Settings
+                                </h4>
+                                <div className="grid grid-cols-1 gap-4">
+                                    <div>
+                                        <label className="block text-xs font-bold text-slate-500 mb-1">Meta Title</label>
+                                        <input
+                                            type="text"
+                                            value={editForm.meta_title}
+                                            onChange={(e) => setEditForm({ ...editForm, meta_title: e.target.value })}
+                                            className="border border-slate-200 p-2.5 rounded-lg w-full bg-white focus:ring-2 focus:ring-yellow-400 focus:border-yellow-400"
+                                            placeholder="Custom SEO title (leave empty to use title)"
+                                        />
+                                        <p className="text-xs text-slate-400 mt-1">
+                                            {editForm.meta_title.length}/60 characters
+                                        </p>
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-bold text-slate-500 mb-1">Meta Description</label>
+                                        <textarea
+                                            value={editForm.meta_description}
+                                            onChange={(e) => setEditForm({ ...editForm, meta_description: e.target.value })}
+                                            className="border border-slate-200 p-2.5 rounded-lg w-full h-20 bg-white focus:ring-2 focus:ring-yellow-400 focus:border-yellow-400"
+                                            placeholder="Custom SEO description (leave empty to use excerpt)"
+                                        />
+                                        <p className="text-xs text-slate-400 mt-1">
+                                            {editForm.meta_description.length}/160 characters
+                                        </p>
+                                    </div>
+                                    <div className="flex items-center gap-3">
+                                        <label className="relative inline-flex items-center cursor-pointer">
+                                            <input
+                                                type="checkbox"
+                                                checked={editForm.is_public}
+                                                onChange={(e) => setEditForm({ ...editForm, is_public: e.target.checked })}
+                                                className="sr-only peer"
+                                            />
+                                            <div className="w-11 h-6 bg-slate-300 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-yellow-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-500"></div>
+                                        </label>
+                                        <div>
+                                            <span className="font-bold text-sm text-slate-700">Public (Indexable)</span>
+                                            <p className="text-xs text-slate-500">
+                                                {editForm.is_public
+                                                    ? 'This opportunity will be indexed by search engines and have social sharing previews'
+                                                    : 'This opportunity is private and will not be indexed by search engines'}
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Actions */}
+                            <div className="flex gap-3 pt-4 border-t border-slate-200">
                                 <button
-                                    onClick={handleSaveEdit}
+                                    onClick={isCreating ? handleCreate : handleSaveEdit}
                                     disabled={saving}
-                                    className="flex-1 bg-slate-900 text-white px-4 py-2 rounded font-bold hover:bg-slate-800 flex items-center gap-2 justify-center disabled:opacity-50"
+                                    className="flex-1 bg-slate-900 text-white px-4 py-3 rounded-lg font-bold hover:bg-slate-800 flex items-center gap-2 justify-center disabled:opacity-50"
                                 >
-                                    <Save size={16} /> {saving ? 'Saving...' : 'Save Changes'}
+                                    <Save size={18} />
+                                    {saving ? 'Saving...' : isCreating ? 'Create Opportunity' : 'Save Changes'}
                                 </button>
                                 <button
-                                    onClick={() => setEditingPost(null)}
-                                    className="px-4 py-2 border border-slate-300 rounded font-bold hover:bg-slate-50"
+                                    onClick={closeModal}
+                                    className="px-6 py-3 border border-slate-300 rounded-lg font-bold hover:bg-slate-50"
                                 >
                                     Cancel
                                 </button>

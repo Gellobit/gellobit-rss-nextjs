@@ -217,3 +217,132 @@ export async function DELETE(request: NextRequest) {
     );
   }
 }
+
+/**
+ * POST /api/admin/opportunities
+ * Create a new opportunity manually
+ */
+export async function POST(request: NextRequest) {
+  try {
+    const supabase = await createRouteClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const adminSupabase = createAdminClient();
+
+    const { data: profile } = await adminSupabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single();
+
+    if (profile?.role !== 'admin') {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
+    const body = await request.json();
+    const {
+      title,
+      slug,
+      excerpt,
+      content,
+      opportunity_type,
+      status,
+      deadline,
+      prize_value,
+      location,
+      source_url,
+      apply_url,
+      featured_image_url,
+      meta_title,
+      meta_description,
+      is_public,
+    } = body;
+
+    // Validate required fields
+    if (!title?.trim()) {
+      return NextResponse.json({ error: 'Title is required' }, { status: 400 });
+    }
+    if (!source_url?.trim()) {
+      return NextResponse.json({ error: 'Source URL is required' }, { status: 400 });
+    }
+    if (!slug?.trim()) {
+      return NextResponse.json({ error: 'Slug is required' }, { status: 400 });
+    }
+
+    // Check if slug already exists
+    const { data: existingSlug } = await adminSupabase
+      .from('opportunities')
+      .select('id')
+      .eq('slug', slug)
+      .single();
+
+    if (existingSlug) {
+      return NextResponse.json({ error: 'Slug already exists. Please use a different slug.' }, { status: 400 });
+    }
+
+    // Build insert object
+    const insertData: Record<string, any> = {
+      title: title.trim(),
+      slug: slug.trim(),
+      excerpt: excerpt || null,
+      content: content || '',
+      opportunity_type: opportunity_type || 'giveaway',
+      status: status || 'draft',
+      source_url: source_url.trim(),
+      apply_url: apply_url || null,
+      deadline: deadline || null,
+      prize_value: prize_value || null,
+      location: location || null,
+      featured_image_url: featured_image_url || null,
+      meta_title: meta_title || null,
+      meta_description: meta_description || null,
+      is_public: is_public || false,
+      created_by: user.id,
+    };
+
+    // Set published_at if status is published
+    if (status === 'published') {
+      insertData.published_at = new Date().toISOString();
+    }
+
+    const { data, error } = await adminSupabase
+      .from('opportunities')
+      .insert(insertData)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error creating opportunity:', error);
+      return NextResponse.json(
+        { error: 'Failed to create opportunity', details: error.message },
+        { status: 500 }
+      );
+    }
+
+    await logger.info('Opportunity created manually', {
+      opportunity_id: data.id,
+      title: data.title,
+      user_id: user.id,
+    });
+
+    return NextResponse.json(
+      { message: 'Opportunity created successfully', opportunity: data },
+      { status: 201 }
+    );
+  } catch (error) {
+    await logger.error('Error creating opportunity', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
+
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
+  }
+}
