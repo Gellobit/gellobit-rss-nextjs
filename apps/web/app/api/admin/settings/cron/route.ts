@@ -37,12 +37,12 @@ export async function POST(request: NextRequest) {
             {
                 key: 'cron.visitor_triggered_enabled',
                 value: JSON.stringify(visitor_triggered_enabled),
-                category: 'cron',
+                category: 'advanced',
             },
             {
                 key: 'cron.visitor_triggered_min_interval',
                 value: JSON.stringify(visitor_triggered_min_interval),
-                category: 'cron',
+                category: 'advanced',
             },
         ];
 
