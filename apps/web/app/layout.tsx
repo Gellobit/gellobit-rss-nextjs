@@ -5,6 +5,7 @@ import { UserProvider } from '@/context/UserContext'
 import GoogleAnalytics from '@/components/GoogleAnalytics'
 import GoogleOneTap from '@/components/GoogleOneTap'
 import ServiceWorkerRegistrar from '@/components/ServiceWorkerRegistrar'
+import CronTrigger from '@/components/CronTrigger'
 import { createAdminClient } from '@/lib/utils/supabase-admin'
 import { unstable_cache } from 'next/cache'
 
@@ -73,6 +74,7 @@ export default async function RootLayout({
                 )}
                 <GoogleAnalytics gaId={gaId} />
                 <ServiceWorkerRegistrar />
+                <CronTrigger />
                 <UserProvider>
                     <GoogleOneTap />
                     {children}

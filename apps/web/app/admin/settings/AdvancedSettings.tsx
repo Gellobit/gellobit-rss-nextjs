@@ -1,12 +1,18 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { Save, RefreshCw, Download, Upload, Trash2, AlertTriangle, Rss, ChevronDown, ChevronUp, Scissors } from 'lucide-react';
+import { Save, RefreshCw, Download, Upload, Trash2, AlertTriangle, Rss, ChevronDown, ChevronUp, Scissors, Clock, Users } from 'lucide-react';
 
 interface AdvancedConfig {
     log_retention_days: number;
     log_max_entries: number;
     debug_mode: boolean;
+}
+
+interface CronStatus {
+    enabled: boolean;
+    min_interval_minutes: number;
+    last_run: string | null;
 }
 
 export default function AdvancedSettings() {
@@ -29,8 +35,18 @@ export default function AdvancedSettings() {
     const [importingFeeds, setImportingFeeds] = useState(false);
     const feedsFileInputRef = useRef<HTMLInputElement>(null);
 
+    // Visitor-triggered cron state
+    const [cronStatus, setCronStatus] = useState<CronStatus>({
+        enabled: true,
+        min_interval_minutes: 5,
+        last_run: null,
+    });
+    const [cronLoading, setCronLoading] = useState(false);
+    const [cronSaving, setCronSaving] = useState(false);
+
     useEffect(() => {
         fetchSettings();
+        fetchCronStatus();
     }, []);
 
     const fetchSettings = async () => {
@@ -51,6 +67,49 @@ export default function AdvancedSettings() {
             console.error('Error fetching advanced settings:', error);
         }
         setLoading(false);
+    };
+
+    const fetchCronStatus = async () => {
+        setCronLoading(true);
+        try {
+            const res = await fetch('/api/cron/check-and-run');
+            if (res.ok) {
+                const data = await res.json();
+                setCronStatus({
+                    enabled: data.enabled,
+                    min_interval_minutes: data.min_interval_minutes,
+                    last_run: data.last_run,
+                });
+            }
+        } catch (error) {
+            console.error('Error fetching cron status:', error);
+        }
+        setCronLoading(false);
+    };
+
+    const saveCronSettings = async () => {
+        setCronSaving(true);
+        setMessage(null);
+        try {
+            const res = await fetch('/api/admin/settings/cron', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    visitor_triggered_enabled: cronStatus.enabled,
+                    visitor_triggered_min_interval: cronStatus.min_interval_minutes,
+                }),
+            });
+
+            if (res.ok) {
+                setMessage({ type: 'success', text: 'Visitor-triggered cron settings saved!' });
+            } else {
+                const data = await res.json();
+                setMessage({ type: 'error', text: data.error || 'Failed to save cron settings' });
+            }
+        } catch (error) {
+            setMessage({ type: 'error', text: 'Failed to save cron settings' });
+        }
+        setCronSaving(false);
     };
 
     const handleSave = async () => {
@@ -404,6 +463,97 @@ export default function AdvancedSettings() {
                 >
                     Reset
                 </button>
+            </div>
+
+            {/* Visitor-Triggered Cron Section */}
+            <div className="border-t border-slate-200 pt-6">
+                <h3 className="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
+                    <Users size={20} className="text-blue-600" />
+                    Visitor-Triggered Cron
+                </h3>
+                <p className="text-sm text-slate-600 mb-4">
+                    Process RSS feeds when visitors access your site, supplementing the hourly Vercel Cron for more responsive content updates during active periods.
+                </p>
+
+                {cronLoading ? (
+                    <div className="flex items-center gap-2 text-slate-500">
+                        <RefreshCw size={16} className="animate-spin" />
+                        Loading cron status...
+                    </div>
+                ) : (
+                    <div className="space-y-4">
+                        {/* Enable/Disable Toggle */}
+                        <div className="space-y-2">
+                            <label className="flex items-center gap-3 cursor-pointer">
+                                <input
+                                    type="checkbox"
+                                    checked={cronStatus.enabled}
+                                    onChange={(e) => setCronStatus({ ...cronStatus, enabled: e.target.checked })}
+                                    className="w-5 h-5 rounded border-slate-300 text-blue-600 focus:ring-2 focus:ring-blue-500"
+                                />
+                                <div>
+                                    <div className="text-sm font-bold text-slate-900">Enable Visitor-Triggered Processing</div>
+                                    <div className="text-xs text-slate-500">
+                                        When enabled, site visits will trigger feed processing (with debouncing)
+                                    </div>
+                                </div>
+                            </label>
+                        </div>
+
+                        {/* Minimum Interval */}
+                        <div className="space-y-2">
+                            <label className="block text-sm font-bold text-slate-900">
+                                Minimum Interval Between Runs (minutes)
+                            </label>
+                            <select
+                                value={cronStatus.min_interval_minutes}
+                                onChange={(e) => setCronStatus({ ...cronStatus, min_interval_minutes: Number(e.target.value) })}
+                                className="w-full max-w-xs border border-slate-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            >
+                                <option value={1}>1 minute</option>
+                                <option value={2}>2 minutes</option>
+                                <option value={5}>5 minutes (default)</option>
+                                <option value={10}>10 minutes</option>
+                                <option value={15}>15 minutes</option>
+                                <option value={30}>30 minutes</option>
+                                <option value={60}>60 minutes</option>
+                            </select>
+                            <p className="text-xs text-slate-500">
+                                Prevents processing from running more frequently than this interval, even with high traffic
+                            </p>
+                        </div>
+
+                        {/* Status Display */}
+                        {cronStatus.last_run && (
+                            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                                <div className="flex items-center gap-2 text-sm text-blue-800">
+                                    <Clock size={14} />
+                                    <span className="font-medium">Last visitor-triggered run:</span>
+                                    <span>{new Date(cronStatus.last_run).toLocaleString()}</span>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Save Cron Settings Button */}
+                        <button
+                            onClick={saveCronSettings}
+                            disabled={cronSaving}
+                            className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-blue-700 transition-colors flex items-center gap-2 disabled:opacity-50"
+                        >
+                            {cronSaving ? (
+                                <>
+                                    <RefreshCw size={14} className="animate-spin" />
+                                    Saving...
+                                </>
+                            ) : (
+                                <>
+                                    <Save size={14} />
+                                    Save Cron Settings
+                                </>
+                            )}
+                        </button>
+                    </div>
+                )}
             </div>
 
             {/* Divider */}

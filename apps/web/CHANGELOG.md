@@ -5,6 +5,31 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.0-alpha.29] - 2026-01-20
+
+### Added
+- **Visitor-Triggered Cron System**
+  - New `/api/cron/check-and-run` endpoint for visitor-based feed processing
+  - `CronTrigger` client component triggers processing on site visits
+  - Server-side debouncing prevents excessive execution (configurable interval)
+  - Session-based client debouncing (one trigger per browser session)
+  - Fire-and-forget pattern ensures non-blocking user experience
+  - Works alongside Vercel Cron for more responsive content updates
+  - New `/api/admin/settings/cron` endpoint for managing cron settings
+  - Configurable settings in Admin → Settings → Advanced:
+    - Enable/disable visitor-triggered processing
+    - Minimum interval between runs (1-60 minutes)
+    - Last run timestamp display
+
+### Technical Details
+- `CronTrigger` integrated in root `layout.tsx` for site-wide coverage
+- Uses `sessionStorage` to limit triggers to once per browser session
+- Server checks `cron.last_visitor_triggered_run` setting for debouncing
+- Settings stored in `system_settings` table with keys:
+  - `cron.visitor_triggered_enabled` (boolean)
+  - `cron.visitor_triggered_min_interval` (minutes)
+  - `cron.last_visitor_triggered_run` (ISO timestamp)
+
 ## [1.0.0-alpha.28] - 2026-01-20
 
 ### Added

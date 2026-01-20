@@ -340,6 +340,9 @@ export class RSSProcessorService {
             url: normalized.link,
           };
 
+          // Determine output type early (needed for duplicate check)
+          const outputType = feed.output_type || 'opportunity';
+
           if (!feed.allow_republishing) {
             // Determine entity type for duplicate check
             const entityTypeForCheck = outputType === 'blog_post' ? 'post' : 'opportunity';
@@ -383,9 +386,6 @@ export class RSSProcessorService {
               });
             }
           }
-
-          // Determine output type
-          const outputType = feed.output_type || 'opportunity';
 
           // Handle AI processing based on output type and settings
           let aiContent: any = null;
