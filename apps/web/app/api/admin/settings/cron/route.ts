@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/utils/supabase-admin';
-import { createServerClient } from '@/lib/utils/supabase-server';
+import { createRouteClient } from '@/lib/utils/supabase-route';
 
 /**
  * POST /api/admin/settings/cron
@@ -10,7 +10,7 @@ import { createServerClient } from '@/lib/utils/supabase-server';
 export async function POST(request: NextRequest) {
     try {
         // Verify admin authentication
-        const supabase = await createServerClient();
+        const supabase = await createRouteClient();
         const { data: { user } } = await supabase.auth.getUser();
 
         if (!user) {
@@ -18,7 +18,8 @@ export async function POST(request: NextRequest) {
         }
 
         // Check admin role
-        const { data: profile } = await supabase
+        const adminClient = createAdminClient();
+        const { data: profile } = await adminClient
             .from('profiles')
             .select('role')
             .eq('id', user.id)
@@ -31,30 +32,32 @@ export async function POST(request: NextRequest) {
         const body = await request.json();
         const { visitor_triggered_enabled, visitor_triggered_min_interval } = body;
 
-        const adminClient = createAdminClient();
-        const now = new Date().toISOString();
-
-        // Update settings
+        // Update settings - stringify non-string values for storage
         const settingsToUpdate = [
             {
                 key: 'cron.visitor_triggered_enabled',
-                value: visitor_triggered_enabled,
-                updated_at: now,
+                value: JSON.stringify(visitor_triggered_enabled),
+                category: 'cron',
             },
             {
                 key: 'cron.visitor_triggered_min_interval',
-                value: visitor_triggered_min_interval,
-                updated_at: now,
+                value: JSON.stringify(visitor_triggered_min_interval),
+                category: 'cron',
             },
         ];
 
         for (const setting of settingsToUpdate) {
             const { error } = await adminClient
                 .from('system_settings')
-                .upsert(setting, { onConflict: 'key' });
+                .upsert({
+                    key: setting.key,
+                    value: setting.value,
+                    category: setting.category,
+                    updated_at: new Date().toISOString(),
+                }, { onConflict: 'key' });
 
             if (error) {
-                console.error('Error saving cron setting:', error);
+                console.error('Error saving cron setting:', setting.key, error);
                 return NextResponse.json(
                     { error: `Failed to save setting: ${setting.key}` },
                     { status: 500 }
@@ -93,12 +96,29 @@ export async function GET() {
                 'cron.last_visitor_triggered_run'
             ]);
 
-        const settingsMap = new Map(settings?.map(s => [s.key, s.value]) || []);
+        // Parse settings with JSON.parse for stored values
+        const settingsMap: Record<string, any> = {};
+        for (const row of settings || []) {
+            let value = row.value;
+            // Parse JSON values
+            if (typeof value === 'string') {
+                try {
+                    value = JSON.parse(value);
+                } catch {
+                    // Keep as string if not valid JSON
+                }
+            }
+            settingsMap[row.key] = value;
+        }
+
+        // Default to enabled=true if not set
+        const enabled = settingsMap['cron.visitor_triggered_enabled'];
+        const minInterval = settingsMap['cron.visitor_triggered_min_interval'];
 
         return NextResponse.json({
-            enabled: settingsMap.get('cron.visitor_triggered_enabled') !== false,
-            min_interval_minutes: settingsMap.get('cron.visitor_triggered_min_interval') || 5,
-            last_run: settingsMap.get('cron.last_visitor_triggered_run') || null,
+            enabled: enabled !== undefined ? enabled : true,
+            min_interval_minutes: minInterval !== undefined ? minInterval : 5,
+            last_run: settingsMap['cron.last_visitor_triggered_run'] || null,
         });
     } catch (error) {
         console.error('Error fetching cron settings:', error);

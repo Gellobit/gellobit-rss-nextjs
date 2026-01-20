@@ -35,12 +35,24 @@ export async function POST(request: NextRequest) {
                 'cron.visitor_triggered_min_interval'
             ]);
 
-        // Parse settings
-        const settingsMap = new Map(settings?.map(s => [s.key, s.value]) || []);
+        // Parse settings with JSON.parse for stored values
+        const settingsMap: Record<string, any> = {};
+        for (const row of settings || []) {
+            let value = row.value;
+            if (typeof value === 'string') {
+                try {
+                    value = JSON.parse(value);
+                } catch {
+                    // Keep as string if not valid JSON
+                }
+            }
+            settingsMap[row.key] = value;
+        }
 
-        const isEnabled = settingsMap.get('cron.visitor_triggered_enabled') !== false;
-        const minIntervalMinutes = settingsMap.get('cron.visitor_triggered_min_interval') || DEFAULT_MIN_INTERVAL_MINUTES;
-        const lastRunStr = settingsMap.get('cron.last_visitor_triggered_run') as string | null;
+        const enabledValue = settingsMap['cron.visitor_triggered_enabled'];
+        const isEnabled = enabledValue !== undefined ? enabledValue : true;
+        const minIntervalMinutes = settingsMap['cron.visitor_triggered_min_interval'] || DEFAULT_MIN_INTERVAL_MINUTES;
+        const lastRunStr = settingsMap['cron.last_visitor_triggered_run'] as string | null;
 
         // Check if visitor-triggered cron is enabled
         if (!isEnabled) {
@@ -148,12 +160,26 @@ export async function GET() {
                 'cron.visitor_triggered_min_interval'
             ]);
 
-        const settingsMap = new Map(settings?.map(s => [s.key, s.value]) || []);
+        // Parse settings with JSON.parse for stored values
+        const settingsMap: Record<string, any> = {};
+        for (const row of settings || []) {
+            let value = row.value;
+            if (typeof value === 'string') {
+                try {
+                    value = JSON.parse(value);
+                } catch {
+                    // Keep as string if not valid JSON
+                }
+            }
+            settingsMap[row.key] = value;
+        }
+
+        const enabledValue = settingsMap['cron.visitor_triggered_enabled'];
 
         return NextResponse.json({
-            enabled: settingsMap.get('cron.visitor_triggered_enabled') !== false,
-            min_interval_minutes: settingsMap.get('cron.visitor_triggered_min_interval') || DEFAULT_MIN_INTERVAL_MINUTES,
-            last_run: settingsMap.get('cron.last_visitor_triggered_run') || null,
+            enabled: enabledValue !== undefined ? enabledValue : true,
+            min_interval_minutes: settingsMap['cron.visitor_triggered_min_interval'] || DEFAULT_MIN_INTERVAL_MINUTES,
+            last_run: settingsMap['cron.last_visitor_triggered_run'] || null,
         });
     } catch (error) {
         return NextResponse.json({
