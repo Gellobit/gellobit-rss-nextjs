@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.0-alpha.30] - 2026-01-20
+
+### Fixed
+- **Cron Settings Persistence**
+  - Fixed settings not saving due to database CHECK constraint on category column
+  - Changed category from 'cron' to 'advanced' (allowed by constraint)
+  - Added proper JSON.stringify/parse for boolean and number values
+  - Fixed fetch endpoint to use `/api/admin/settings/cron` instead of public endpoint
+  - Used `createRouteClient` for proper authentication in API routes
+
 ## [1.0.0-alpha.29] - 2026-01-20
 
 ### Added
