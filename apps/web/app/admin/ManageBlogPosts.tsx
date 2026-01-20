@@ -106,6 +106,10 @@ export default function ManageBlogPosts() {
     // Categories
     const [categories, setCategories] = useState<Category[]>([]);
 
+    // Selection state for bulk actions
+    const [selectedPosts, setSelectedPosts] = useState<Set<string>>(new Set());
+    const [bulkDeleting, setBulkDeleting] = useState(false);
+
     const editorRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -133,6 +137,7 @@ export default function ManageBlogPosts() {
     const fetchPosts = async () => {
         setLoading(true);
         setSessionExpired(false);
+        setSelectedPosts(new Set()); // Clear selection when reloading
         try {
             const params = new URLSearchParams();
             if (statusFilter) params.set('status', statusFilter);
@@ -255,10 +260,62 @@ export default function ManageBlogPosts() {
 
             if (res.ok) {
                 fetchPosts();
+                // Remove from selection if selected
+                setSelectedPosts(prev => {
+                    const newSet = new Set(prev);
+                    newSet.delete(post.id);
+                    return newSet;
+                });
             }
         } catch (error) {
             console.error('Error deleting post:', error);
         }
+    };
+
+    // Selection handlers
+    const handleSelectAll = () => {
+        if (selectedPosts.size === posts.length) {
+            setSelectedPosts(new Set());
+        } else {
+            setSelectedPosts(new Set(posts.map(p => p.id)));
+        }
+    };
+
+    const handleSelectPost = (postId: string) => {
+        setSelectedPosts(prev => {
+            const newSet = new Set(prev);
+            if (newSet.has(postId)) {
+                newSet.delete(postId);
+            } else {
+                newSet.add(postId);
+            }
+            return newSet;
+        });
+    };
+
+    const handleBulkDelete = async () => {
+        if (selectedPosts.size === 0) return;
+
+        const count = selectedPosts.size;
+        if (!confirm(`Are you sure you want to delete ${count} post${count > 1 ? 's' : ''}? This action cannot be undone.`)) return;
+
+        setBulkDeleting(true);
+
+        try {
+            // Delete posts one by one
+            const deletePromises = Array.from(selectedPosts).map(postId =>
+                fetch(`/api/admin/posts/${postId}`, { method: 'DELETE' })
+            );
+
+            await Promise.all(deletePromises);
+
+            setSelectedPosts(new Set());
+            fetchPosts();
+        } catch (error) {
+            console.error('Error bulk deleting posts:', error);
+        }
+
+        setBulkDeleting(false);
     };
 
     const handleNewPost = () => {
@@ -355,6 +412,7 @@ export default function ManageBlogPosts() {
                                 value={formData.content}
                                 onChange={(html) => setFormData(prev => ({ ...prev, content: html }))}
                                 placeholder="Start writing your post content..."
+                                postId={editingPost?.id}
                             />
                         </div>
                     </div>
@@ -577,13 +635,34 @@ export default function ManageBlogPosts() {
                         Manage public evergreen content
                     </p>
                 </div>
-                <button
-                    onClick={handleNewPost}
-                    className="bg-slate-900 text-white px-4 py-2 rounded-lg font-bold hover:bg-slate-800 transition-colors flex items-center gap-2"
-                >
-                    <Plus size={16} />
-                    New Post
-                </button>
+                <div className="flex items-center gap-3">
+                    {selectedPosts.size > 0 && (
+                        <button
+                            onClick={handleBulkDelete}
+                            disabled={bulkDeleting}
+                            className="bg-red-600 text-white px-4 py-2 rounded-lg font-bold hover:bg-red-700 transition-colors flex items-center gap-2 disabled:opacity-50"
+                        >
+                            {bulkDeleting ? (
+                                <>
+                                    <RefreshCw size={16} className="animate-spin" />
+                                    Deleting...
+                                </>
+                            ) : (
+                                <>
+                                    <Trash2 size={16} />
+                                    Delete ({selectedPosts.size})
+                                </>
+                            )}
+                        </button>
+                    )}
+                    <button
+                        onClick={handleNewPost}
+                        className="bg-slate-900 text-white px-4 py-2 rounded-lg font-bold hover:bg-slate-800 transition-colors flex items-center gap-2"
+                    >
+                        <Plus size={16} />
+                        New Post
+                    </button>
+                </div>
             </div>
 
             {/* Filters */}
@@ -667,6 +746,14 @@ export default function ManageBlogPosts() {
                     <table className="w-full">
                         <thead className="bg-slate-50 border-b border-slate-200">
                             <tr>
+                                <th className="w-12 px-4 py-3">
+                                    <input
+                                        type="checkbox"
+                                        checked={posts.length > 0 && selectedPosts.size === posts.length}
+                                        onChange={handleSelectAll}
+                                        className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                                    />
+                                </th>
                                 <th className="text-left px-6 py-3 text-xs font-bold text-slate-500 uppercase">Post</th>
                                 <th className="text-left px-6 py-3 text-xs font-bold text-slate-500 uppercase">Category</th>
                                 <th className="text-left px-6 py-3 text-xs font-bold text-slate-500 uppercase">Status</th>
@@ -676,7 +763,15 @@ export default function ManageBlogPosts() {
                         </thead>
                         <tbody className="divide-y divide-slate-100">
                             {posts.map((post) => (
-                                <tr key={post.id} className="hover:bg-slate-50">
+                                <tr key={post.id} className={`hover:bg-slate-50 ${selectedPosts.has(post.id) ? 'bg-blue-50' : ''}`}>
+                                    <td className="w-12 px-4 py-4">
+                                        <input
+                                            type="checkbox"
+                                            checked={selectedPosts.has(post.id)}
+                                            onChange={() => handleSelectPost(post.id)}
+                                            className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                                        />
+                                    </td>
                                     <td className="px-6 py-4">
                                         <div className="flex items-start gap-4">
                                             {post.featured_image_url ? (

@@ -31,7 +31,6 @@ const categoryLabels: Record<string, string> = {
     volunteer: 'Volunteer',
     free_training: 'Free Training',
     promo: 'Promo',
-    evergreen: 'Evergreen',
 };
 
 // Cached function to fetch branding settings

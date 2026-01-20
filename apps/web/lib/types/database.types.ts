@@ -15,13 +15,13 @@ export type OpportunityType =
     | 'scholarship'
     | 'volunteer'
     | 'free_training'
-    | 'promo'
-    | 'evergreen';
+    | 'promo';
 
 export type FeedStatus = 'active' | 'inactive' | 'error';
 export type OpportunityStatus = 'draft' | 'published' | 'rejected';
 export type AIProvider = 'openai' | 'anthropic' | 'deepseek' | 'gemini';
 export type FeedOutputType = 'opportunity' | 'blog_post';
+export type FeedSourceType = 'rss' | 'url_list';
 export type LogLevel = 'info' | 'warning' | 'error' | 'debug';
 export type QueueStatus = 'pending' | 'processing' | 'completed' | 'failed';
 export type ProcessingStatus = 'published' | 'rejected';
@@ -44,11 +44,15 @@ export interface RSSFeed {
     url: string;
     status: FeedStatus;
     output_type: FeedOutputType;
+    source_type: FeedSourceType;
+    url_list: string | null;
+    url_list_offset: number;
     opportunity_type: OpportunityType;
     blog_category_id: string | null;
     enable_scraping: boolean;
     enable_ai_processing: boolean;
     auto_publish: boolean;
+    allow_republishing: boolean;
     ai_provider: string;
     keywords: string[];
     exclude_keywords: string[];
@@ -59,6 +63,9 @@ export interface RSSFeed {
     error_count: number;
     total_processed: number;
     total_published: number;
+    preserve_source_slug: boolean;
+    preserve_source_title: boolean;
+    fallback_featured_image_url: string | null;
     created_at: string;
     updated_at: string;
 }
@@ -206,6 +213,8 @@ export interface Post {
     status: 'draft' | 'published' | 'archived';
     category_id: string | null;
     author_id: string | null;
+    source_url: string | null;
+    source_feed_id: string | null;
     published_at: string | null;
     created_at: string;
     updated_at: string;

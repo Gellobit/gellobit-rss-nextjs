@@ -67,7 +67,6 @@ const opportunityTypes = [
     { value: 'volunteer', label: 'Volunteer', icon: Briefcase, color: 'bg-teal-100 text-teal-700' },
     { value: 'free_training', label: 'Free Training', icon: GraduationCap, color: 'bg-emerald-100 text-emerald-700' },
     { value: 'promo', label: 'Promos', icon: Gift, color: 'bg-red-100 text-red-700' },
-    { value: 'evergreen', label: 'Evergreen', icon: BookOpen, color: 'bg-lime-100 text-lime-700' },
 ];
 
 export default function OpportunitiesBrowser({ opportunities, branding, initialSearch = '', initialType = '' }: OpportunitiesBrowserProps) {

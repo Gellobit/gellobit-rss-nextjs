@@ -86,6 +86,7 @@ export async function PUT(
             show_in_footer,
             show_in_menu,
             sort_order,
+            linked_opportunity_type,
             published_at,
             created_at
         } = body;
@@ -126,6 +127,7 @@ export async function PUT(
         if (show_in_footer !== undefined) updateData.show_in_footer = show_in_footer;
         if (show_in_menu !== undefined) updateData.show_in_menu = show_in_menu;
         if (sort_order !== undefined) updateData.sort_order = sort_order;
+        if (linked_opportunity_type !== undefined) updateData.linked_opportunity_type = linked_opportunity_type || null;
 
         // Handle dates
         if (published_at !== undefined) {

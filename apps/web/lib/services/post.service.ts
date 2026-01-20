@@ -49,6 +49,7 @@ export class PostService {
    * @param autoPublish - Auto-publish based on feed settings
    * @param featuredImageUrl - Featured image URL (from scraper or fallback)
    * @param categoryId - Category ID (from feed settings or default)
+   * @param options - Additional options for preserving source data
    * @returns Created post ID or null
    */
   async createFromAI(
@@ -57,7 +58,12 @@ export class PostService {
     sourceFeedId: string,
     autoPublish: boolean = false,
     featuredImageUrl?: string | null,
-    categoryId?: string | null
+    categoryId?: string | null,
+    options?: {
+      preserveSourceSlug?: boolean;
+      preserveSourceTitle?: boolean;
+      originalTitle?: string;
+    }
   ): Promise<string | null> {
     if (!aiContent.valid || !aiContent.title || !aiContent.content) {
       await logger.warning('Cannot create post from invalid AI content', {
@@ -68,7 +74,24 @@ export class PostService {
     }
 
     try {
-      const slug = this.generateSlug(aiContent.title);
+      // Determine the title to use
+      const title = options?.preserveSourceTitle && options.originalTitle
+        ? options.originalTitle
+        : aiContent.title;
+
+      // Determine the slug to use
+      let slug: string;
+      if (options?.preserveSourceSlug) {
+        // Extract slug from source URL
+        slug = this.extractSlugFromUrl(sourceUrl);
+        // Check if slug already exists, add suffix if needed
+        if (await this.slugExists(slug)) {
+          const timestamp = Date.now().toString(36);
+          slug = `${slug}-${timestamp}`;
+        }
+      } else {
+        slug = this.generateSlug(title);
+      }
 
       // Get default category if no category specified
       let finalCategoryId = categoryId;
@@ -77,14 +100,14 @@ export class PostService {
       }
 
       const postData: CreatePostData = {
-        title: aiContent.title,
+        title,
         slug,
         excerpt: aiContent.excerpt || this.generateExcerpt(aiContent.content),
         content: aiContent.content,
         source_url: sourceUrl,
         source_feed_id: sourceFeedId,
         featured_image_url: featuredImageUrl || null,
-        meta_title: aiContent.meta_title || aiContent.title,
+        meta_title: aiContent.meta_title || title,
         meta_description: aiContent.meta_description || aiContent.excerpt,
         category_id: finalCategoryId,
         status: autoPublish ? 'published' : 'draft',
@@ -98,6 +121,46 @@ export class PostService {
         error: error instanceof Error ? error.message : 'Unknown error',
       });
       return null;
+    }
+  }
+
+  /**
+   * Extract slug from URL
+   * e.g., https://example.com/my-post-title -> my-post-title
+   *
+   * @param url - Source URL
+   * @returns Extracted slug
+   */
+  private extractSlugFromUrl(url: string): string {
+    try {
+      const urlObj = new URL(url);
+      // Get the pathname and remove leading/trailing slashes
+      let pathname = urlObj.pathname.replace(/^\/+|\/+$/g, '');
+
+      // If pathname is empty, use a default
+      if (!pathname) {
+        return `post-${Date.now().toString(36)}`;
+      }
+
+      // Get the last segment of the path (in case of nested paths)
+      const segments = pathname.split('/');
+      let slug = segments[segments.length - 1];
+
+      // Remove file extensions if present
+      slug = slug.replace(/\.(html?|php|aspx?)$/i, '');
+
+      // Clean up the slug
+      slug = slug
+        .toLowerCase()
+        .replace(/[^\w\s-]/g, '')
+        .replace(/\s+/g, '-')
+        .replace(/-+/g, '-')
+        .substring(0, 100);
+
+      return slug || `post-${Date.now().toString(36)}`;
+    } catch {
+      // If URL parsing fails, generate a default slug
+      return `post-${Date.now().toString(36)}`;
     }
   }
 
@@ -143,6 +206,8 @@ export class PostService {
         meta_description: data.meta_description || null,
         category_id: data.category_id || null,
         status: data.status || 'draft',
+        source_url: data.source_url || null,
+        source_feed_id: data.source_feed_id || null,
       };
 
       // Set published_at if publishing
@@ -166,10 +231,13 @@ export class PostService {
       });
 
       return post.id;
-    } catch (error) {
+    } catch (error: any) {
       await logger.error('Error creating blog post', {
         title: data.title,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: error?.message || error?.toString() || 'Unknown error',
+        code: error?.code,
+        details: error?.details,
+        hint: error?.hint,
       });
       return null;
     }

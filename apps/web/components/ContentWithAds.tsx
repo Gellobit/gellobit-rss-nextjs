@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import LazyAdUnit from './LazyAdUnit';
 
 interface ContentWithAdsProps {
@@ -41,15 +41,28 @@ export default function ContentWithAds({
     showAdBottom = true,
     minParagraphsForMiddleAd = 6,
 }: ContentWithAdsProps) {
+    // Track if we're on the client side
+    const [isClient, setIsClient] = useState(false);
+
+    useEffect(() => {
+        setIsClient(true);
+    }, []);
+
     // Parse content and determine ad insertion points
     const contentBlocks = useMemo(() => {
         if (!showAds) {
             return [{ type: 'html' as const, content }];
         }
 
+        // IMPORTANT: Wait until client-side to parse content for ads
+        // This prevents hydration mismatch between server and client
+        if (!isClient) {
+            return [{ type: 'html' as const, content }];
+        }
+
         const blocks: ContentBlock[] = [];
 
-        // Parse HTML to find block elements
+        // Parse HTML to find block elements (only on client side)
         const parser = new DOMParser();
         const doc = parser.parseFromString(`<div>${content}</div>`, 'text/html');
         const container = doc.body.firstChild as HTMLElement;
@@ -167,7 +180,7 @@ export default function ContentWithAds({
         }
 
         return blocks;
-    }, [content, showAds, showAdAfterFirst, showAdMiddle, showAdBottom, adSlotAfterFirst, adSlotMiddle, adSlotBottom, minParagraphsForMiddleAd]);
+    }, [content, showAds, showAdAfterFirst, showAdMiddle, showAdBottom, adSlotAfterFirst, adSlotMiddle, adSlotBottom, minParagraphsForMiddleAd, isClient]);
 
     return (
         <div className={className}>

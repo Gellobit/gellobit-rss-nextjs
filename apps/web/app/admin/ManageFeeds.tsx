@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { RefreshCw, Trash2, Plus, ExternalLink, Play, Pencil, X, Save, Tag } from 'lucide-react';
+import { RefreshCw, Trash2, Plus, ExternalLink, Play, Pencil, X, Save, Tag, Copy } from 'lucide-react';
 import ImageUpload from '@/components/ImageUpload';
 
 interface Feed {
@@ -10,6 +10,8 @@ interface Feed {
     url: string;
     status: 'active' | 'inactive' | 'error';
     output_type?: 'opportunity' | 'blog_post';
+    source_type?: 'rss' | 'url_list';
+    url_list?: string | null;
     opportunity_type: string;
     blog_category_id?: string | null;
     enable_scraping: boolean;
@@ -22,6 +24,8 @@ interface Feed {
     cron_interval?: string;
     fallback_featured_image_url?: string | null;
     allow_republishing?: boolean;
+    preserve_source_slug?: boolean;
+    preserve_source_title?: boolean;
     last_fetched?: string;
     total_processed?: number;
     total_published?: number;
@@ -45,6 +49,8 @@ interface Category {
 interface FeedFormValues {
     name: string;
     url: string;
+    source_type: 'rss' | 'url_list';
+    url_list: string;
     output_type: 'opportunity' | 'blog_post';
     opportunity_type: string;
     blog_category_id: string;
@@ -59,6 +65,8 @@ interface FeedFormValues {
     cron_interval: string;
     fallback_featured_image_url: string;
     allow_republishing: boolean;
+    preserve_source_slug: boolean;
+    preserve_source_title: boolean;
     // New scheduling fields
     schedule_type: 'interval' | 'daily';
     scheduled_hour: number | null;
@@ -68,6 +76,8 @@ interface FeedFormValues {
 const defaultFeedValues: FeedFormValues = {
     name: '',
     url: '',
+    source_type: 'rss',
+    url_list: '',
     output_type: 'opportunity',
     opportunity_type: 'giveaway',
     blog_category_id: '',
@@ -82,6 +92,8 @@ const defaultFeedValues: FeedFormValues = {
     cron_interval: 'hourly',
     fallback_featured_image_url: '',
     allow_republishing: false,
+    preserve_source_slug: false,
+    preserve_source_title: false,
     schedule_type: 'interval',
     scheduled_hour: null,
     scheduled_minute: 0,
@@ -90,6 +102,11 @@ const defaultFeedValues: FeedFormValues = {
 const outputTypes = [
     { value: 'opportunity', label: 'Opportunity', description: 'Create opportunities in the main feed' },
     { value: 'blog_post', label: 'Blog Post', description: 'Create blog posts for the blog section' },
+];
+
+const sourceTypes = [
+    { value: 'rss', label: 'RSS Feed', description: 'Fetch content from an RSS feed URL' },
+    { value: 'url_list', label: 'URL List', description: 'Process a list of specific URLs' },
 ];
 
 const opportunityTypes = [
@@ -104,7 +121,6 @@ const opportunityTypes = [
     { value: 'volunteer', label: 'Volunteer' },
     { value: 'free_training', label: 'Free Training' },
     { value: 'promo', label: 'Promo' },
-    { value: 'evergreen', label: 'Evergreen' },
 ];
 
 const cronIntervals = [
@@ -252,17 +268,108 @@ function FeedForm({
                 )}
             </div>
 
-            <div>
-                <label className="block text-xs text-slate-500 mb-1">RSS URL</label>
-                <input
-                    type="url"
-                    placeholder="https://www.google.com/alerts/feeds/..."
-                    className="border p-2 rounded w-full"
-                    value={values.url}
-                    onChange={e => onChange('url', e.target.value)}
-                    required
-                />
-            </div>
+            {/* Blog Post Options - Only shown for blog_post output type */}
+            {values.output_type === 'blog_post' && (
+                <div className="bg-amber-50 border border-amber-200 p-4 rounded-lg">
+                    <p className="text-sm font-bold text-amber-800 mb-3">Blog Post Options</p>
+                    <div className="flex flex-wrap gap-4">
+                        <label className="flex items-center gap-2 text-sm text-amber-900">
+                            <input
+                                type="checkbox"
+                                checked={values.preserve_source_slug}
+                                onChange={e => onChange('preserve_source_slug', e.target.checked)}
+                                className="rounded border-amber-300"
+                            />
+                            Preserve Source Slug
+                            <span className="text-xs text-amber-600">(use original URL slug)</span>
+                        </label>
+                        <label className="flex items-center gap-2 text-sm text-amber-900">
+                            <input
+                                type="checkbox"
+                                checked={values.preserve_source_title}
+                                onChange={e => onChange('preserve_source_title', e.target.checked)}
+                                className="rounded border-amber-300"
+                            />
+                            Preserve Source Title
+                            <span className="text-xs text-amber-600">(use original title instead of AI)</span>
+                        </label>
+                    </div>
+                </div>
+            )}
+
+            {/* Source Type Selection - Only shown for blog_post output type */}
+            {values.output_type === 'blog_post' && (
+                <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg">
+                    <label className="block text-xs text-blue-600 mb-2 font-bold">Content Source</label>
+                    <div className="grid grid-cols-2 gap-3">
+                        {sourceTypes.map(t => (
+                            <label
+                                key={t.value}
+                                className={`flex items-center gap-3 p-3 rounded-lg border-2 cursor-pointer transition-all ${
+                                    values.source_type === t.value
+                                        ? 'border-blue-500 bg-white shadow-sm'
+                                        : 'border-blue-200 bg-white/50 hover:border-blue-300'
+                                }`}
+                            >
+                                <input
+                                    type="radio"
+                                    name="source_type"
+                                    value={t.value}
+                                    checked={values.source_type === t.value}
+                                    onChange={e => onChange('source_type', e.target.value)}
+                                    className="sr-only"
+                                />
+                                <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
+                                    values.source_type === t.value
+                                        ? 'border-blue-500'
+                                        : 'border-blue-300'
+                                }`}>
+                                    {values.source_type === t.value && (
+                                        <div className="w-2 h-2 rounded-full bg-blue-500" />
+                                    )}
+                                </div>
+                                <div>
+                                    <span className="font-bold text-sm text-blue-900">{t.label}</span>
+                                    <p className="text-xs text-blue-600">{t.description}</p>
+                                </div>
+                            </label>
+                        ))}
+                    </div>
+                </div>
+            )}
+
+            {/* RSS URL - shown for opportunities OR blog_post with rss source */}
+            {(values.output_type === 'opportunity' || values.source_type === 'rss') && (
+                <div>
+                    <label className="block text-xs text-slate-500 mb-1">RSS Feed URL</label>
+                    <input
+                        type="url"
+                        placeholder="https://www.google.com/alerts/feeds/..."
+                        className="border p-2 rounded w-full"
+                        value={values.url}
+                        onChange={e => onChange('url', e.target.value)}
+                        required={values.source_type === 'rss'}
+                    />
+                </div>
+            )}
+
+            {/* URL List - shown for blog_post with url_list source */}
+            {values.output_type === 'blog_post' && values.source_type === 'url_list' && (
+                <div>
+                    <label className="block text-xs text-slate-500 mb-1">URL List (one per line)</label>
+                    <textarea
+                        placeholder="https://example.com/article-1&#10;https://example.com/article-2&#10;https://example.com/article-3"
+                        className="border p-2 rounded w-full font-mono text-sm"
+                        rows={6}
+                        value={values.url_list}
+                        onChange={e => onChange('url_list', e.target.value)}
+                        required
+                    />
+                    <p className="text-xs text-slate-400 mt-1">
+                        Enter URLs to scrape, one per line. Each URL will be processed and published as a blog post.
+                    </p>
+                </div>
+            )}
 
             {isEdit && (
                 <div>
@@ -283,19 +390,22 @@ function FeedForm({
             <div className="border-t pt-4 space-y-3">
                 <p className="text-sm font-bold text-slate-700">Feed Settings</p>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    <div>
-                        <label className="block text-xs text-slate-500 mb-1">Quality Threshold</label>
-                        <input
-                            type="number"
-                            min="0"
-                            max="1"
-                            step="0.1"
-                            className="border p-2 rounded text-sm w-full"
-                            value={values.quality_threshold}
-                            onChange={e => onChange('quality_threshold', parseFloat(e.target.value) || 0.6)}
-                        />
-                        <p className="text-xs text-slate-400 mt-1">Min AI confidence (0-1)</p>
-                    </div>
+                    {/* Quality Threshold - Only shown when AI processing is enabled */}
+                    {values.enable_ai_processing && (
+                        <div>
+                            <label className="block text-xs text-slate-500 mb-1">Quality Threshold</label>
+                            <input
+                                type="number"
+                                min="0"
+                                max="1"
+                                step="0.1"
+                                className="border p-2 rounded text-sm w-full"
+                                value={values.quality_threshold}
+                                onChange={e => onChange('quality_threshold', parseFloat(e.target.value) || 0.6)}
+                            />
+                            <p className="text-xs text-slate-400 mt-1">Min AI confidence (0-1)</p>
+                        </div>
+                    )}
                     <div>
                         <label className="block text-xs text-slate-500 mb-1">Priority</label>
                         <input
@@ -394,29 +504,31 @@ function FeedForm({
                 </div>
             </div>
 
-            {/* AI Configuration */}
-            <div className="border-t pt-4 space-y-3">
-                <p className="text-sm font-bold text-slate-700">AI Provider Override (Optional)</p>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    <select
-                        className="border p-2 rounded text-sm"
-                        value={values.ai_provider}
-                        onChange={e => handleAIProviderChange(e.target.value)}
-                    >
-                        {aiProviders.map(p => (
-                            <option key={p.value} value={p.value}>{p.label}</option>
-                        ))}
-                    </select>
-                    <input
-                        type="text"
-                        placeholder="AI Model (auto-filled)"
-                        className="border p-2 rounded text-sm"
-                        value={values.ai_model}
-                        onChange={e => onChange('ai_model', e.target.value)}
-                        disabled={!values.ai_provider}
-                    />
+            {/* AI Configuration - Only shown when AI processing is enabled */}
+            {values.enable_ai_processing && (
+                <div className="border-t pt-4 space-y-3">
+                    <p className="text-sm font-bold text-slate-700">AI Provider Override (Optional)</p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <select
+                            className="border p-2 rounded text-sm"
+                            value={values.ai_provider}
+                            onChange={e => handleAIProviderChange(e.target.value)}
+                        >
+                            {aiProviders.map(p => (
+                                <option key={p.value} value={p.value}>{p.label}</option>
+                            ))}
+                        </select>
+                        <input
+                            type="text"
+                            placeholder="AI Model (auto-filled)"
+                            className="border p-2 rounded text-sm"
+                            value={values.ai_model}
+                            onChange={e => onChange('ai_model', e.target.value)}
+                            disabled={!values.ai_provider}
+                        />
+                    </div>
                 </div>
-            </div>
+            )}
 
             {/* Checkboxes */}
             <div className="flex flex-wrap gap-4 border-t pt-4">
@@ -474,6 +586,8 @@ export default function ManageFeeds() {
     const [editingFeed, setEditingFeed] = useState<Feed | null>(null);
     const [editForm, setEditForm] = useState<FeedFormValues>(defaultFeedValues);
     const [saving, setSaving] = useState(false);
+    const [clearingDuplicates, setClearingDuplicates] = useState(false);
+    const [duplicating, setDuplicating] = useState<string | null>(null);
 
     // Categories for blog posts
     const [categories, setCategories] = useState<Category[]>([]);
@@ -588,11 +702,80 @@ export default function ManageFeeds() {
         setSyncing(null);
     };
 
+    const handleClearDuplicates = async (id: string) => {
+        if (!confirm('Are you sure you want to reset tracking for this feed?\n\nThis will:\n- Clear duplicate tracking records\n- Reset Processed and Created counters to 0\n- Allow all URLs to be processed again')) {
+            return;
+        }
+
+        setClearingDuplicates(true);
+        try {
+            const res = await fetch(`/api/admin/feeds/${id}/clear-duplicates`, { method: 'POST' });
+            const data = await res.json();
+            if (res.ok) {
+                alert('Feed tracking has been reset!\n\nAll URLs can now be processed again.');
+                fetchFeeds(); // Refresh the list to show updated counters
+            } else {
+                alert('Error clearing tracking: ' + data.error);
+            }
+        } catch (error) {
+            alert('Error clearing tracking: ' + error);
+        }
+        setClearingDuplicates(false);
+    };
+
+    const handleDuplicate = async (feed: Feed) => {
+        setDuplicating(feed.id);
+        try {
+            const duplicateData = {
+                name: `${feed.name} (Copy)`,
+                url: feed.url,
+                source_type: feed.source_type || 'rss',
+                url_list: feed.url_list || '',
+                output_type: feed.output_type || 'opportunity',
+                opportunity_type: feed.opportunity_type,
+                blog_category_id: feed.blog_category_id || '',
+                enable_scraping: feed.enable_scraping,
+                enable_ai_processing: feed.enable_ai_processing,
+                auto_publish: feed.auto_publish,
+                status: 'inactive' as const, // Start as inactive
+                ai_provider: feed.ai_provider || '',
+                ai_model: feed.ai_model || '',
+                quality_threshold: feed.quality_threshold ?? 0.6,
+                priority: feed.priority ?? 5,
+                cron_interval: feed.cron_interval || 'hourly',
+                fallback_featured_image_url: feed.fallback_featured_image_url || '',
+                allow_republishing: feed.allow_republishing ?? false,
+                preserve_source_slug: feed.preserve_source_slug ?? false,
+                preserve_source_title: feed.preserve_source_title ?? false,
+                schedule_type: feed.schedule_type || 'interval',
+                scheduled_hour: feed.scheduled_hour ?? null,
+                scheduled_minute: feed.scheduled_minute ?? 0,
+            };
+
+            const res = await fetch('/api/admin/feeds', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(duplicateData),
+            });
+            const data = await res.json();
+            if (res.ok) {
+                fetchFeeds();
+            } else {
+                alert('Error duplicating feed: ' + data.error);
+            }
+        } catch (error) {
+            alert('Error duplicating feed: ' + error);
+        }
+        setDuplicating(null);
+    };
+
     const openEditModal = (feed: Feed) => {
         setEditingFeed(feed);
         setEditForm({
             name: feed.name,
             url: feed.url,
+            source_type: feed.source_type || 'rss',
+            url_list: feed.url_list || '',
             output_type: feed.output_type || 'opportunity',
             opportunity_type: feed.opportunity_type,
             blog_category_id: feed.blog_category_id || '',
@@ -607,6 +790,8 @@ export default function ManageFeeds() {
             cron_interval: feed.cron_interval || 'hourly',
             fallback_featured_image_url: feed.fallback_featured_image_url || '',
             allow_republishing: feed.allow_republishing ?? false,
+            preserve_source_slug: feed.preserve_source_slug ?? false,
+            preserve_source_title: feed.preserve_source_title ?? false,
             schedule_type: feed.schedule_type || 'interval',
             scheduled_hour: feed.scheduled_hour ?? null,
             scheduled_minute: feed.scheduled_minute ?? 0,
@@ -745,23 +930,40 @@ export default function ManageFeeds() {
                                         }`}>
                                             {feed.output_type === 'blog_post' ? 'Blog Post' : 'Opportunity'}
                                         </span>
+                                        {feed.output_type === 'blog_post' && feed.source_type === 'url_list' && (
+                                            <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-blue-100 text-blue-700">
+                                                URL List
+                                            </span>
+                                        )}
                                         {feed.output_type !== 'blog_post' && (
                                             <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-blue-100 text-blue-700">
                                                 {feed.opportunity_type.replace('_', ' ')}
                                             </span>
                                         )}
-                                        {feed.ai_provider && (
-                                            <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-purple-100 text-purple-700">
-                                                AI: {feed.ai_provider}
+                                        {feed.enable_ai_processing ? (
+                                            feed.ai_provider && (
+                                                <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-purple-100 text-purple-700">
+                                                    AI: {feed.ai_provider}
+                                                </span>
+                                            )
+                                        ) : (
+                                            <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-gray-100 text-gray-600">
+                                                PASSTHROUGH
                                             </span>
                                         )}
-                                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-600">
-                                            Priority: {feed.priority || 5}
+                                        <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-slate-100 text-slate-600">
+                                            PRIORITY: {feed.priority || 5}
                                         </span>
                                     </div>
-                                    <a href={feed.url} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-500 hover:underline flex items-center gap-1 mb-2">
-                                        {feed.url.length > 60 ? feed.url.substring(0, 60) + '...' : feed.url} <ExternalLink size={10} />
-                                    </a>
+                                    {feed.source_type === 'url_list' ? (
+                                        <span className="text-xs text-slate-500 mb-2">
+                                            {feed.url_list ? feed.url_list.split('\n').filter(u => u.trim()).length : 0} URLs in list
+                                        </span>
+                                    ) : (
+                                        <a href={feed.url} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-500 hover:underline flex items-center gap-1 mb-2">
+                                            {feed.url.length > 60 ? feed.url.substring(0, 60) + '...' : feed.url} <ExternalLink size={10} />
+                                        </a>
+                                    )}
                                     <div className="flex gap-4 text-xs text-slate-500 flex-wrap">
                                         <span>Last: {feed.last_fetched ? new Date(feed.last_fetched).toLocaleString() : 'Never'}</span>
                                         <span>Processed: {feed.total_processed || 0}</span>
@@ -780,7 +982,7 @@ export default function ManageFeeds() {
                                         ) : (
                                             <span>Interval: {cronIntervals.find(i => i.value === feed.cron_interval)?.label || 'Hourly'}</span>
                                         )}
-                                        {feed.items_pending && feed.items_pending > 0 && (
+                                        {feed.items_pending != null && feed.items_pending > 0 && (
                                             <span className="text-amber-600 font-medium">{feed.items_pending} pending</span>
                                         )}
                                     </div>
@@ -804,6 +1006,18 @@ export default function ManageFeeds() {
                                         title="Edit"
                                     >
                                         <Pencil size={18} />
+                                    </button>
+                                    <button
+                                        onClick={() => handleDuplicate(feed)}
+                                        disabled={duplicating === feed.id}
+                                        className="p-2 text-slate-500 hover:text-purple-600 hover:bg-purple-50 rounded transition-colors disabled:opacity-50"
+                                        title="Duplicate"
+                                    >
+                                        {duplicating === feed.id ? (
+                                            <RefreshCw size={18} className="animate-spin" />
+                                        ) : (
+                                            <Copy size={18} />
+                                        )}
                                     </button>
                                     <button
                                         onClick={() => handleDelete(feed.id)}
@@ -848,6 +1062,21 @@ export default function ManageFeeds() {
                                 >
                                     Cancel
                                 </button>
+                            </div>
+
+                            {/* Advanced Actions */}
+                            <div className="mt-6 pt-4 border-t border-dashed border-slate-300">
+                                <h4 className="text-sm font-semibold text-slate-500 mb-3">Advanced Actions</h4>
+                                <button
+                                    onClick={() => handleClearDuplicates(editingFeed.id)}
+                                    disabled={clearingDuplicates}
+                                    className="text-sm px-3 py-2 text-amber-700 bg-amber-50 border border-amber-200 rounded hover:bg-amber-100 transition-colors disabled:opacity-50"
+                                >
+                                    {clearingDuplicates ? 'Resetting...' : 'Reset Feed Tracking'}
+                                </button>
+                                <p className="text-xs text-slate-500 mt-2">
+                                    Resets Processed/Created counters to 0 and clears duplicate tracking, allowing all URLs to be processed again.
+                                </p>
                             </div>
                         </div>
                     </div>

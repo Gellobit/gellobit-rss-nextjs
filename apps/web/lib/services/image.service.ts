@@ -253,9 +253,18 @@ export class ImageService {
         .not('entity_id', 'is', null)
         .filter('entity_id', 'not.in', `(SELECT id FROM rss_feeds)`);
 
+      // Find orphaned post images
+      const { data: orphanedPostImages } = await this.supabase
+        .from('media_files')
+        .select('id, file_path')
+        .eq('entity_type', 'post')
+        .not('entity_id', 'is', null)
+        .filter('entity_id', 'not.in', `(SELECT id FROM posts)`);
+
       const allOrphaned = [
         ...(orphanedOpportunityImages || []),
-        ...(orphanedFeedImages || [])
+        ...(orphanedFeedImages || []),
+        ...(orphanedPostImages || [])
       ];
 
       if (allOrphaned.length === 0) {
@@ -342,6 +351,142 @@ export class ImageService {
     ];
 
     return skipPatterns.some(pattern => pattern.test(url));
+  }
+
+  /**
+   * Normalize image URL for comparison
+   * Removes query params, protocol, www prefix, size suffixes, and trailing slashes
+   */
+  private normalizeImageUrl(url: string): string {
+    try {
+      const parsed = new URL(url);
+      // Get pathname without query params
+      let normalized = parsed.hostname.replace(/^www\./, '') + parsed.pathname;
+      // Remove trailing slash
+      normalized = normalized.replace(/\/$/, '');
+      // Remove common size patterns
+      normalized = normalized
+        .replace(/-\d+x\d+/g, '')      // -300x200
+        .replace(/_\d+x\d+/g, '')      // _300x200
+        .replace(/-\d+w/g, '')          // -300w
+        .replace(/-scaled/g, '')        // -scaled
+        .replace(/_thumb/g, '')         // _thumb
+        .replace(/-thumbnail/g, '')     // -thumbnail
+        .replace(/\/w_\d+/g, '')        // Cloudinary /w_300
+        .replace(/\/h_\d+/g, '')        // Cloudinary /h_300
+        .replace(/\/c_[^/]+/g, '')      // Cloudinary transforms
+        .replace(/\/q_\d+/g, '');       // Quality params
+      // Convert to lowercase
+      return normalized.toLowerCase();
+    } catch {
+      // If URL parsing fails, do basic normalization
+      return url.toLowerCase()
+        .replace(/^https?:\/\//, '')
+        .replace(/^www\./, '')
+        .replace(/\?.*$/, '')
+        .replace(/#.*$/, '')
+        .replace(/\/$/, '')
+        .replace(/-\d+x\d+/g, '')
+        .replace(/_\d+x\d+/g, '')
+        .replace(/-\d+w/g, '')
+        .replace(/-scaled/g, '')
+        .replace(/_thumb/g, '');
+    }
+  }
+
+  /**
+   * Check if two image URLs likely refer to the same image
+   * Handles CDN variations, size parameters, etc.
+   */
+  private imagesMatch(url1: string, url2: string): boolean {
+    if (!url1 || !url2) return false;
+
+    const norm1 = this.normalizeImageUrl(url1);
+    const norm2 = this.normalizeImageUrl(url2);
+
+    // Exact match after normalization
+    if (norm1 === norm2) return true;
+
+    // Extract just the filename without path for comparison
+    const getFileName = (url: string) => {
+      const parts = url.split('/');
+      return parts[parts.length - 1].replace(/\.[^.]+$/, ''); // Remove extension
+    };
+
+    const file1 = getFileName(norm1);
+    const file2 = getFileName(norm2);
+
+    // Same filename (ignoring path)
+    if (file1 && file2 && file1.length > 5 && file1 === file2) return true;
+
+    // One contains the other (handles path variations)
+    if (norm1.includes(norm2) || norm2.includes(norm1)) return true;
+
+    return false;
+  }
+
+  /**
+   * Remove featured image from HTML content to avoid duplication
+   * Called before processing content images
+   */
+  private removeFeaturedImageFromContent(
+    htmlContent: string,
+    featuredImageUrl: string | null | undefined
+  ): string {
+    if (!featuredImageUrl || !htmlContent) return htmlContent;
+
+    let processedContent = htmlContent;
+
+    // Find all image tags
+    const imgRegex = /<img[^>]*src=["']([^"']+)["'][^>]*>/gi;
+    const figureWithImgRegex = /<figure[^>]*>[\s\S]*?<img[^>]*src=["']([^"']+)["'][^>]*>[\s\S]*?<\/figure>/gi;
+
+    // First, try to remove figure elements containing the featured image
+    let match;
+    const figureMatches: Array<{ fullMatch: string; src: string }> = [];
+    while ((match = figureWithImgRegex.exec(htmlContent)) !== null) {
+      figureMatches.push({ fullMatch: match[0], src: match[1] });
+    }
+
+    for (const figMatch of figureMatches) {
+      if (this.imagesMatch(figMatch.src, featuredImageUrl)) {
+        processedContent = processedContent.replace(figMatch.fullMatch, '');
+        console.log('Removed featured image figure from content:', figMatch.src);
+        return processedContent; // Only remove the first match
+      }
+    }
+
+    // Then try to remove standalone img tags
+    const imgMatches: Array<{ fullMatch: string; src: string }> = [];
+    while ((match = imgRegex.exec(htmlContent)) !== null) {
+      imgMatches.push({ fullMatch: match[0], src: match[1] });
+    }
+
+    for (const imgMatch of imgMatches) {
+      if (this.imagesMatch(imgMatch.src, featuredImageUrl)) {
+        // Check if it's wrapped in a p tag or div
+        const wrappedInPRegex = new RegExp(
+          `<p[^>]*>\\s*${imgMatch.fullMatch.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*</p>`,
+          'i'
+        );
+        const wrappedInDivRegex = new RegExp(
+          `<div[^>]*>\\s*${imgMatch.fullMatch.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*</div>`,
+          'i'
+        );
+
+        if (wrappedInPRegex.test(processedContent)) {
+          processedContent = processedContent.replace(wrappedInPRegex, '');
+        } else if (wrappedInDivRegex.test(processedContent)) {
+          processedContent = processedContent.replace(wrappedInDivRegex, '');
+        } else {
+          processedContent = processedContent.replace(imgMatch.fullMatch, '');
+        }
+        console.log('Removed featured image from content:', imgMatch.src);
+        return processedContent; // Only remove the first match
+      }
+    }
+
+    return processedContent;
   }
 
   /**
@@ -506,8 +651,15 @@ export class ImageService {
       fallbackUrl: fallbackFeaturedUrl
     });
 
-    // Process content images
-    const contentResult = await this.processContentImages(htmlContent, {
+    // IMPORTANT: Remove featured image from content BEFORE processing
+    // This prevents the featured image from appearing twice (once as featured, once in content)
+    const contentWithoutFeatured = this.removeFeaturedImageFromContent(
+      htmlContent,
+      featuredImageUrl // Use original URL for comparison (before it was uploaded)
+    );
+
+    // Process content images (now without the featured image)
+    const contentResult = await this.processContentImages(contentWithoutFeatured, {
       entityType: 'post',
       entityId: postId,
       folder: 'posts/content',

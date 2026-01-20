@@ -10,7 +10,20 @@ import { z } from 'zod';
 
 export const createFeedSchema = z.object({
     name: z.string().min(1, 'Feed name is required').max(255),
-    url: z.string().url('Invalid URL').min(1, 'URL is required'),
+    // URL is required for RSS, optional for url_list
+    url: z.union([
+        z.string().url('Invalid URL').min(1),
+        z.literal('').transform(() => null),
+        z.null()
+    ]).optional(),
+    // Source type: rss (default) or url_list
+    source_type: z.enum(['rss', 'url_list']).optional().default('rss'),
+    // List of URLs (one per line) for url_list source type
+    url_list: z.union([
+        z.string().min(1),
+        z.literal('').transform(() => null),
+        z.null()
+    ]).optional(),
     output_type: z.enum(['opportunity', 'blog_post']).optional().default('opportunity'),
     opportunity_type: z.enum([
         'contest',
@@ -23,8 +36,7 @@ export const createFeedSchema = z.object({
         'scholarship',
         'volunteer',
         'free_training',
-        'promo',
-        'evergreen'
+        'promo'
     ]),
     // Blog category for blog_post output type
     blog_category_id: z.union([
@@ -74,6 +86,9 @@ export const createFeedSchema = z.object({
         z.null()
     ]).optional(),
     allow_republishing: z.boolean().optional().default(false),
+    // Blog post options
+    preserve_source_slug: z.boolean().optional().default(false),
+    preserve_source_title: z.boolean().optional().default(false),
     // Scheduling fields (for pg_cron based scheduling)
     schedule_type: z.enum(['interval', 'daily']).optional().default('interval'),
     scheduled_hour: z.union([
@@ -126,8 +141,7 @@ export const createOpportunitySchema = z.object({
         'scholarship',
         'volunteer',
         'free_training',
-        'promo',
-        'evergreen'
+        'promo'
     ]),
     deadline: z.string().datetime().optional().nullable(),
     prize_value: z.string().optional().nullable(),
@@ -161,8 +175,7 @@ export const updatePromptSchema = z.object({
         'scholarship',
         'volunteer',
         'free_training',
-        'promo',
-        'evergreen'
+        'promo'
     ]),
     unified_prompt: z.string().min(1, 'Prompt is required')
 });

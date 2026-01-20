@@ -36,6 +36,7 @@ interface WysiwygEditorProps {
     value: string;
     onChange: (html: string) => void;
     placeholder?: string;
+    postId?: string; // Used to link uploaded images to the post
 }
 
 // Image Modal Component
@@ -43,10 +44,12 @@ function ImageModal({
     isOpen,
     onClose,
     onInsert,
+    postId,
 }: {
     isOpen: boolean;
     onClose: () => void;
     onInsert: (url: string, alt?: string) => void;
+    postId?: string;
 }) {
     const [tab, setTab] = useState<'upload' | 'url'>('upload');
     const [url, setUrl] = useState('');
@@ -62,6 +65,9 @@ function ImageModal({
         try {
             const formData = new FormData();
             formData.append('file', file);
+            if (postId) {
+                formData.append('postId', postId);
+            }
 
             const response = await fetch('/api/admin/posts/upload', {
                 method: 'POST',
@@ -444,7 +450,7 @@ function minifyHtml(html: string): string {
         .trim();
 }
 
-export default function WysiwygEditor({ value, onChange, placeholder = 'Start writing...' }: WysiwygEditorProps) {
+export default function WysiwygEditor({ value, onChange, placeholder = 'Start writing...', postId }: WysiwygEditorProps) {
     const [imageModalOpen, setImageModalOpen] = useState(false);
     const [linkModalOpen, setLinkModalOpen] = useState(false);
     const [linkModalData, setLinkModalData] = useState<{
@@ -770,6 +776,7 @@ export default function WysiwygEditor({ value, onChange, placeholder = 'Start wr
                 isOpen={imageModalOpen}
                 onClose={() => setImageModalOpen(false)}
                 onInsert={handleImageInsert}
+                postId={postId}
             />
             <LinkModal
                 isOpen={linkModalOpen}

@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
 
         let query = adminSupabase
             .from('pages')
-            .select('id, title, slug, featured_image_url, show_in_footer, show_in_menu, sort_order')
+            .select('id, title, slug, featured_image_url, show_in_footer, show_in_menu, sort_order, linked_opportunity_type')
             .eq('status', 'published')
             .order('sort_order', { ascending: true });
 

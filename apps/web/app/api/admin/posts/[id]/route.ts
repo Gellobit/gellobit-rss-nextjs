@@ -172,6 +172,21 @@ export async function DELETE(
             return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
         }
 
+        // Get the post data BEFORE deleting (to get featured_image_url)
+        const { data: post } = await adminSupabase
+            .from('posts')
+            .select('featured_image_url')
+            .eq('id', id)
+            .single();
+
+        // Get associated media files BEFORE deleting post (trigger will delete records)
+        const { data: mediaFiles } = await adminSupabase
+            .from('media_files')
+            .select('file_path')
+            .eq('entity_type', 'post')
+            .eq('entity_id', id);
+
+        // Delete post (trigger will clean up media_files records)
         const { error } = await adminSupabase
             .from('posts')
             .delete()
@@ -180,6 +195,44 @@ export async function DELETE(
         if (error) {
             console.error('Error deleting post:', error);
             return NextResponse.json({ error: error.message }, { status: 500 });
+        }
+
+        // Collect all file paths to delete
+        const filePaths: string[] = mediaFiles?.map(f => f.file_path) || [];
+
+        // Also handle featured image if it's stored in our bucket
+        if (post?.featured_image_url) {
+            // Check if the featured image is in our Supabase storage
+            const supabaseStoragePattern = /\/storage\/v1\/object\/public\/images\/(.+)$/;
+            const match = post.featured_image_url.match(supabaseStoragePattern);
+
+            if (match) {
+                const featuredImagePath = match[1];
+                // Only add if not already in the list
+                if (!filePaths.includes(featuredImagePath)) {
+                    filePaths.push(featuredImagePath);
+                }
+
+                // Also delete from media_files table (it might be stored with different entity_type)
+                await adminSupabase
+                    .from('media_files')
+                    .delete()
+                    .eq('file_url', post.featured_image_url);
+            }
+        }
+
+        // Delete actual files from Supabase Storage
+        if (filePaths.length > 0) {
+            const { error: storageError } = await adminSupabase.storage
+                .from('images')
+                .remove(filePaths);
+
+            if (storageError) {
+                console.error('Error deleting media files from storage:', storageError);
+                // Don't fail the request, post is already deleted
+            } else {
+                console.log(`Deleted ${filePaths.length} media files from storage`);
+            }
         }
 
         return NextResponse.json({ success: true });

@@ -201,28 +201,15 @@ export class RSSProcessorService {
       result.outputType = feed.output_type || 'opportunity';
       result.opportunityType = feed.opportunity_type;
 
+      const sourceType = feed.source_type || 'rss';
+
       await logger.info('Processing feed', {
         feed_id: feedId,
         feed_name: feed.name,
         feed_url: feed.url,
+        source_type: sourceType,
         output_type: feed.output_type || 'opportunity',
         opportunity_type: feed.opportunity_type,
-      });
-
-      // Parse RSS feed
-      const rssItems = await parseRSSFeed(feed.url);
-
-      if (!rssItems || rssItems.length === 0) {
-        await logger.warning('No items found in RSS feed', {
-          feed_id: feedId,
-        });
-        result.executionTimeMs = Date.now() - startTime;
-        result.success = true;
-        return result;
-      }
-
-      await logger.info(`Found ${rssItems.length} items in feed`, {
-        feed_id: feedId,
       });
 
       // Load system settings
@@ -230,30 +217,116 @@ export class RSSProcessorService {
       const globalQualityThreshold = await settingsService.get('general.quality_threshold');
       const globalAutoPublish = await settingsService.get('general.auto_publish');
 
-      // Limit items to process based on max_posts_per_run setting
-      const itemsToProcess = rssItems.slice(0, maxPostsPerRun);
+      // Get items to process based on source type
+      let itemsToProcess: Array<{ link: string; title?: string; content?: string }> = [];
 
-      if (itemsToProcess.length < rssItems.length) {
-        await logger.info(`Limiting processing to ${maxPostsPerRun} items (${rssItems.length} available)`, {
+      if (sourceType === 'url_list') {
+        // Parse URL list (one URL per line)
+        const urlList = (feed.url_list || '')
+          .split('\n')
+          .map(url => url.trim())
+          .filter(url => url.length > 0 && (url.startsWith('http://') || url.startsWith('https://')));
+
+        if (urlList.length === 0) {
+          await logger.warning('No valid URLs found in URL list', {
+            feed_id: feedId,
+          });
+          result.executionTimeMs = Date.now() - startTime;
+          result.success = true;
+          return result;
+        }
+
+        // Get current offset for url_list feeds (tracks progress through the list)
+        const currentOffset = feed.url_list_offset || 0;
+        const remainingUrls = urlList.length - currentOffset;
+
+        await logger.info(`Found ${urlList.length} URLs in list`, {
+          feed_id: feedId,
+          current_offset: currentOffset,
+          remaining_urls: remainingUrls,
+        });
+
+        // Check if we've processed all URLs
+        if (currentOffset >= urlList.length) {
+          await logger.info('All URLs in list have been processed', {
+            feed_id: feedId,
+            total_urls: urlList.length,
+            offset: currentOffset,
+          });
+          result.executionTimeMs = Date.now() - startTime;
+          result.success = true;
+          return result;
+        }
+
+        // Convert URLs to items starting from current offset
+        const urlsToProcess = urlList.slice(currentOffset, currentOffset + maxPostsPerRun);
+        itemsToProcess = urlsToProcess.map(url => ({
+          link: url,
+          title: '', // Will be scraped
+          content: '', // Will be scraped
+        }));
+
+        await logger.info(`Processing URLs ${currentOffset + 1} to ${currentOffset + urlsToProcess.length} of ${urlList.length}`, {
+          feed_id: feedId,
+          offset: currentOffset,
+          batch_size: urlsToProcess.length,
+        });
+      } else {
+        // Parse RSS feed (default behavior)
+        const rssItems = await parseRSSFeed(feed.url);
+
+        if (!rssItems || rssItems.length === 0) {
+          await logger.warning('No items found in RSS feed', {
+            feed_id: feedId,
+          });
+          result.executionTimeMs = Date.now() - startTime;
+          result.success = true;
+          return result;
+        }
+
+        await logger.info(`Found ${rssItems.length} items in feed`, {
           feed_id: feedId,
         });
+
+        // Normalize and limit RSS items
+        itemsToProcess = rssItems.slice(0, maxPostsPerRun).map(item => {
+          const normalized = normalizeRSSItem(item);
+          return {
+            link: normalized.link || '',
+            title: normalized.title || '',
+            content: normalized.content || normalized.contentSnippet || '',
+            featuredImage: normalized.featuredImage,
+          };
+        });
+
+        if (rssItems.length > maxPostsPerRun) {
+          await logger.info(`Limiting processing to ${maxPostsPerRun} items (${rssItems.length} available)`, {
+            feed_id: feedId,
+          });
+        }
       }
 
-      // Process each RSS item
+      // Process each item
       for (const item of itemsToProcess) {
         try {
           result.itemsProcessed++;
 
-          // Normalize RSS item
-          const normalized = normalizeRSSItem(item);
-
-          if (!normalized.title || !normalized.link) {
-            await logger.warning('Skipping invalid RSS item', {
+          if (!item.link) {
+            await logger.warning('Skipping item without URL', {
               feed_id: feedId,
               item_title: item.title,
             });
             continue;
           }
+
+          // For URL list, we use the link as the identifier
+          const normalized = {
+            link: item.link,
+            title: item.title || '',
+            content: item.content || '',
+            contentSnippet: item.content || '',
+            featuredImage: (item as any).featuredImage,
+          };
 
           // Check for duplicates BEFORE scraping (unless allow_republishing is enabled)
           const preliminaryContent = {
@@ -263,9 +336,12 @@ export class RSSProcessorService {
           };
 
           if (!feed.allow_republishing) {
+            // Determine entity type for duplicate check
+            const entityTypeForCheck = outputType === 'blog_post' ? 'post' : 'opportunity';
             const duplicateCheck = await duplicateCheckerService.isDuplicate(
               preliminaryContent,
-              feedId
+              feedId,
+              entityTypeForCheck
             );
 
             if (duplicateCheck.isDuplicate) {
@@ -303,87 +379,120 @@ export class RSSProcessorService {
             }
           }
 
-          // Generate AI content (if enabled)
-          if (!feed.enable_ai_processing) {
-            await logger.debug('AI processing disabled for feed', {
-              feed_id: feedId,
-            });
-            continue;
-          }
-
-          // Get appropriate prompt based on output type
+          // Determine output type
           const outputType = feed.output_type || 'opportunity';
-          let prompt: string;
 
-          if (outputType === 'blog_post') {
-            // Use blog post prompt for blog output
-            prompt = buildBlogPostPrompt(scrapedContent);
-          } else {
-            // Use opportunity-specific prompt
-            prompt = await promptService.getPrompt(
-              feed.opportunity_type,
-              scrapedContent
-            );
-          }
+          // Handle AI processing based on output type and settings
+          let aiContent: any = null;
 
-          // Generate content with AI (use feed-specific AI config if available)
-          const aiContent = await aiService.generateOpportunity(
-            scrapedContent,
-            feed.opportunity_type,
-            prompt,
-            {
-              provider: feed.ai_provider,
-              model: feed.ai_model,
-              api_key: feed.ai_api_key,
+          if (!feed.enable_ai_processing) {
+            // AI processing disabled
+            if (outputType === 'blog_post') {
+              // For blog posts, create content directly from scraped data (passthrough)
+              // Use htmlContent if available (preserves formatting), fallback to text content
+              const contentForPost = (scrapedContent as any).htmlContent || scrapedContent.content;
+
+              await logger.info('AI processing disabled - using direct passthrough for blog post', {
+                feed_id: feedId,
+                item_url: normalized.link,
+                enable_scraping: feed.enable_scraping,
+                content_source: feed.enable_scraping ? 'scraped' : 'rss_feed',
+                has_html_content: !!(scrapedContent as any).htmlContent,
+                content_length: contentForPost?.length || 0,
+                title: scrapedContent.title,
+              });
+
+              // Create passthrough content structure with HTML content
+              aiContent = {
+                valid: true,
+                title: scrapedContent.title,
+                excerpt: this.generateExcerpt(scrapedContent.content), // Use text for excerpt
+                content: contentForPost, // Use HTML content for the post body
+                meta_title: scrapedContent.title.substring(0, 60),
+                meta_description: this.generateExcerpt(scrapedContent.content).substring(0, 155),
+                confidence_score: 1.0,
+              };
+            } else {
+              // For opportunities, AI is required - skip
+              await logger.debug('AI processing disabled for opportunity feed - skipping', {
+                feed_id: feedId,
+              });
+              continue;
             }
-          );
+          } else {
+            // AI processing enabled - use AI
+            let prompt: string;
 
-          if (!aiContent) {
-            result.errors++;
-            await logger.error('AI generation failed', {
-              feed_id: feedId,
-              item_url: normalized.link,
-              output_type: outputType,
-            });
-            continue;
-          }
+            if (outputType === 'blog_post') {
+              // Use blog post prompt for blog output
+              prompt = buildBlogPostPrompt(scrapedContent);
+            } else {
+              // Use opportunity-specific prompt
+              prompt = await promptService.getPrompt(
+                feed.opportunity_type,
+                scrapedContent
+              );
+            }
 
-          if (!aiContent.valid) {
-            result.aiRejections++;
-            await logger.info('Content rejected by AI', {
-              feed_id: feedId,
-              feed_name: feed.name,
-              title: scrapedContent.title,
-              source_url: normalized.link,
-              reason: aiContent.reason || 'Content not suitable for processing',
-              output_type: outputType,
-              opportunity_type: feed.opportunity_type,
-              ai_provider: feed.ai_provider,
-            });
-            continue;
-          }
+            // Generate content with AI (use feed-specific AI config if available)
+            aiContent = await aiService.generateOpportunity(
+              scrapedContent,
+              feed.opportunity_type,
+              prompt,
+              {
+                provider: feed.ai_provider,
+                model: feed.ai_model,
+                api_key: feed.ai_api_key,
+              }
+            );
 
-          // Check quality threshold (feed setting overrides global)
-          const qualityThreshold = feed.quality_threshold ?? globalQualityThreshold ?? 0.7;
+            if (!aiContent) {
+              result.errors++;
+              await logger.error('AI generation failed', {
+                feed_id: feedId,
+                item_url: normalized.link,
+                output_type: outputType,
+              });
+              continue;
+            }
 
-          if (
-            aiContent.confidence_score &&
-            aiContent.confidence_score < qualityThreshold
-          ) {
-            result.aiRejections++;
-            await logger.info('Content rejected - below quality threshold', {
-              feed_id: feedId,
-              feed_name: feed.name,
-              title: aiContent.title || scrapedContent.title,
-              source_url: normalized.link,
-              reason: `Quality score ${(aiContent.confidence_score * 100).toFixed(0)}% below threshold ${(qualityThreshold * 100).toFixed(0)}%`,
-              confidence_score: aiContent.confidence_score,
-              threshold: qualityThreshold,
-              output_type: outputType,
-              opportunity_type: feed.opportunity_type,
-              ai_provider: feed.ai_provider,
-            });
-            continue;
+            if (!aiContent.valid) {
+              result.aiRejections++;
+              await logger.info('Content rejected by AI', {
+                feed_id: feedId,
+                feed_name: feed.name,
+                title: scrapedContent.title,
+                source_url: normalized.link,
+                reason: aiContent.reason || 'Content not suitable for processing',
+                output_type: outputType,
+                opportunity_type: feed.opportunity_type,
+                ai_provider: feed.ai_provider,
+              });
+              continue;
+            }
+
+            // Check quality threshold (feed setting overrides global)
+            const qualityThreshold = feed.quality_threshold ?? globalQualityThreshold ?? 0.7;
+
+            if (
+              aiContent.confidence_score &&
+              aiContent.confidence_score < qualityThreshold
+            ) {
+              result.aiRejections++;
+              await logger.info('Content rejected - below quality threshold', {
+                feed_id: feedId,
+                feed_name: feed.name,
+                title: aiContent.title || scrapedContent.title,
+                source_url: normalized.link,
+                reason: `Quality score ${(aiContent.confidence_score * 100).toFixed(0)}% below threshold ${(qualityThreshold * 100).toFixed(0)}%`,
+                confidence_score: aiContent.confidence_score,
+                threshold: qualityThreshold,
+                output_type: outputType,
+                opportunity_type: feed.opportunity_type,
+                ai_provider: feed.ai_provider,
+              });
+              continue;
+            }
           }
 
           // Determine auto-publish (feed setting takes priority, then global default)
@@ -447,7 +556,12 @@ export class RSSProcessorService {
               feedId,
               shouldAutoPublish,
               processedFeaturedImage,
-              feed.blog_category_id || null // Pass the feed's category or let service use default
+              feed.blog_category_id || null, // Pass the feed's category or let service use default
+              {
+                preserveSourceSlug: feed.preserve_source_slug ?? false,
+                preserveSourceTitle: feed.preserve_source_title ?? false,
+                originalTitle: normalized.title, // Pass the original title from RSS
+              }
             );
 
             if (createdId) {
@@ -461,7 +575,18 @@ export class RSSProcessorService {
                 auto_published: shouldAutoPublish,
                 category_id: feed.blog_category_id || 'default',
                 has_featured_image: !!processedFeaturedImage,
+                preserve_slug: feed.preserve_source_slug,
+                preserve_title: feed.preserve_source_title,
               });
+            } else {
+              // Post creation failed - clean up uploaded images to avoid orphans
+              if (processedFeaturedImage) {
+                await this.cleanupFailedPostImages(processedFeaturedImage, processedContent);
+                await logger.warning('Cleaned up images after post creation failed', {
+                  feed_id: feedId,
+                  item_url: normalized.link,
+                });
+              }
             }
           } else {
             // For opportunities: use fallback featured image only (no scraping)
@@ -492,11 +617,12 @@ export class RSSProcessorService {
             continue;
           }
 
-          // Record in duplicate tracking
+          // Record in duplicate tracking with correct entity type
           await duplicateCheckerService.recordContent(
             scrapedContent,
             createdId,
-            feedId
+            feedId,
+            outputType === 'blog_post' ? 'post' : 'opportunity'
           );
         } catch (itemError) {
           result.errors++;
@@ -511,8 +637,8 @@ export class RSSProcessorService {
         }
       }
 
-      // Update feed statistics
-      await this.updateFeedStats(feedId, result);
+      // Update feed statistics (pass sourceType and batch size for url_list offset tracking)
+      await this.updateFeedStats(feedId, result, sourceType, itemsToProcess.length);
 
       result.executionTimeMs = Date.now() - startTime;
       result.success = true;
@@ -553,36 +679,49 @@ export class RSSProcessorService {
    *
    * @param feedId - Feed ID
    * @param result - Processing result
+   * @param sourceType - Feed source type (for url_list offset tracking)
+   * @param itemsInBatch - Number of items in the current batch (for offset calculation)
    */
   private async updateFeedStats(
     feedId: string,
-    result: FeedProcessingResult
+    result: FeedProcessingResult,
+    sourceType?: string,
+    itemsInBatch?: number
   ) {
     try {
       const supabase = createAdminClient();
 
       const { data: feed } = await supabase
         .from('rss_feeds')
-        .select('total_processed, total_published')
+        .select('total_processed, total_published, url_list_offset')
         .eq('id', feedId)
         .single();
 
       if (!feed) return;
 
+      const updateData: any = {
+        total_processed:
+          (feed.total_processed || 0) + result.itemsProcessed,
+        total_published:
+          (feed.total_published || 0) +
+          result.opportunitiesCreated +
+          result.postsCreated,
+        last_fetched: new Date().toISOString(),
+      };
+
+      // Update offset for url_list feeds to track progress
+      if (sourceType === 'url_list' && itemsInBatch) {
+        updateData.url_list_offset = (feed.url_list_offset || 0) + itemsInBatch;
+      }
+
       await supabase
         .from('rss_feeds')
-        .update({
-          total_processed:
-            (feed.total_processed || 0) + result.itemsProcessed,
-          total_published:
-            (feed.total_published || 0) +
-            result.opportunitiesCreated,
-          last_fetched: new Date().toISOString(),
-        })
+        .update(updateData)
         .eq('id', feedId);
 
       await logger.debug('Feed statistics updated', {
         feed_id: feedId,
+        new_offset: updateData.url_list_offset,
       });
     } catch (error) {
       await logger.error('Error updating feed statistics', {
@@ -636,6 +775,92 @@ export class RSSProcessorService {
         ) || 0,
       errors_last_24h: errors,
     };
+  }
+
+  /**
+   * Generate excerpt from HTML content
+   * Used for passthrough blog posts when AI is disabled
+   *
+   * @param content - HTML content
+   * @returns Plain text excerpt (max 160 chars)
+   */
+  private generateExcerpt(content: string): string {
+    // Strip HTML tags
+    const plainText = content
+      .replace(/<[^>]*>/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    // Get first 160 characters
+    if (plainText.length <= 160) {
+      return plainText;
+    }
+    return plainText.substring(0, 157) + '...';
+  }
+
+  /**
+   * Clean up uploaded images when post creation fails
+   * Extracts file paths from URLs and deletes them from storage
+   *
+   * @param featuredImageUrl - Featured image URL to clean up
+   * @param content - HTML content that may contain uploaded image URLs
+   */
+  private async cleanupFailedPostImages(
+    featuredImageUrl: string | null,
+    content: string
+  ): Promise<void> {
+    try {
+      const supabase = createAdminClient();
+      const pathsToDelete: string[] = [];
+
+      // Helper to extract path from Supabase storage URL
+      const extractPath = (url: string): string | null => {
+        const match = url.match(/\/storage\/v1\/object\/public\/images\/(.+)$/);
+        return match ? match[1] : null;
+      };
+
+      // Extract featured image path
+      if (featuredImageUrl) {
+        const path = extractPath(featuredImageUrl);
+        if (path) {
+          pathsToDelete.push(path);
+        }
+      }
+
+      // Extract content image paths
+      const imgRegex = /src="([^"]*\/storage\/v1\/object\/public\/images\/[^"]+)"/g;
+      let match;
+      while ((match = imgRegex.exec(content)) !== null) {
+        const path = extractPath(match[1]);
+        if (path && !pathsToDelete.includes(path)) {
+          pathsToDelete.push(path);
+        }
+      }
+
+      // Delete files from storage
+      if (pathsToDelete.length > 0) {
+        await supabase.storage
+          .from('images')
+          .remove(pathsToDelete);
+
+        // Also delete from media_files table
+        for (const path of pathsToDelete) {
+          await supabase
+            .from('media_files')
+            .delete()
+            .eq('file_path', path);
+        }
+
+        await logger.debug('Cleaned up orphaned images', {
+          count: pathsToDelete.length,
+          paths: pathsToDelete,
+        });
+      }
+    } catch (error) {
+      await logger.warning('Failed to clean up orphaned images', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+    }
   }
 }
 

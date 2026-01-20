@@ -206,7 +206,7 @@ export default function ManagePosts() {
 
     const handleBulkDelete = async (status: string) => {
         const statusLabel = status === 'rejected' ? 'rejected' : status;
-        if (!confirm(`Are you sure you want to delete ALL ${statusLabel} posts? This action cannot be undone.`)) return;
+        if (!confirm(`Are you sure you want to delete ALL ${statusLabel} opportunities? This action cannot be undone.`)) return;
 
         try {
             const res = await fetch(`/api/admin/opportunities?status=${status}`, {
@@ -217,10 +217,10 @@ export default function ManagePosts() {
                 fetchOpportunities();
             } else {
                 const data = await res.json();
-                alert('Error deleting posts: ' + data.error);
+                alert('Error deleting opportunities: ' + data.error);
             }
         } catch (error) {
-            alert('Error deleting posts: ' + error);
+            alert('Error deleting opportunities: ' + error);
         }
     };
 
@@ -311,7 +311,7 @@ export default function ManagePosts() {
         <div className="space-y-6">
             {/* Header */}
             <div className="flex items-center justify-between">
-                <h1 className="text-3xl font-black text-[#1a1a1a]">Posts</h1>
+                <h1 className="text-3xl font-black text-[#1a1a1a]">Opportunities</h1>
                 <button
                     onClick={() => fetchOpportunities()}
                     disabled={refreshing}
@@ -329,7 +329,7 @@ export default function ManagePosts() {
                     onClick={() => { setStatusFilter(''); setPage(1); }}
                 >
                     <div className="text-2xl font-black text-slate-900">{stats.total}</div>
-                    <div className="text-sm font-bold text-slate-500">Total Posts</div>
+                    <div className="text-sm font-bold text-slate-500">Total Opportunities</div>
                 </div>
                 <div
                     className={`bg-white p-4 rounded-xl shadow-sm border-2 cursor-pointer transition-colors ${statusFilter === 'published' ? 'border-green-500' : 'border-slate-200 hover:border-green-200'}`}
@@ -413,11 +413,11 @@ export default function ManagePosts() {
 
             {/* Results Info */}
             <div className="text-sm text-slate-600 font-bold">
-                Showing {opportunities.length} of {totalCount} posts
+                Showing {opportunities.length} of {totalCount} opportunities
                 {statusFilter && ` (${statusFilter})`}
             </div>
 
-            {/* Posts Table */}
+            {/* Opportunities Table */}
             <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
                 <div className="overflow-x-auto">
                     <table className="w-full">
@@ -435,7 +435,7 @@ export default function ManagePosts() {
                             {opportunities.length === 0 ? (
                                 <tr>
                                     <td colSpan={6} className="px-4 py-12 text-center text-slate-400">
-                                        No posts found. Process some feeds to create opportunities.
+                                        No opportunities found. Process some feeds to create opportunities.
                                     </td>
                                 </tr>
                             ) : (

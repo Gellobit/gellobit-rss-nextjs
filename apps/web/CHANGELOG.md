@@ -5,6 +5,68 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.0-alpha.27] - 2026-01-20
+
+### Added
+- **Pillar Pages System**
+  - New `linked_opportunity_type` column for pages to create SEO pillar pages
+  - Purple "Pillar Page" section in page editor with opportunity type selector
+  - `OpportunityPreviewGrid` component displays 6 opportunities on pillar pages
+  - Migration `037_pages_opportunity_type.sql` for database schema
+  - Pillar pages show CTA to create account for viewing all opportunities
+
+- **RSS Feed Duplicate Button**
+  - One-click duplicate option in RSS Feeds Management
+  - Copies all feed settings with "(Copy)" suffix and "inactive" status
+  - Preserves AI settings, scraping config, and all other options
+
+- **"New Page" Button in Page Editor**
+  - Quick button to start creating a new page without leaving the editor
+  - Resets all form fields to defaults
+
+- **Membership System Documentation**
+  - Created `MEMBERSHIP_SYSTEM.md` with comprehensive technical documentation
+  - Documents three-tier system (free, premium, lifetime)
+  - Plan for implementing "disable membership" toggle
+  - Ads remain active when membership disabled for monetization
+
+### Changed
+- **Mobile Menu Organization**
+  - "Browse Opportunities" is now a collapsible submenu showing pillar pages
+  - "Information" section only shows regular (non-pillar) pages
+  - Removed "Show in Footer" option from page editor (managed elsewhere)
+
+- **URL List Feeds Display**
+  - Feeds with URL List source type now show "X URLs in list" instead of RSS URL
+  - Better UX for feeds that use URL lists instead of RSS
+
+- **Admin Posts Renamed to Opportunities**
+  - Changed title from "Posts" to "Opportunities" in admin panel
+  - Updated all related labels (Total Opportunities, counter text)
+  - URL routes remain unchanged for compatibility
+
+### Removed
+- **Evergreen Opportunity Type**
+  - Removed from all type definitions and UI components
+  - Evergreen content should be created as blog posts instead
+  - Cleaned up from: database types, validation, prompts, all opportunity displays
+
+## [1.0.0-alpha.26] - 2026-01-19
+
+### Added
+- **Blog Categories**
+  - Category system for blog posts
+  - Category management in admin
+
+- **Image Scraping for Posts**
+  - Automatic image extraction from source content
+  - Featured image detection and storage
+
+### Changed
+- **410 Gone Responses**
+  - Proper 410 responses for deleted/expired content
+  - SEO-friendly handling of removed opportunities
+
 ## [1.0.0-alpha.25] - 2026-01-18
 
 ### Added

@@ -11,6 +11,22 @@ import ShareButton from '@/components/ShareButton';
 import Sidebar, { SidebarCTA } from '@/components/Sidebar';
 import ContentWithAds from '@/components/ContentWithAds';
 import AdContainer from '@/components/AdContainer';
+import OpportunityPreviewGrid from '@/components/OpportunityPreviewGrid';
+
+// Map opportunity type values to display labels
+const opportunityTypeLabels: Record<string, string> = {
+    giveaway: 'Giveaways',
+    contest: 'Contests',
+    sweepstakes: 'Sweepstakes',
+    dream_job: 'Dream Jobs',
+    get_paid_to: 'Get Paid To',
+    instant_win: 'Instant Wins',
+    job_fair: 'Job Fairs',
+    scholarship: 'Scholarships',
+    volunteer: 'Volunteer Opportunities',
+    free_training: 'Free Training',
+    promo: 'Promos',
+};
 
 // Revalidate page every 60 seconds
 export const revalidate = 60;
@@ -167,6 +183,29 @@ async function getContent(slug: string) {
     return null;
 }
 
+// Cached function to fetch opportunities by type for pillar pages
+const getOpportunitiesByType = unstable_cache(
+    async (opportunityType: string, limit: number = 6) => {
+        const supabase = createAdminClient();
+
+        const { data, error } = await supabase
+            .from('opportunities')
+            .select('id, slug, title, excerpt, featured_image_url, opportunity_type, deadline, prize_value, published_at')
+            .eq('status', 'published')
+            .eq('opportunity_type', opportunityType)
+            .order('published_at', { ascending: false, nullsFirst: false })
+            .limit(limit);
+
+        if (error || !data) {
+            return [];
+        }
+
+        return data;
+    },
+    ['pillar-opportunities'],
+    { revalidate: 300, tags: ['opportunities'] }
+);
+
 // Cached function to fetch related posts
 const getRelatedPosts = unstable_cache(
     async (currentSlug: string) => {
@@ -297,9 +336,11 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
         robots: {
             index: true,
             follow: true,
+            noimageindex: true,
             googleBot: {
                 index: true,
                 follow: true,
+                noimageindex: true,
                 'max-video-preview': -1,
                 'max-image-preview': 'large',
                 'max-snippet': -1,
@@ -521,6 +562,15 @@ export default async function ContentPage({ params }: { params: Promise<{ slug: 
     const relatedPosts = isPost ? await getRelatedPosts(slug) : [];
     const readingTime = isPost ? calculateReadingTime(content.content) : undefined;
 
+    // Check if this is a pillar page (page with linked opportunity type)
+    const isPillarPage = !isPost && content.linked_opportunity_type;
+    const pillarOpportunities = isPillarPage
+        ? await getOpportunitiesByType(content.linked_opportunity_type, 6)
+        : [];
+    const opportunityTypeLabel = isPillarPage
+        ? opportunityTypeLabels[content.linked_opportunity_type] || content.linked_opportunity_type
+        : '';
+
     const formattedDate = isPost && content.published_at
         ? new Date(content.published_at).toLocaleDateString('en-US', {
             year: 'numeric',
@@ -686,11 +736,22 @@ export default async function ContentPage({ params }: { params: Promise<{ slug: 
                                         minParagraphsForMiddleAd={6}
                                     />
                                 ) : (
-                                    /* Static pages - no inline ads */
-                                    <div
-                                        className="prose prose-slate max-w-none prose-headings:font-bold prose-headings:text-[#1a1a1a] prose-a:text-yellow-600 prose-strong:text-slate-900 prose-img:rounded-2xl"
-                                        dangerouslySetInnerHTML={{ __html: content.content }}
-                                    />
+                                    <>
+                                        {/* Static pages - no inline ads */}
+                                        <div
+                                            className="prose prose-slate max-w-none prose-headings:font-bold prose-headings:text-[#1a1a1a] prose-a:text-yellow-600 prose-strong:text-slate-900 prose-img:rounded-2xl"
+                                            dangerouslySetInnerHTML={{ __html: content.content }}
+                                        />
+
+                                        {/* Pillar Page - Show opportunities grid */}
+                                        {isPillarPage && (
+                                            <OpportunityPreviewGrid
+                                                opportunities={pillarOpportunities}
+                                                opportunityType={content.linked_opportunity_type}
+                                                opportunityTypeLabel={opportunityTypeLabel}
+                                            />
+                                        )}
+                                    </>
                                 )}
                             </div>
                         </article>

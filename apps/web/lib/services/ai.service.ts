@@ -165,16 +165,31 @@ Never invent details not present in the source material.`;
         try {
             // Remove markdown code blocks if present
             let cleaned = content.trim();
+
+            // Handle various markdown code block formats
             if (cleaned.startsWith('```json')) {
-                cleaned = cleaned.replace(/```json\n?/g, '').replace(/```\n?$/g, '');
+                cleaned = cleaned.replace(/^```json\s*\n?/, '').replace(/\n?```\s*$/, '');
             } else if (cleaned.startsWith('```')) {
-                cleaned = cleaned.replace(/```\n?/g, '');
+                cleaned = cleaned.replace(/^```\s*\n?/, '').replace(/\n?```\s*$/, '');
+            }
+
+            // Try to find JSON object if there's extra text
+            const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
+            if (jsonMatch) {
+                cleaned = jsonMatch[0];
+            }
+
+            // Log for debugging if it doesn't look like JSON
+            if (!cleaned.startsWith('{')) {
+                console.error('AI response does not appear to be JSON:', cleaned.substring(0, 200));
+                return null;
             }
 
             const parsed = JSON.parse(cleaned);
 
             // Validate structure
             if (typeof parsed.valid !== 'boolean') {
+                console.error('AI response missing valid field');
                 return null;
             }
 
@@ -187,7 +202,8 @@ Never invent details not present in the source material.`;
             }
 
             // Validate required fields for valid content
-            if (!parsed.title || !parsed.excerpt || !parsed.content) {
+            if (!parsed.title || !parsed.content) {
+                console.error('AI response missing required fields (title or content)');
                 return null;
             }
 
@@ -195,17 +211,20 @@ Never invent details not present in the source material.`;
             return {
                 valid: true,
                 title: this.cleanText(parsed.title, 150),
-                excerpt: this.cleanText(parsed.excerpt, 300),
+                excerpt: this.cleanText(parsed.excerpt || '', 300),
                 content: parsed.content, // Keep HTML as is
                 deadline: parsed.deadline || null,
                 prize_value: parsed.prize_value || null,
                 requirements: parsed.requirements || null,
                 location: parsed.location || null,
-                confidence_score: parsed.confidence_score || null
+                confidence_score: parsed.confidence_score || 1.0,
+                meta_title: parsed.meta_title || null,
+                meta_description: parsed.meta_description || null
             };
 
         } catch (error) {
             console.error('Error parsing AI response:', error);
+            console.error('Raw content (first 500 chars):', content?.substring(0, 500));
             return null;
         }
     }

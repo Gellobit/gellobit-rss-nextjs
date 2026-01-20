@@ -11,6 +11,7 @@ export interface ScrapedContentExtended extends ScrapedContent {
   author?: string;
   publishedDate?: string;
   image?: string;
+  htmlContent?: string; // HTML content for passthrough (preserves formatting)
 }
 
 /**
@@ -510,8 +511,9 @@ export class ScraperService {
     // Extract featured image
     const image = this.extractFeaturedImage($, url);
 
-    // Extract main content
+    // Extract main content (text for AI, HTML for passthrough)
     let content = '';
+    let htmlContent = '';
     const contentSelectors = [
       'article',
       '[role="main"]',
@@ -530,29 +532,35 @@ export class ScraperService {
       if (element.length > 0) {
         content = element.text();
         if (content.trim().length >= minLength) {
+          // Also capture the HTML content for this element
+          htmlContent = element.html() || '';
           break;
         }
       }
     }
 
-    // Fallback: extract all paragraph text
+    // Fallback: extract all paragraph text and HTML
     if (!content || content.trim().length < minLength) {
-      content = $('p')
-        .filter((_, el) => $(el).text().trim().length > 30)
-        .map((_, el) => $(el).text())
-        .get()
-        .join('\n');
+      const paragraphs = $('p').filter((_, el) => $(el).text().trim().length > 30);
+      content = paragraphs.map((_, el) => $(el).text()).get().join('\n');
+      // Build HTML from paragraphs
+      htmlContent = paragraphs.map((_, el) => $.html(el)).get().join('\n');
     }
 
     // Final fallback: extract body text
     if (!content || content.trim().length < minLength) {
       content = $('body').text();
+      htmlContent = $('body').html() || '';
     }
 
-    // Clean content
+    // Clean text content (for AI processing)
     content = this.cleanText(content);
 
-    // Limit content length
+    // Clean HTML content (for passthrough) - remove scripts/styles but keep structure
+    // Also pass the featured image URL to remove it from content (avoid duplication)
+    htmlContent = this.cleanHtmlContent(htmlContent, image);
+
+    // Limit text content length
     if (content.length > maxLength) {
       const originalLength = content.length;
       content = content.substring(0, maxLength) + '...';
@@ -572,7 +580,195 @@ export class ScraperService {
       author: author || undefined,
       publishedDate: publishedDate || undefined,
       image: image || undefined,
+      htmlContent: htmlContent || undefined,
     };
+  }
+
+  /**
+   * Clean HTML content for passthrough
+   * Removes scripts, styles, unwanted elements, and share buttons but preserves structure
+   * Also removes the featured image from content to avoid duplication
+   *
+   * @param html - HTML content to clean
+   * @param featuredImageUrl - Optional featured image URL to remove from content
+   */
+  private cleanHtmlContent(html: string, featuredImageUrl?: string | null): string {
+    if (!html) return '';
+
+    const $ = cheerio.load(html);
+
+    // Remove unwanted elements
+    $('script, style, noscript, iframe, form').remove();
+
+    // Remove tracking/ad related elements
+    $('[class*="ad-"], [class*="advertisement"], [id*="ad-"]').remove();
+    $('[class*="ads-"], [class*="advert"]').remove();
+
+    // Remove social share elements (common patterns)
+    $('[class*="social-share"], [class*="share-buttons"], [class*="share-icons"]').remove();
+    $('[class*="sharing"], [class*="sharedaddy"], [class*="post-share"]').remove();
+    $('[class*="social-links"], [class*="social-icons"], [class*="social-media"]').remove();
+    $('[class*="addtoany"], [class*="a2a_"], [id*="addtoany"]').remove();
+    $('[class*="shareaholic"], [class*="sharethis"]').remove();
+    $('[class*="jp-relatedposts"]').remove(); // Jetpack related posts
+
+    // Remove share-specific elements by common IDs
+    $('#share, #sharing, #social-share, #post-share').remove();
+
+    // Remove related posts sections
+    $('[class*="related-posts"], [class*="recommended"], [class*="you-may-like"]').remove();
+    $('[class*="more-from"], [class*="also-like"], [class*="similar-posts"]').remove();
+
+    // Remove author boxes and bio sections (often contain unrelated images)
+    $('[class*="author-box"], [class*="author-bio"], [class*="about-author"]').remove();
+
+    // Remove newsletter/subscription boxes
+    $('[class*="newsletter"], [class*="subscribe"], [class*="signup"]').remove();
+    $('[class*="email-signup"], [class*="mailing-list"]').remove();
+
+    // Remove comment sections
+    $('[class*="comments"], [id*="comments"], [class*="respond"]').remove();
+
+    // Normalize the featured image URL for comparison (if provided)
+    const normalizedFeaturedUrl = featuredImageUrl ? this.normalizeImageUrl(featuredImageUrl) : null;
+    let featuredImageRemoved = false;
+
+    // Remove images that are likely share/social buttons OR match the featured image
+    $('img').each((_, el) => {
+      const img = $(el);
+      const src = img.attr('src') || img.attr('data-src') || img.attr('data-lazy-src') || '';
+      const srcLower = src.toLowerCase();
+      const alt = (img.attr('alt') || '').toLowerCase();
+      const className = (img.attr('class') || '').toLowerCase();
+      const parentClass = (img.parent().attr('class') || '').toLowerCase();
+
+      // Check if this image matches the featured image (to remove duplication)
+      if (normalizedFeaturedUrl && src) {
+        const normalizedSrc = this.normalizeImageUrl(src);
+        if (this.imagesMatch(normalizedSrc, normalizedFeaturedUrl)) {
+          img.remove();
+          featuredImageRemoved = true;
+          return; // Continue to next image
+        }
+      }
+
+      // Check if image is a share button based on src, alt, or class
+      const sharePatterns = [
+        'facebook', 'twitter', 'linkedin', 'pinterest', 'whatsapp',
+        'reddit', 'tumblr', 'email', 'share', 'social',
+        'icon', 'button', 'logo', 'badge', 'widget'
+      ];
+
+      const isShareImage = sharePatterns.some(pattern =>
+        srcLower.includes(pattern) || alt.includes(pattern) ||
+        className.includes(pattern) || parentClass.includes(pattern)
+      );
+
+      // Also check for small images (likely icons)
+      const width = parseInt(img.attr('width') || '0', 10);
+      const height = parseInt(img.attr('height') || '0', 10);
+      const isSmallIcon = (width > 0 && width < 50) || (height > 0 && height < 50);
+
+      // Check for data URIs that are tiny (likely icons)
+      const isDataIcon = srcLower.startsWith('data:') && src.length < 1000;
+
+      if (isShareImage || (isSmallIcon && (className.includes('icon') || className.includes('share'))) || isDataIcon) {
+        img.remove();
+      }
+    });
+
+    // If featured image wasn't found and removed, try to remove the first large image
+    // (often the featured image is placed at the beginning of content)
+    if (normalizedFeaturedUrl && !featuredImageRemoved) {
+      const firstImg = $('img').first();
+      if (firstImg.length > 0) {
+        const src = firstImg.attr('src') || firstImg.attr('data-src') || '';
+        const width = parseInt(firstImg.attr('width') || '0', 10);
+        const height = parseInt(firstImg.attr('height') || '0', 10);
+
+        // If first image is large (likely a featured image) and at start of content
+        const isLargeImage = width >= 200 || height >= 150 || (!width && !height);
+        const parent = firstImg.parent();
+        const parentTag = parent.prop('tagName')?.toLowerCase();
+
+        // Check if image is in a figure, div, or directly at start
+        const isAtStart = parentTag === 'figure' || parentTag === 'div' || parentTag === 'p';
+
+        if (isLargeImage && isAtStart) {
+          // Check if the parent figure/div can be removed entirely
+          if (parentTag === 'figure' || (parentTag === 'div' && parent.children().length === 1)) {
+            parent.remove();
+          } else {
+            firstImg.remove();
+          }
+        }
+      }
+    }
+
+    // Remove event handlers and tracking attributes
+    $('*').each((_, el) => {
+      const elem = $(el);
+      const attrsToRemove = [
+        'onclick', 'onload', 'onerror', 'onmouseover', 'onfocus', 'onblur',
+        'data-track', 'data-analytics', 'data-share', 'data-social'
+      ];
+      attrsToRemove.forEach(attr => elem.removeAttr(attr));
+    });
+
+    // Remove empty paragraphs and divs
+    $('p:empty, div:empty').remove();
+
+    // Remove empty figures (after removing images)
+    $('figure:empty').remove();
+
+    return $.html() || '';
+  }
+
+  /**
+   * Normalize image URL for comparison
+   * Removes query params, protocol, www prefix, and trailing slashes
+   */
+  private normalizeImageUrl(url: string): string {
+    try {
+      const parsed = new URL(url);
+      // Get pathname without query params
+      let normalized = parsed.hostname.replace(/^www\./, '') + parsed.pathname;
+      // Remove trailing slash
+      normalized = normalized.replace(/\/$/, '');
+      // Convert to lowercase
+      return normalized.toLowerCase();
+    } catch {
+      // If URL parsing fails, just do basic normalization
+      return url.toLowerCase()
+        .replace(/^https?:\/\//, '')
+        .replace(/^www\./, '')
+        .replace(/\?.*$/, '')
+        .replace(/\/$/, '');
+    }
+  }
+
+  /**
+   * Check if two image URLs likely refer to the same image
+   * Handles CDN variations, size parameters, etc.
+   */
+  private imagesMatch(url1: string, url2: string): boolean {
+    // Exact match
+    if (url1 === url2) return true;
+
+    // Check if one contains the other (handles size variants like image-300x200.jpg vs image.jpg)
+    // Extract the base filename without size suffixes
+    const getBaseName = (url: string) => {
+      // Remove common size patterns like -300x200, _thumb, -scaled, etc.
+      return url.replace(/-\d+x\d+/g, '')
+                .replace(/_thumb/g, '')
+                .replace(/-scaled/g, '')
+                .replace(/-\d+w/g, '');
+    };
+
+    const base1 = getBaseName(url1);
+    const base2 = getBaseName(url2);
+
+    return base1 === base2 || base1.includes(base2) || base2.includes(base1);
   }
 
   /**

@@ -27,6 +27,7 @@ export async function POST(request: NextRequest) {
         // Get form data
         const formData = await request.formData();
         const file = formData.get('file') as File;
+        const postId = formData.get('postId') as string | null;
 
         if (!file) {
             return NextResponse.json({ error: 'No file provided' }, { status: 400 });
@@ -98,11 +99,34 @@ export async function POST(request: NextRequest) {
 
         const publicUrl = publicUrlData.publicUrl;
 
+        // Track in media_files for cleanup when post is deleted
+        const { data: mediaRecord, error: mediaError } = await adminSupabase
+            .from('media_files')
+            .insert({
+                file_name: fileName,
+                original_name: file.name,
+                file_path: filePath,
+                file_url: publicUrl,
+                file_size: file.size,
+                mime_type: file.type,
+                bucket: 'images',
+                entity_type: 'post',
+                entity_id: postId || null
+            })
+            .select('id')
+            .single();
+
+        if (mediaError) {
+            console.error('Error tracking media file:', mediaError);
+            // Don't fail the upload, just log the error
+        }
+
         return NextResponse.json({
             success: true,
             url: publicUrl,
             fileName,
             filePath,
+            mediaId: mediaRecord?.id || null,
         });
     } catch (error) {
         console.error('Post image upload error:', error);

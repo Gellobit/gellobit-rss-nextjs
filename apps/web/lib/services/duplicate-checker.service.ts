@@ -10,7 +10,7 @@ export interface DuplicateCheckResult {
   isDuplicate: boolean;
   reason?: 'exact_url' | 'exact_content' | 'exact_title' | 'similar_content';
   similarity?: number;
-  existingOpportunityId?: string;
+  existingEntityId?: string;
 }
 
 /**
@@ -35,45 +35,91 @@ export class DuplicateCheckerService {
    *
    * @param scrapedContent - Content to check
    * @param feedId - Feed ID for logging
+   * @param entityType - Type of entity to check for: 'opportunity' or 'post'
    * @returns Duplicate check result
    */
   async isDuplicate(
     scrapedContent: ScrapedContent,
-    feedId?: string
+    feedId?: string,
+    entityType: 'opportunity' | 'post' = 'opportunity'
   ): Promise<DuplicateCheckResult> {
     try {
-      // Generate hashes
+      const supabase = createAdminClient();
+
+      // FIRST: Check if a post/opportunity with this source_url already exists
+      // This is the most reliable check and doesn't depend on duplicate_tracking table
+      if (entityType === 'post') {
+        const { data: existingPost } = await supabase
+          .from('posts')
+          .select('id')
+          .eq('source_url', scrapedContent.url)
+          .single();
+
+        if (existingPost) {
+          await logger.info('Duplicate detected: post with same source_url exists', {
+            url: scrapedContent.url,
+            feed_id: feedId,
+            entity_id: existingPost.id,
+          });
+
+          return {
+            isDuplicate: true,
+            reason: 'exact_url',
+            existingEntityId: existingPost.id,
+          };
+        }
+      } else {
+        const { data: existingOpp } = await supabase
+          .from('opportunities')
+          .select('id')
+          .eq('source_url', scrapedContent.url)
+          .single();
+
+        if (existingOpp) {
+          await logger.info('Duplicate detected: opportunity with same source_url exists', {
+            url: scrapedContent.url,
+            feed_id: feedId,
+            entity_id: existingOpp.id,
+          });
+
+          return {
+            isDuplicate: true,
+            reason: 'exact_url',
+            existingEntityId: existingOpp.id,
+          };
+        }
+      }
+
+      // Generate hashes for additional checks
       const contentHash = generateHash(scrapedContent.content);
       const titleHash = generateHash(scrapedContent.title);
       const urlHash = generateHash(scrapedContent.url);
 
-      const supabase = createAdminClient();
-
-      // Check exact URL hash match
+      // Check exact URL hash match in duplicate_tracking
       const { data: urlMatch } = await supabase
         .from('duplicate_tracking')
-        .select('opportunity_id')
+        .select('entity_id')
         .eq('url_hash', urlHash)
         .single();
 
       if (urlMatch) {
-        await logger.info('Duplicate detected: exact URL match', {
+        await logger.info('Duplicate detected: exact URL hash match', {
           url: scrapedContent.url,
           feed_id: feedId,
-          opportunity_id: urlMatch.opportunity_id,
+          entity_id: urlMatch.entity_id,
         });
 
         return {
           isDuplicate: true,
           reason: 'exact_url',
-          existingOpportunityId: urlMatch.opportunity_id,
+          existingEntityId: urlMatch.entity_id,
         };
       }
 
       // Check exact content hash match
       const { data: contentMatch } = await supabase
         .from('duplicate_tracking')
-        .select('opportunity_id')
+        .select('entity_id')
         .eq('content_hash', contentHash)
         .single();
 
@@ -81,20 +127,20 @@ export class DuplicateCheckerService {
         await logger.info('Duplicate detected: exact content match', {
           url: scrapedContent.url,
           feed_id: feedId,
-          opportunity_id: contentMatch.opportunity_id,
+          entity_id: contentMatch.entity_id,
         });
 
         return {
           isDuplicate: true,
           reason: 'exact_content',
-          existingOpportunityId: contentMatch.opportunity_id,
+          existingEntityId: contentMatch.entity_id,
         };
       }
 
       // Check exact title hash match
       const { data: titleMatch } = await supabase
         .from('duplicate_tracking')
-        .select('opportunity_id')
+        .select('entity_id')
         .eq('title_hash', titleHash)
         .single();
 
@@ -102,13 +148,13 @@ export class DuplicateCheckerService {
         await logger.info('Duplicate detected: exact title match', {
           url: scrapedContent.url,
           feed_id: feedId,
-          opportunity_id: titleMatch.opportunity_id,
+          entity_id: titleMatch.entity_id,
         });
 
         return {
           isDuplicate: true,
           reason: 'exact_title',
-          existingOpportunityId: titleMatch.opportunity_id,
+          existingEntityId: titleMatch.entity_id,
         };
       }
 
@@ -116,7 +162,8 @@ export class DuplicateCheckerService {
       const similarityResult = await this.checkSimilarity(
         scrapedContent,
         contentHash,
-        feedId
+        feedId,
+        entityType
       );
 
       if (similarityResult.isDuplicate) {
@@ -148,23 +195,26 @@ export class DuplicateCheckerService {
    * @param scrapedContent - Content to check
    * @param contentHash - Hash of content
    * @param feedId - Feed ID for logging
+   * @param entityType - Type of entity to check: 'opportunity' or 'post'
    * @returns Duplicate check result
    */
   private async checkSimilarity(
     scrapedContent: ScrapedContent,
     contentHash: string,
-    feedId?: string
+    feedId?: string,
+    entityType: 'opportunity' | 'post' = 'opportunity'
   ): Promise<DuplicateCheckResult> {
     try {
       const supabase = createAdminClient();
 
-      // Get recent opportunities (last 30 days) to compare against
+      // Get recent tracking records (last 30 days) to compare against
       const thirtyDaysAgo = new Date();
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
       const { data: recentTracking } = await supabase
         .from('duplicate_tracking')
-        .select('opportunity_id, content_hash')
+        .select('entity_id, content_hash, entity_type')
+        .eq('entity_type', entityType)
         .gte('created_at', thirtyDaysAgo.toISOString())
         .limit(100); // Limit to most recent 100 for performance
 
@@ -172,30 +222,32 @@ export class DuplicateCheckerService {
         return { isDuplicate: false };
       }
 
-      // Get full content for similarity comparison
-      const opportunityIds = recentTracking.map((t) => t.opportunity_id);
+      // Get full content for similarity comparison from the appropriate table
+      const entityIds = recentTracking.map((t) => t.entity_id);
+      const tableName = entityType === 'post' ? 'posts' : 'opportunities';
 
-      const { data: opportunities } = await supabase
-        .from('opportunities')
+      const { data: entities } = await supabase
+        .from(tableName)
         .select('id, content')
-        .in('id', opportunityIds);
+        .in('id', entityIds);
 
-      if (!opportunities || opportunities.length === 0) {
+      if (!entities || entities.length === 0) {
         return { isDuplicate: false };
       }
 
-      // Calculate similarity for each opportunity
-      for (const opp of opportunities) {
+      // Calculate similarity for each entity
+      for (const entity of entities) {
         const similarity = calculateSimilarity(
           scrapedContent.content,
-          opp.content
+          entity.content
         );
 
         if (similarity >= this.SIMILARITY_THRESHOLD) {
           await logger.info('Duplicate detected: similar content', {
             url: scrapedContent.url,
             feed_id: feedId,
-            opportunity_id: opp.id,
+            entity_id: entity.id,
+            entity_type: entityType,
             similarity: similarity.toFixed(2),
           });
 
@@ -203,7 +255,7 @@ export class DuplicateCheckerService {
             isDuplicate: true,
             reason: 'similar_content',
             similarity,
-            existingOpportunityId: opp.id,
+            existingEntityId: entity.id,
           };
         }
       }
@@ -224,14 +276,16 @@ export class DuplicateCheckerService {
    * Record content in duplicate tracking table
    *
    * @param scrapedContent - Content to record
-   * @param opportunityId - ID of created opportunity
-   * @param feedId - Feed ID for logging
+   * @param entityId - ID of created opportunity or post
+   * @param feedId - Feed ID (required for clearing duplicates per feed)
+   * @param entityType - Type of entity: 'opportunity' or 'post'
    * @returns Success status
    */
   async recordContent(
     scrapedContent: ScrapedContent,
-    opportunityId: string,
-    feedId?: string
+    entityId: string,
+    feedId?: string,
+    entityType: 'opportunity' | 'post' = 'opportunity'
   ): Promise<{ success: boolean; error?: string }> {
     try {
       const contentHash = generateHash(scrapedContent.content);
@@ -241,7 +295,9 @@ export class DuplicateCheckerService {
       const supabase = createAdminClient();
 
       const { error } = await supabase.from('duplicate_tracking').insert({
-        opportunity_id: opportunityId,
+        entity_id: entityId,
+        entity_type: entityType,
+        feed_id: feedId || null, // Store feed_id for per-feed duplicate clearing
         content_hash: contentHash,
         title_hash: titleHash,
         url_hash: urlHash,
@@ -250,19 +306,23 @@ export class DuplicateCheckerService {
       if (error) throw error;
 
       await logger.debug('Content recorded in duplicate tracking', {
-        opportunity_id: opportunityId,
+        entity_id: entityId,
+        entity_type: entityType,
         feed_id: feedId,
       });
 
       return { success: true };
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : 'Unknown error';
+    } catch (error: any) {
+      const errorMessage = error?.message || error?.toString() || 'Unknown error';
 
       await logger.error('Error recording duplicate tracking', {
-        opportunity_id: opportunityId,
+        entity_id: entityId,
+        entity_type: entityType,
         feed_id: feedId,
         error: errorMessage,
+        code: error?.code,
+        details: error?.details,
+        hint: error?.hint,
       });
 
       return { success: false, error: errorMessage };

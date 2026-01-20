@@ -101,7 +101,8 @@ export async function POST(request: NextRequest) {
             status,
             show_in_footer,
             show_in_menu,
-            sort_order
+            sort_order,
+            linked_opportunity_type
         } = body;
 
         // Validate required fields
@@ -138,6 +139,7 @@ export async function POST(request: NextRequest) {
             show_in_footer: show_in_footer !== undefined ? show_in_footer : true,
             show_in_menu: show_in_menu !== undefined ? show_in_menu : true,
             sort_order: sort_order || 0,
+            linked_opportunity_type: linked_opportunity_type || null,
             author_id: user.id,
         };
 

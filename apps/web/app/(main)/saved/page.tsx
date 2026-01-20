@@ -35,7 +35,6 @@ const typeLabels: Record<string, string> = {
     volunteer: 'Volunteer',
     free_training: 'Free Training',
     promo: 'Promo',
-    evergreen: 'Evergreen',
 };
 
 export default function SavedPage() {

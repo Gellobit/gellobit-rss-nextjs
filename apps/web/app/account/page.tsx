@@ -22,6 +22,7 @@ interface MenuPage {
     id: string;
     title: string;
     slug: string;
+    linked_opportunity_type: string | null;
 }
 
 export default function AccountPage() {
@@ -50,6 +51,11 @@ export default function AccountPage() {
     // Menu pages state
     const [menuPages, setMenuPages] = useState<MenuPage[]>([]);
     const [showInfoPages, setShowInfoPages] = useState(false);
+    const [showOpportunityTypes, setShowOpportunityTypes] = useState(false);
+
+    // Split pages into pillar pages (with opportunity type) and info pages
+    const pillarPages = menuPages.filter(p => p.linked_opportunity_type);
+    const infoPages = menuPages.filter(p => !p.linked_opportunity_type);
 
     // Sync with context profile
     useEffect(() => {
@@ -266,18 +272,63 @@ export default function AccountPage() {
 
                 {/* Menu Items */}
                 <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden">
-                    <Link
-                        href="/opportunities"
-                        className="flex items-center justify-between px-4 py-4 border-b border-slate-100 hover:bg-slate-50 transition-colors"
-                    >
-                        <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center">
-                                <Briefcase className="text-blue-600" size={20} />
+                    {/* Browse Opportunities - Collapsible if there are pillar pages */}
+                    {pillarPages.length > 0 ? (
+                        <>
+                            <button
+                                onClick={() => setShowOpportunityTypes(!showOpportunityTypes)}
+                                className="w-full flex items-center justify-between px-4 py-4 border-b border-slate-100 hover:bg-slate-50 transition-colors text-left"
+                            >
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center">
+                                        <Briefcase className="text-blue-600" size={20} />
+                                    </div>
+                                    <span className="font-medium">Browse Opportunities</span>
+                                </div>
+                                <ChevronDown
+                                    className={`text-slate-400 transition-transform ${showOpportunityTypes ? 'rotate-180' : ''}`}
+                                    size={20}
+                                />
+                            </button>
+
+                            {showOpportunityTypes && (
+                                <div className="border-b border-slate-100">
+                                    <Link
+                                        href="/opportunities"
+                                        className="flex items-center justify-between px-4 py-3 pl-16 hover:bg-slate-50 transition-colors border-b border-slate-100"
+                                    >
+                                        <span className="text-sm text-slate-700">All Opportunities</span>
+                                        <ChevronRight className="text-slate-400" size={16} />
+                                    </Link>
+                                    {pillarPages.map((page, index) => (
+                                        <Link
+                                            key={page.id}
+                                            href={`/${page.slug}`}
+                                            className={`flex items-center justify-between px-4 py-3 pl-16 hover:bg-slate-50 transition-colors ${
+                                                index < pillarPages.length - 1 ? 'border-b border-slate-100' : ''
+                                            }`}
+                                        >
+                                            <span className="text-sm text-slate-700">{page.title}</span>
+                                            <ChevronRight className="text-slate-400" size={16} />
+                                        </Link>
+                                    ))}
+                                </div>
+                            )}
+                        </>
+                    ) : (
+                        <Link
+                            href="/opportunities"
+                            className="flex items-center justify-between px-4 py-4 border-b border-slate-100 hover:bg-slate-50 transition-colors"
+                        >
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center">
+                                    <Briefcase className="text-blue-600" size={20} />
+                                </div>
+                                <span className="font-medium">Browse Opportunities</span>
                             </div>
-                            <span className="font-medium">Browse Opportunities</span>
-                        </div>
-                        <ChevronRight className="text-slate-400" size={20} />
-                    </Link>
+                            <ChevronRight className="text-slate-400" size={20} />
+                        </Link>
+                    )}
 
                     <Link
                         href="/saved"
@@ -345,8 +396,8 @@ export default function AccountPage() {
                     </Link>
                 </div>
 
-                {/* Pages Section - Collapsible */}
-                {menuPages.length > 0 && (
+                {/* Information Pages Section - Only shows non-pillar pages */}
+                {infoPages.length > 0 && (
                     <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden">
                         <button
                             onClick={() => setShowInfoPages(!showInfoPages)}
@@ -366,12 +417,12 @@ export default function AccountPage() {
 
                         {showInfoPages && (
                             <div className="border-t border-slate-100">
-                                {menuPages.map((page, index) => (
+                                {infoPages.map((page, index) => (
                                     <Link
                                         key={page.id}
                                         href={`/${page.slug}`}
                                         className={`flex items-center justify-between px-4 py-3 pl-16 hover:bg-slate-50 transition-colors ${
-                                            index < menuPages.length - 1 ? 'border-b border-slate-100' : ''
+                                            index < infoPages.length - 1 ? 'border-b border-slate-100' : ''
                                         }`}
                                     >
                                         <span className="text-sm text-slate-700">{page.title}</span>
