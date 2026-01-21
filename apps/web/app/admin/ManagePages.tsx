@@ -66,20 +66,11 @@ interface PageFormData {
     created_at: string;
 }
 
-const opportunityTypes = [
-    { value: '', label: 'None (Regular Page)' },
-    { value: 'giveaway', label: 'Giveaways' },
-    { value: 'contest', label: 'Contests' },
-    { value: 'sweepstakes', label: 'Sweepstakes' },
-    { value: 'dream_job', label: 'Dream Jobs' },
-    { value: 'get_paid_to', label: 'Get Paid To' },
-    { value: 'instant_win', label: 'Instant Win' },
-    { value: 'job_fair', label: 'Job Fairs' },
-    { value: 'scholarship', label: 'Scholarships' },
-    { value: 'volunteer', label: 'Volunteering' },
-    { value: 'free_training', label: 'Free Training' },
-    { value: 'promo', label: 'Promos' },
-];
+// Opportunity types will be loaded dynamically from the API
+interface OpportunityTypeOption {
+    value: string;
+    label: string;
+}
 
 const initialFormData: PageFormData = {
     title: '',
@@ -117,9 +108,34 @@ export default function ManagePages() {
     // Media modal state
     const [mediaModalOpen, setMediaModalOpen] = useState(false);
 
+    // Opportunity types (loaded dynamically)
+    const [opportunityTypes, setOpportunityTypes] = useState<OpportunityTypeOption[]>([
+        { value: '', label: 'None (Regular Page)' }
+    ]);
+
+    useEffect(() => {
+        fetchOpportunityTypes();
+    }, []);
+
     useEffect(() => {
         fetchPages();
     }, [statusFilter, searchQuery]);
+
+    const fetchOpportunityTypes = async () => {
+        try {
+            const res = await fetch('/api/opportunity-types');
+            const data = await res.json();
+            if (data.types) {
+                // Add "None" option at the beginning
+                setOpportunityTypes([
+                    { value: '', label: 'None (Regular Page)' },
+                    ...data.types
+                ]);
+            }
+        } catch (error) {
+            console.error('Error fetching opportunity types:', error);
+        }
+    };
 
     const fetchPages = async () => {
         setLoading(true);

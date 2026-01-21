@@ -1,39 +1,58 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Save, RefreshCw, Info, Edit, CheckCircle, XCircle, Trash2 } from 'lucide-react';
+import { Save, RefreshCw, Info, CheckCircle, XCircle, Trash2, AlertTriangle } from 'lucide-react';
 
 interface PromptConfig {
     opportunity_type: string;
     prompt: string;
-    source: 'custom' | 'default';
+    source: 'custom' | 'default' | 'generic';
+    hasBuiltIn: boolean;
     isEditing?: boolean;
 }
 
-const opportunityTypes = [
-    { value: 'contest', label: 'Contest' },
-    { value: 'giveaway', label: 'Giveaway' },
-    { value: 'sweepstakes', label: 'Sweepstakes' },
-    { value: 'dream_job', label: 'Dream Job' },
-    { value: 'get_paid_to', label: 'Get Paid To' },
-    { value: 'instant_win', label: 'Instant Win' },
-    { value: 'job_fair', label: 'Job Fair' },
-    { value: 'scholarship', label: 'Scholarship' },
-    { value: 'volunteer', label: 'Volunteering' },
-    { value: 'free_training', label: 'Free Training' },
-    { value: 'promo', label: 'Promo' },
-    { value: 'blog_post', label: 'Blog Post' },
-];
+// These will be loaded dynamically, with blog_post added
+interface OpportunityTypeOption {
+    value: string;
+    label: string;
+}
 
 export default function PromptsSettings() {
     const [prompts, setPrompts] = useState<PromptConfig[]>([]);
+    const [opportunityTypes, setOpportunityTypes] = useState<OpportunityTypeOption[]>([]);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState<string | null>(null);
     const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string; promptType?: string } | null>(null);
 
     useEffect(() => {
-        fetchAllPrompts();
+        fetchOpportunityTypes();
     }, []);
+
+    const fetchOpportunityTypes = async () => {
+        try {
+            const res = await fetch('/api/opportunity-types');
+            const data = await res.json();
+            if (data.types) {
+                // Add blog_post to the list since it's also a prompt type
+                const types = [...data.types, { value: 'blog_post', label: 'Blog Post' }];
+                setOpportunityTypes(types);
+            }
+        } catch (error) {
+            console.error('Error fetching opportunity types:', error);
+            // Fallback to defaults
+            setOpportunityTypes([
+                { value: 'contest', label: 'Contest' },
+                { value: 'giveaway', label: 'Giveaway' },
+                { value: 'blog_post', label: 'Blog Post' },
+            ]);
+        }
+    };
+
+    useEffect(() => {
+        if (opportunityTypes.length > 0) {
+            fetchAllPrompts();
+        }
+    }, [opportunityTypes]);
 
     const fetchAllPrompts = async () => {
         setLoading(true);
@@ -46,6 +65,7 @@ export default function PromptsSettings() {
                         opportunity_type: type.value,
                         prompt: data.prompt || '',
                         source: data.source || 'default',
+                        hasBuiltIn: data.hasBuiltIn ?? true,
                         isEditing: false,
                     };
                 })
@@ -139,13 +159,13 @@ export default function PromptsSettings() {
 
                 setPrompts(prompts.map(p =>
                     p.opportunity_type === opportunityType
-                        ? { ...p, prompt: data.prompt, source: 'default', isEditing: false }
+                        ? { ...p, prompt: data.prompt, source: data.source || 'default', hasBuiltIn: data.hasBuiltIn ?? true, isEditing: false }
                         : p
                 ));
 
                 setMessage({
                     type: 'success',
-                    text: 'Prompt reset to default!',
+                    text: data.source === 'generic' ? 'Prompt reset to generic template!' : 'Prompt reset to default!',
                     promptType: opportunityType
                 });
             } else {
@@ -236,10 +256,17 @@ export default function PromptsSettings() {
                                         <span className={`px-2 py-0.5 rounded text-xs font-bold uppercase ${
                                             promptConfig.source === 'custom'
                                                 ? 'bg-blue-100 text-blue-700'
-                                                : 'bg-slate-100 text-slate-600'
+                                                : promptConfig.source === 'generic'
+                                                    ? 'bg-amber-100 text-amber-700'
+                                                    : 'bg-slate-100 text-slate-600'
                                         }`}>
-                                            {promptConfig.source === 'custom' ? 'Custom' : 'Default'}
+                                            {promptConfig.source === 'custom' ? 'Custom' : promptConfig.source === 'generic' ? 'Generic' : 'Default'}
                                         </span>
+                                        {!promptConfig.hasBuiltIn && promptConfig.source !== 'custom' && (
+                                            <span className="text-xs text-amber-600">
+                                                (New type - customize for best results)
+                                            </span>
+                                        )}
                                     </div>
                                     <p className="text-xs text-slate-500">
                                         {promptConfig.isEditing
@@ -284,6 +311,16 @@ export default function PromptsSettings() {
                             {/* Prompt Editor */}
                             {promptConfig.isEditing && (
                                 <div className="space-y-2">
+                                    {/* Generic prompt warning */}
+                                    {!promptConfig.hasBuiltIn && promptConfig.source !== 'custom' && (
+                                        <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 flex gap-2">
+                                            <AlertTriangle size={16} className="text-amber-600 flex-shrink-0 mt-0.5" />
+                                            <div className="text-xs text-amber-800">
+                                                <p className="font-bold">This is a new opportunity type without a specialized prompt.</p>
+                                                <p>The generic template is shown below. Customize it for better AI-generated content specific to this type.</p>
+                                            </div>
+                                        </div>
+                                    )}
                                     <textarea
                                         value={promptConfig.prompt}
                                         onChange={(e) => handlePromptChange(promptConfig.opportunity_type, e.target.value)}

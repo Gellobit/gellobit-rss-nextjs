@@ -5,6 +5,41 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.0-alpha.31] - 2026-01-21
+
+### Added
+- **Dynamic Opportunity Types System**
+  - New `opportunity_types` table for managing types from the admin panel
+  - Migration `041_opportunity_types_table.sql` with RLS policies
+  - `OpportunityTypesService` with full CRUD operations and caching
+  - API routes: `/api/admin/opportunity-types` and `/api/opportunity-types` (public)
+  - New "Opp. Types" tab in Settings with full management UI
+  - Create, edit, delete, and toggle active status for opportunity types
+  - System types (built-in) cannot be deleted, only deactivated
+  - Color picker with presets for each type
+
+- **Dynamic Prompts for New Types**
+  - Generic prompt template (`prompts/generic.prompt.ts`) for custom types
+  - `getPromptForType()` now returns generic prompt for unknown types (no errors)
+  - New helper functions: `hasBuiltInPrompt()`, `getRawPromptForType()`, `getBuiltInPromptTypes()`
+  - `PromptService` updated to accept any string type (not just TypeScript union)
+  - New method `getPromptForDisplay()` returns prompt with source info (custom/default/generic)
+  - PromptsSettings shows "Generic" badge (amber) for types without built-in prompts
+  - Warning message when editing generic prompts: "customize for best results"
+
+### Changed
+- **ManageFeeds** - Opportunity type dropdown now loads dynamically from API
+- **PromptsSettings** - Loads opportunity types from API, shows all types including new ones
+- **ManagePages** - Pillar Page dropdown now loads types dynamically from API
+- **API Route `/api/admin/prompts/[type]`** - Now supports dynamic types, returns `hasBuiltIn` flag
+
+### Technical Details
+- `OpportunityTypeRecord` interface added to `database.types.ts`
+- Service uses 1-minute cache for performance
+- Fallback to hardcoded defaults if API fails
+- Types stored as VARCHAR(50) in database (flexible, no enum constraint)
+- `is_system` flag protects built-in types from deletion
+
 ## [1.0.0-alpha.30] - 2026-01-20
 
 ### Fixed

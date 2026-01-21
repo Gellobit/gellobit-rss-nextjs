@@ -3,8 +3,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createRouteClient } from '@/lib/utils/supabase-route';
 import { createAdminClient } from '@/lib/utils/supabase-admin';
 import { promptService } from '@/lib/services/prompt.service';
-import { getPromptForType } from '@/prompts';
-import type { PromptType } from '@/lib/types/database.types';
 
 /**
  * GET /api/admin/prompts/[type]
@@ -38,34 +36,16 @@ export async function GET(
 
     // Next.js 15: await params before accessing
     const { type } = await params;
-    const opportunityType = type as PromptType;
 
-    // Check if custom prompt exists in database
-    const { data: customPrompt } = await adminSupabase
-      .from('prompt_templates')
-      .select('unified_prompt, is_customized')
-      .eq('opportunity_type', opportunityType)
-      .single();
-
-    if (customPrompt && customPrompt.is_customized && customPrompt.unified_prompt) {
-      // Return custom prompt
-      return NextResponse.json(
-        { prompt: customPrompt.unified_prompt, source: 'custom' },
-        { status: 200 }
-      );
-    }
-
-    // Fall back to default TypeScript prompt
-    const sampleContent = {
-      title: 'Sample Title',
-      content: 'Sample content',
-      url: 'https://example.com',
-    };
-
-    const defaultPrompt = getPromptForType(opportunityType, sampleContent);
+    // Use promptService to get prompt with proper source detection
+    const result = await promptService.getPromptForDisplay(type);
 
     return NextResponse.json(
-      { prompt: defaultPrompt, source: 'default' },
+      {
+        prompt: result.prompt,
+        source: result.source,
+        hasBuiltIn: result.hasBuiltIn,
+      },
       { status: 200 }
     );
   } catch (error) {
@@ -109,7 +89,6 @@ export async function POST(
 
     // Next.js 15: await params before accessing
     const { type } = await params;
-    const opportunityType = type as PromptType;
     const body = await request.json();
     const { prompt } = body;
 
@@ -120,8 +99,8 @@ export async function POST(
       );
     }
 
-    // Save custom prompt
-    const result = await promptService.saveCustomPrompt(opportunityType, prompt);
+    // Save custom prompt (supports dynamic types)
+    const result = await promptService.saveCustomPrompt(type, prompt);
 
     if (!result.success) {
       console.error('Prompt save error:', result.error);
@@ -176,10 +155,9 @@ export async function DELETE(
 
     // Next.js 15: await params before accessing
     const { type } = await params;
-    const opportunityType = type as PromptType;
 
-    // Delete custom prompt
-    const result = await promptService.deleteCustomPrompt(opportunityType);
+    // Delete custom prompt (supports dynamic types)
+    const result = await promptService.deleteCustomPrompt(type);
 
     if (!result.success) {
       return NextResponse.json(

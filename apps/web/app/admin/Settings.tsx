@@ -1,10 +1,11 @@
 'use client';
 
 import { useState } from 'react';
-import { Settings as SettingsIcon, Sparkles, FileText, Globe, Wrench, Image as ImageIcon, Palette, BarChart3, Crown, Mail, Bell, Trash2, Tag } from 'lucide-react';
+import { Settings as SettingsIcon, Sparkles, FileText, Globe, Wrench, Image as ImageIcon, Palette, BarChart3, Crown, Mail, Bell, Trash2, Tag, Layers } from 'lucide-react';
 import GeneralSettings from './settings/GeneralSettings';
 import AISettings from './settings/AISettings';
 import PromptsSettings from './settings/PromptsSettings';
+import OpportunityTypesSettings from './settings/OpportunityTypesSettings';
 import ScrapingSettings from './settings/ScrapingSettings';
 import AdvancedSettings from './settings/AdvancedSettings';
 import MediaSettings from './settings/MediaSettings';
@@ -16,7 +17,7 @@ import PushSettings from './settings/PushSettings';
 import CleanupSettings from './settings/CleanupSettings';
 import CategoriesSettings from './settings/CategoriesSettings';
 
-type SettingsTab = 'general' | 'ai' | 'prompts' | 'categories' | 'scraping' | 'media' | 'personalization' | 'membership' | 'email' | 'push' | 'analytics' | 'cleanup' | 'advanced';
+type SettingsTab = 'general' | 'ai' | 'prompts' | 'opportunity-types' | 'categories' | 'scraping' | 'media' | 'personalization' | 'membership' | 'email' | 'push' | 'analytics' | 'cleanup' | 'advanced';
 
 export default function Settings() {
     const [activeTab, setActiveTab] = useState<SettingsTab>('general');
@@ -25,6 +26,7 @@ export default function Settings() {
         { id: 'general', label: 'General', icon: SettingsIcon },
         { id: 'ai', label: 'AI Settings', icon: Sparkles },
         { id: 'prompts', label: 'Prompts', icon: FileText },
+        { id: 'opportunity-types', label: 'Opp. Types', icon: Layers },
         { id: 'categories', label: 'Categories', icon: Tag },
         { id: 'scraping', label: 'Scraping', icon: Globe },
         { id: 'media', label: 'Media', icon: ImageIcon },
@@ -70,6 +72,7 @@ export default function Settings() {
                     {activeTab === 'general' && <GeneralSettings />}
                     {activeTab === 'ai' && <AISettings />}
                     {activeTab === 'prompts' && <PromptsSettings />}
+                    {activeTab === 'opportunity-types' && <OpportunityTypesSettings />}
                     {activeTab === 'categories' && <CategoriesSettings />}
                     {activeTab === 'scraping' && <ScrapingSettings />}
                     {activeTab === 'media' && <MediaSettings />}

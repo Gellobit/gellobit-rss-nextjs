@@ -1,7 +1,6 @@
 import { createAdminClient } from '../utils/supabase-admin';
 import { logger } from '../utils/logger';
-import { getPromptForType, type ScrapedContent } from '../../prompts';
-import type { OpportunityType } from '../types/database.types';
+import { getPromptForType, getRawPromptForType, hasBuiltInPrompt, type ScrapedContent } from '../../prompts';
 
 /**
  * Prompt Service - Manages AI prompts for content generation
@@ -21,14 +20,14 @@ export class PromptService {
 
   /**
    * Get prompt for a specific opportunity type and scraped content
-   * First checks database for custom prompt, falls back to TypeScript default
+   * First checks database for custom prompt, falls back to TypeScript default (or generic for dynamic types)
    *
-   * @param opportunityType - Type of opportunity (includes 'blog_post')
+   * @param opportunityType - Type of opportunity (includes 'blog_post' and dynamic types)
    * @param scrapedContent - Scraped content to analyze
    * @returns Complete prompt ready for AI processing
    */
   async getPrompt(
-    opportunityType: OpportunityType | 'blog_post',
+    opportunityType: string,
     scrapedContent: ScrapedContent
   ): Promise<string> {
     try {
@@ -61,11 +60,11 @@ export class PromptService {
   /**
    * Get custom prompt from database
    *
-   * @param opportunityType - Type of opportunity
+   * @param opportunityType - Type of opportunity (supports dynamic types)
    * @returns Custom prompt template or null
    */
   private async getCustomPrompt(
-    opportunityType: OpportunityType | 'blog_post'
+    opportunityType: string
   ): Promise<string | null> {
     const supabase = createAdminClient();
 
@@ -115,12 +114,12 @@ ${scrapedContent.content}
   /**
    * Save or update a custom prompt in the database
    *
-   * @param opportunityType - Type of opportunity (includes 'blog_post')
+   * @param opportunityType - Type of opportunity (supports dynamic types)
    * @param promptText - Custom prompt text
    * @returns Success status
    */
   async saveCustomPrompt(
-    opportunityType: OpportunityType | 'blog_post',
+    opportunityType: string,
     promptText: string
   ): Promise<{ success: boolean; error?: string }> {
     try {
@@ -182,11 +181,11 @@ ${scrapedContent.content}
   /**
    * Delete/reset a custom prompt and revert to default
    *
-   * @param opportunityType - Type of opportunity (includes 'blog_post')
+   * @param opportunityType - Type of opportunity (supports dynamic types)
    * @returns Success status
    */
   async deleteCustomPrompt(
-    opportunityType: OpportunityType | 'blog_post'
+    opportunityType: string
   ): Promise<{ success: boolean; error?: string }> {
     try {
       const supabase = createAdminClient();
@@ -247,12 +246,12 @@ ${scrapedContent.content}
   /**
    * Test a prompt by validating it can be parsed and built
    *
-   * @param opportunityType - Type of opportunity (includes 'blog_post')
+   * @param opportunityType - Type of opportunity (supports dynamic types)
    * @param promptText - Prompt text to test
    * @returns Validation result
    */
   async testPrompt(
-    opportunityType: OpportunityType | 'blog_post',
+    opportunityType: string,
     promptText: string
   ): Promise<{
     valid: boolean;
@@ -325,6 +324,55 @@ ${scrapedContent.content}
       customized_prompts:
         customPrompts?.filter((p) => p.is_customized).length || 0,
       prompt_usage_last_7_days: recentLogs?.length || 0,
+    };
+  }
+
+  /**
+   * Get the default prompt for a type (TypeScript built-in or generic)
+   *
+   * @param opportunityType - Type of opportunity
+   * @returns The default prompt template
+   */
+  getDefaultPrompt(opportunityType: string): string {
+    return getRawPromptForType(opportunityType);
+  }
+
+  /**
+   * Check if a type has a built-in TypeScript prompt
+   *
+   * @param opportunityType - Type of opportunity
+   * @returns True if there's a built-in prompt
+   */
+  hasBuiltInPrompt(opportunityType: string): boolean {
+    return hasBuiltInPrompt(opportunityType);
+  }
+
+  /**
+   * Get prompt for display in UI (custom if exists, otherwise default)
+   *
+   * @param opportunityType - Type of opportunity
+   * @returns Object with prompt text and source info
+   */
+  async getPromptForDisplay(opportunityType: string): Promise<{
+    prompt: string;
+    source: 'custom' | 'default' | 'generic';
+    hasBuiltIn: boolean;
+  }> {
+    const customPrompt = await this.getCustomPrompt(opportunityType);
+    const hasBuiltIn = this.hasBuiltInPrompt(opportunityType);
+
+    if (customPrompt) {
+      return {
+        prompt: customPrompt,
+        source: 'custom',
+        hasBuiltIn,
+      };
+    }
+
+    return {
+      prompt: this.getDefaultPrompt(opportunityType),
+      source: hasBuiltIn ? 'default' : 'generic',
+      hasBuiltIn,
     };
   }
 }

@@ -228,6 +228,20 @@ export interface Post {
 
 export type PageStatus = 'draft' | 'published' | 'archived';
 
+export interface OpportunityTypeRecord {
+    id: string;
+    slug: string;
+    name: string;
+    description: string | null;
+    color: string;
+    icon: string | null;
+    is_active: boolean;
+    is_system: boolean;
+    display_order: number;
+    created_at: string;
+    updated_at: string;
+}
+
 export interface Page {
     id: string;
     title: string;
@@ -318,6 +332,11 @@ export interface Database {
                 Row: Page;
                 Insert: Omit<Page, 'id' | 'created_at' | 'updated_at'>;
                 Update: Partial<Omit<Page, 'id' | 'created_at' | 'updated_at'>>;
+            };
+            opportunity_types: {
+                Row: OpportunityTypeRecord;
+                Insert: Omit<OpportunityTypeRecord, 'id' | 'created_at' | 'updated_at'>;
+                Update: Partial<Omit<OpportunityTypeRecord, 'id' | 'created_at' | 'updated_at'>>;
             };
         };
     };

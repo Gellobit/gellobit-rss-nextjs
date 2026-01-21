@@ -111,19 +111,11 @@ const sourceTypes = [
     { value: 'url_list', label: 'URL List', description: 'Process a list of specific URLs' },
 ];
 
-const opportunityTypes = [
-    { value: 'giveaway', label: 'Giveaway' },
-    { value: 'contest', label: 'Contest' },
-    { value: 'sweepstakes', label: 'Sweepstakes' },
-    { value: 'dream_job', label: 'Dream Job' },
-    { value: 'get_paid_to', label: 'Get Paid To' },
-    { value: 'instant_win', label: 'Instant Win' },
-    { value: 'job_fair', label: 'Job Fair' },
-    { value: 'scholarship', label: 'Scholarship' },
-    { value: 'volunteer', label: 'Volunteer' },
-    { value: 'free_training', label: 'Free Training' },
-    { value: 'promo', label: 'Promo' },
-];
+// Opportunity types will be loaded dynamically from the API
+interface OpportunityTypeOption {
+    value: string;
+    label: string;
+}
 
 const cronIntervals = [
     { value: 'every_5_minutes', label: 'Every 5 minutes' },
@@ -168,12 +160,14 @@ function FeedForm({
     values,
     onChange,
     isEdit = false,
-    categories = []
+    categories = [],
+    opportunityTypes = []
 }: {
     values: FeedFormValues;
     onChange: (field: keyof FeedFormValues, value: any) => void;
     isEdit?: boolean;
     categories?: Category[];
+    opportunityTypes?: OpportunityTypeOption[];
 }) {
     const handleAIProviderChange = (provider: string) => {
         const selectedProvider = aiProviders.find(p => p.value === provider);
@@ -595,10 +589,32 @@ export default function ManageFeeds() {
     // Categories for blog posts
     const [categories, setCategories] = useState<Category[]>([]);
 
+    // Opportunity types (loaded dynamically)
+    const [opportunityTypes, setOpportunityTypes] = useState<OpportunityTypeOption[]>([]);
+
     useEffect(() => {
         fetchFeeds();
         fetchCategories();
+        fetchOpportunityTypes();
     }, []);
+
+    const fetchOpportunityTypes = async () => {
+        try {
+            const res = await fetch('/api/opportunity-types');
+            const data = await res.json();
+            if (data.types) {
+                setOpportunityTypes(data.types);
+            }
+        } catch (error) {
+            console.error('Error fetching opportunity types:', error);
+            // Fallback to some defaults if API fails
+            setOpportunityTypes([
+                { value: 'giveaway', label: 'Giveaway' },
+                { value: 'contest', label: 'Contest' },
+                { value: 'sweepstakes', label: 'Sweepstakes' },
+            ]);
+        }
+    };
 
     const fetchCategories = async () => {
         try {
@@ -874,7 +890,7 @@ export default function ManageFeeds() {
                             <X size={18} />
                         </button>
                     </div>
-                    <FeedForm values={newFeed} onChange={handleNewFeedChange} categories={categories} />
+                    <FeedForm values={newFeed} onChange={handleNewFeedChange} categories={categories} opportunityTypes={opportunityTypes} />
                     <div className="flex gap-3 mt-4">
                         <button
                             type="submit"
@@ -1099,7 +1115,7 @@ export default function ManageFeeds() {
                             </button>
                         </div>
                         <div className="p-4">
-                            <FeedForm values={editForm} onChange={handleEditFormChange} isEdit categories={categories} />
+                            <FeedForm values={editForm} onChange={handleEditFormChange} isEdit categories={categories} opportunityTypes={opportunityTypes} />
                             <div className="flex gap-3 mt-6 pt-4 border-t">
                                 <button
                                     onClick={handleSaveEdit}
