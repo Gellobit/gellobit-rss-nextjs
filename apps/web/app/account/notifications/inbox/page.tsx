@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Bell, Check, CheckCheck, Gift, Calendar, Crown, Info, X, Briefcase, GraduationCap, Trophy, Settings, RefreshCw } from 'lucide-react';
+import { Bell, Check, CheckCheck, Gift, Calendar, Crown, Info, X, Briefcase, GraduationCap, Trophy, Settings, RefreshCw, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 
 interface Notification {
@@ -126,6 +126,18 @@ export default function NotificationsInboxPage() {
         }
     };
 
+    const clearAllNotifications = async () => {
+        if (!confirm('Clear all notifications? This cannot be undone.')) return;
+
+        try {
+            await fetch('/api/notifications/clear-all', { method: 'DELETE' });
+            setNotifications([]);
+            setUnreadCount(0);
+        } catch (error) {
+            console.error('Error clearing all notifications:', error);
+        }
+    };
+
     const formatTimeAgo = (dateString: string) => {
         const date = new Date(dateString);
         const now = new Date();
@@ -162,7 +174,7 @@ export default function NotificationsInboxPage() {
                             <p className="text-sm text-slate-500">{unreadCount} unread</p>
                         )}
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1">
                         {unreadCount > 0 && (
                             <button
                                 onClick={markAllAsRead}
@@ -170,6 +182,15 @@ export default function NotificationsInboxPage() {
                                 title="Mark all as read"
                             >
                                 <CheckCheck size={20} />
+                            </button>
+                        )}
+                        {notifications.length > 0 && (
+                            <button
+                                onClick={clearAllNotifications}
+                                className="p-2 text-red-600 hover:bg-red-50 rounded-full"
+                                title="Clear all notifications"
+                            >
+                                <Trash2 size={20} />
                             </button>
                         )}
                         <Link

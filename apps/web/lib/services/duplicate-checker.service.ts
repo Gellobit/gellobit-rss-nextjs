@@ -116,25 +116,37 @@ export class DuplicateCheckerService {
         };
       }
 
-      // Check exact content hash match
-      const { data: contentMatch } = await supabase
-        .from('duplicate_tracking')
-        .select('entity_id')
-        .eq('content_hash', contentHash)
-        .single();
+      // Check exact content hash match (only if content is substantial)
+      // Skip this check if content is empty/minimal to avoid false positives
+      const MIN_CONTENT_LENGTH = 50;
+      const hasSubstantialContent = scrapedContent.content && scrapedContent.content.trim().length >= MIN_CONTENT_LENGTH;
 
-      if (contentMatch) {
-        await logger.info('Duplicate detected: exact content match', {
+      if (hasSubstantialContent && contentHash) {
+        const { data: contentMatch } = await supabase
+          .from('duplicate_tracking')
+          .select('entity_id')
+          .eq('content_hash', contentHash)
+          .single();
+
+        if (contentMatch) {
+          await logger.info('Duplicate detected: exact content match', {
+            url: scrapedContent.url,
+            feed_id: feedId,
+            entity_id: contentMatch.entity_id,
+          });
+
+          return {
+            isDuplicate: true,
+            reason: 'exact_content',
+            existingEntityId: contentMatch.entity_id,
+          };
+        }
+      } else {
+        await logger.debug('Skipping content hash check: content too short', {
           url: scrapedContent.url,
           feed_id: feedId,
-          entity_id: contentMatch.entity_id,
+          content_length: scrapedContent.content?.trim().length || 0,
         });
-
-        return {
-          isDuplicate: true,
-          reason: 'exact_content',
-          existingEntityId: contentMatch.entity_id,
-        };
       }
 
       // Check exact title hash match
@@ -159,15 +171,18 @@ export class DuplicateCheckerService {
       }
 
       // Check for similar content (more expensive, do last)
-      const similarityResult = await this.checkSimilarity(
-        scrapedContent,
-        contentHash,
-        feedId,
-        entityType
-      );
+      // Only check similarity if content is substantial
+      if (hasSubstantialContent) {
+        const similarityResult = await this.checkSimilarity(
+          scrapedContent,
+          contentHash,
+          feedId,
+          entityType
+        );
 
-      if (similarityResult.isDuplicate) {
-        return similarityResult;
+        if (similarityResult.isDuplicate) {
+          return similarityResult;
+        }
       }
 
       // Not a duplicate
@@ -288,7 +303,12 @@ export class DuplicateCheckerService {
     entityType: 'opportunity' | 'post' = 'opportunity'
   ): Promise<{ success: boolean; error?: string }> {
     try {
-      const contentHash = generateHash(scrapedContent.content);
+      const MIN_CONTENT_LENGTH = 50;
+      const hasSubstantialContent = scrapedContent.content && scrapedContent.content.trim().length >= MIN_CONTENT_LENGTH;
+
+      // Only generate content hash if content is substantial
+      // This prevents false positive matches on empty/minimal content
+      const contentHash = hasSubstantialContent ? generateHash(scrapedContent.content) : null;
       const titleHash = generateHash(scrapedContent.title);
       const urlHash = generateHash(scrapedContent.url);
 
@@ -298,7 +318,7 @@ export class DuplicateCheckerService {
         entity_id: entityId,
         entity_type: entityType,
         feed_id: feedId || null, // Store feed_id for per-feed duplicate clearing
-        content_hash: contentHash,
+        content_hash: contentHash, // Will be null if content too short
         title_hash: titleHash,
         url_hash: urlHash,
       });

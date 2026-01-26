@@ -87,7 +87,7 @@ const SOCIAL_ICONS: Record<string, string> = {
     website: 'W',
 };
 
-const APP_VERSION = 'v1.0.0-alpha.19';
+export const APP_VERSION = `v${process.env.NEXT_PUBLIC_APP_VERSION || '1.0.0'}`;
 
 
 // Category badge colors and labels for opportunities
@@ -744,5 +744,3 @@ export const LandingPage = ({ opportunities = [], branding, heroContent, appSect
         </div>
     );
 };
-
-export { APP_VERSION };

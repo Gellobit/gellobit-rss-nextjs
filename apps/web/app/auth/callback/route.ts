@@ -13,6 +13,12 @@ export async function GET(request: Request) {
         await supabase.auth.exchangeCodeForSession(code);
     }
 
+    // Get origin, replacing 0.0.0.0 with localhost for proper redirects
+    let origin = requestUrl.origin;
+    if (origin.includes('0.0.0.0')) {
+        origin = origin.replace('0.0.0.0', 'localhost');
+    }
+
     // Redirect to account page after email verification
-    return NextResponse.redirect(new URL(next, requestUrl.origin));
+    return NextResponse.redirect(new URL(next, origin));
 }

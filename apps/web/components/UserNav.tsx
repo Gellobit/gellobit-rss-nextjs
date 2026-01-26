@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { User, Settings, Heart, Bell, LogOut, Shield, ChevronDown, Briefcase, FileText, Crown, Sparkles } from 'lucide-react';
 import NotificationBell from './NotificationBell';
+import { APP_VERSION } from './LandingPage';
 
 interface UserProfile {
     id: string;
@@ -230,6 +231,11 @@ export default function UserNav({ hideOpportunities = false }: UserNavProps) {
                             <LogOut size={18} />
                             Sign Out
                         </button>
+                    </div>
+
+                    {/* Version Info */}
+                    <div className="px-4 py-3 border-t border-slate-100 bg-slate-50">
+                        <span className="text-xs text-slate-400 font-medium">{APP_VERSION}</span>
                     </div>
                 </div>
             )}

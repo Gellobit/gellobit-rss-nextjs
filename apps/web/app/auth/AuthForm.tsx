@@ -2,7 +2,8 @@
 
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useState, Suspense } from 'react';
+import { useState, Suspense, useEffect } from 'react';
+import { Eye, EyeOff } from 'lucide-react';
 
 interface Branding {
     logoUrl: string | null;
@@ -18,6 +19,7 @@ interface AuthFormProps {
 function AuthFormInner({ branding }: AuthFormProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -32,6 +34,26 @@ function AuthFormInner({ branding }: AuthFormProps) {
   // Get redirect URL from query params (default to /account for logged-in users)
   const redirectUrl = searchParams.get('redirect') || '/account';
 
+  // Get the correct origin for OAuth redirects
+  const getOAuthOrigin = () => {
+    if (typeof window === 'undefined') return '';
+    const origin = window.location.origin;
+
+    // Check if running in Capacitor (mobile app)
+    const isCapacitor = !!(window as any).Capacitor?.isNativePlatform?.();
+
+    if (isCapacitor) {
+      // In mobile app, use the actual server IP
+      return origin;
+    }
+
+    // In web browser, replace 0.0.0.0 with localhost for OAuth compatibility
+    if (origin.includes('0.0.0.0')) {
+      return origin.replace('0.0.0.0', 'localhost');
+    }
+    return origin;
+  };
+
   // Get mode from query params (signin or signup)
   const mode = searchParams.get('mode') || 'signin';
   const isSignUp = mode === 'signup';
@@ -42,7 +64,7 @@ function AuthFormInner({ branding }: AuthFormProps) {
       email,
       password,
       options: {
-        emailRedirectTo: `${location.origin}/auth/callback?next=/account`,
+        emailRedirectTo: `${getOAuthOrigin()}/auth/callback?next=/account`,
       },
     });
     setLoading(false);
@@ -67,15 +89,58 @@ function AuthFormInner({ branding }: AuthFormProps) {
 
   const handleGoogleSignIn = async () => {
     setLoading(true);
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: `${location.origin}/auth/callback?next=${encodeURIComponent(redirectUrl)}`,
-      },
-    });
-    if (error) {
-      setLoading(false);
-      alert(error.message);
+
+    // Check if running in Capacitor (mobile app)
+    const isCapacitor = typeof window !== 'undefined' && !!(window as any).Capacitor?.isNativePlatform?.();
+
+    if (isCapacitor) {
+      try {
+        // Use native Google Auth for mobile
+        const { GoogleAuth } = await import('@codetrix-studio/capacitor-google-auth');
+
+        // Initialize GoogleAuth (required on Android)
+        await GoogleAuth.initialize({
+          clientId: '256893745455-oklneuv1pu0c6d48b3jnfhe47liu6bsr.apps.googleusercontent.com',
+          scopes: ['profile', 'email'],
+          grantOfflineAccess: true,
+        });
+
+        const googleUser = await GoogleAuth.signIn();
+
+        if (googleUser.authentication.idToken) {
+          // Sign in to Supabase with the Google ID token
+          const { error } = await supabase.auth.signInWithIdToken({
+            provider: 'google',
+            token: googleUser.authentication.idToken,
+          });
+
+          if (error) {
+            console.error('Supabase sign in error:', error);
+            alert(error.message);
+          } else {
+            router.push(redirectUrl);
+          }
+        } else {
+          alert('No ID token received from Google');
+        }
+      } catch (error: any) {
+        console.error('Google Sign In error:', error);
+        alert(error.message || 'Error signing in with Google');
+      } finally {
+        setLoading(false);
+      }
+    } else {
+      // Use OAuth flow for web
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${getOAuthOrigin()}/auth/callback?next=${encodeURIComponent(redirectUrl)}`,
+        },
+      });
+      if (error) {
+        setLoading(false);
+        alert(error.message);
+      }
     }
   };
 
@@ -152,15 +217,22 @@ function AuthFormInner({ branding }: AuthFormProps) {
                 onChange={(e) => setEmail(e.target.value)}
               />
             </div>
-            <div>
+            <div className="relative">
               <input
-                type="password"
+                type={showPassword ? "text" : "password"}
                 required
-                className="appearance-none rounded-none relative block w-full px-4 py-4 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-xl focus:outline-none focus:ring-yellow-500 focus:border-yellow-500 focus:z-10 sm:text-sm bg-gray-50"
+                className="appearance-none rounded-none relative block w-full px-4 py-4 pr-12 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-xl focus:outline-none focus:ring-yellow-500 focus:border-yellow-500 focus:z-10 sm:text-sm bg-gray-50"
                 placeholder="Password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
               />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 focus:outline-none z-10"
+              >
+                {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+              </button>
             </div>
           </div>
 

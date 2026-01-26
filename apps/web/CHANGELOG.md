@@ -5,6 +5,83 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.0-alpha.33] - 2026-01-26
+
+### Added
+- **Environment Variables Template**
+  - Created `.env.example` with all required environment variables
+  - Organized by category: Supabase, Cron, Email, Push, PayPal, Google Auth, AI
+  - Documentation comments for each variable
+  - Already protected in `.gitignore` (`.env*.local` ignored, `.env.example` tracked)
+
+- **Jest Testing Framework**
+  - Configured Jest with Next.js 15 support (`jest.config.js`)
+  - Setup file with mocks for Next.js router and Supabase (`jest.setup.js`)
+  - React Testing Library integration for component testing
+  - Coverage reporting with 50% threshold
+
+- **Playwright E2E Testing**
+  - Configured Playwright for multi-browser testing (`playwright.config.ts`)
+  - Projects: Chromium, Firefox, WebKit, Mobile Chrome, Mobile Safari
+  - Auto-starts dev server before tests
+  - HTML reporter for test results
+
+- **Sample Unit Tests**
+  - `__tests__/lib/utils/membership.test.ts` - 50+ tests for membership utilities
+  - `__tests__/lib/utils/crypto.test.ts` - Tests for hashing and encryption functions
+  - Tests cover: premium detection, ad visibility, content access, favorites limits
+
+- **Sample E2E Tests**
+  - `e2e/home.spec.ts` - Home page loading, navigation, accessibility
+  - `e2e/auth.spec.ts` - Authentication flow, form validation, protected routes
+
+### Changed
+- Updated `.gitignore` to exclude Playwright artifacts (`playwright-report/`, `test-results/`)
+
+### Technical Details
+- New npm scripts: `test`, `test:watch`, `test:coverage`, `test:e2e`, `test:e2e:ui`
+- Dependencies added: jest, @testing-library/react, @testing-library/jest-dom, @playwright/test
+- Test directories: `__tests__/` for unit tests, `e2e/` for Playwright tests
+
+## [1.0.0-alpha.32] - 2026-01-21
+
+### Added
+- **Native Google Sign-In for Mobile App**
+  - Integrated `@codetrix-studio/capacitor-google-auth` plugin for native authentication
+  - Configured Google OAuth Client IDs for Android platform
+  - Firebase project integration with `google-services.json`
+  - Native sign-in flow uses `signInWithIdToken` for seamless Supabase integration
+  - Automatic detection of Capacitor environment to choose auth method
+  - Web OAuth flow preserved for browser-based access
+
+- **Password Visibility Toggle**
+  - Added eye icon button to password field in login/signup form
+  - Toggle between hidden (dots) and visible (text) password
+  - Uses Lucide React icons (Eye/EyeOff)
+
+- **Android APK Installation Documentation**
+  - Created `docs/ANDROID-APK-INSTALL.md` with comprehensive guide
+  - Step-by-step instructions for WSL2 + Windows environment
+  - ADB commands, port forwarding, and troubleshooting
+  - Terminal types clearly specified (PowerShell vs WSL)
+
+### Fixed
+- **OAuth Redirect URL for Local Development**
+  - Fixed `0.0.0.0` being used in OAuth redirect URLs
+  - Added `getOAuthOrigin()` helper to normalize URLs
+  - Web browser redirects now use `localhost` instead of `0.0.0.0`
+  - Auth callback route also handles `0.0.0.0` → `localhost` conversion
+
+- **AdMob Application ID Missing**
+  - Added AdMob test Application ID to AndroidManifest.xml
+  - Fixed app crash on startup due to missing AdMob configuration
+
+### Technical Details
+- Added `play-services-auth:21.0.0` dependency to Android build.gradle
+- Added `server_client_id` to Android strings.xml for Google Auth
+- GoogleAuth plugin configured in capacitor.config.ts with scopes and client IDs
+- AuthForm.tsx uses dynamic import for GoogleAuth plugin (code splitting)
+
 ## [1.0.0-alpha.31] - 2026-01-21
 
 ### Added

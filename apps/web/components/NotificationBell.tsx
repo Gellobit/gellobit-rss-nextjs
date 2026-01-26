@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { Bell, Check, CheckCheck, Gift, Calendar, Crown, Info, X, Briefcase, GraduationCap, Trophy } from 'lucide-react';
+import { Bell, Check, CheckCheck, Gift, Calendar, Crown, Info, X, Briefcase, GraduationCap, Trophy, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { useUser } from '@/context/UserContext';
 
@@ -138,6 +138,18 @@ export default function NotificationBell() {
             }
         } catch (error) {
             console.error('Error deleting notification:', error);
+        }
+    };
+
+    const clearAllNotifications = async () => {
+        if (!confirm('Clear all notifications? This cannot be undone.')) return;
+
+        try {
+            await fetch('/api/notifications/clear-all', { method: 'DELETE' });
+            setNotifications([]);
+            setUnreadCount(0);
+        } catch (error) {
+            console.error('Error clearing all notifications:', error);
         }
     };
 
@@ -294,14 +306,23 @@ export default function NotificationBell() {
                     </div>
 
                     {/* Footer */}
-                    <div className="px-4 py-3 border-t border-slate-100 bg-slate-50">
+                    <div className="px-4 py-3 border-t border-slate-100 bg-slate-50 flex items-center justify-between">
                         <Link
                             href="/account/notifications"
                             onClick={() => setIsOpen(false)}
-                            className="text-sm font-medium text-blue-600 hover:text-blue-700 block text-center"
+                            className="text-sm font-medium text-blue-600 hover:text-blue-700"
                         >
                             Notification Settings
                         </Link>
+                        {notifications.length > 0 && (
+                            <button
+                                onClick={clearAllNotifications}
+                                className="text-sm font-medium text-red-600 hover:text-red-700 flex items-center gap-1"
+                            >
+                                <Trash2 size={14} />
+                                Clear all
+                            </button>
+                        )}
                     </div>
                 </div>
             )}
