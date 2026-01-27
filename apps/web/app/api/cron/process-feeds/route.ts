@@ -3,14 +3,9 @@ import { rssProcessorService } from '@/lib/services/rss-processor.service';
 import { logger } from '@/lib/utils/logger';
 
 /**
- * Vercel Cron Endpoint - Process RSS Feeds
- * Triggered automatically by Vercel Cron (hourly)
- *
- * Security: Requires CRON_SECRET header to prevent unauthorized access
- *
- * @route POST /api/cron/process-feeds
+ * Shared processing logic for both GET (Vercel Cron) and POST (manual trigger)
  */
-export async function POST(request: NextRequest) {
+async function processFeeds(request: NextRequest) {
   const startTime = Date.now();
 
   try {
@@ -51,6 +46,10 @@ export async function POST(request: NextRequest) {
       total_items_processed: results.reduce((sum, r) => sum + r.itemsProcessed, 0),
       total_opportunities_created: results.reduce(
         (sum, r) => sum + r.opportunitiesCreated,
+        0
+      ),
+      total_posts_created: results.reduce(
+        (sum, r) => sum + r.postsCreated,
         0
       ),
       total_duplicates_skipped: results.reduce(
@@ -96,14 +95,22 @@ export async function POST(request: NextRequest) {
 }
 
 /**
- * GET method for testing (not used by Vercel Cron)
+ * Vercel Cron Endpoint - Process RSS Feeds
+ * Vercel Cron triggers GET requests automatically
+ *
+ * Security: Requires CRON_SECRET header to prevent unauthorized access
+ *
+ * @route GET /api/cron/process-feeds
  */
-export async function GET() {
-  return NextResponse.json(
-    {
-      message: 'Cron endpoint ready',
-      info: 'Use POST with Authorization header to trigger processing',
-    },
-    { status: 200 }
-  );
+export async function GET(request: NextRequest) {
+  return processFeeds(request);
+}
+
+/**
+ * Manual trigger endpoint (e.g., curl -X POST)
+ *
+ * @route POST /api/cron/process-feeds
+ */
+export async function POST(request: NextRequest) {
+  return processFeeds(request);
 }

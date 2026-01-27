@@ -17,6 +17,8 @@ import {
     Clock,
     FolderOpen,
     Tag,
+    ChevronLeft,
+    ChevronRight,
 } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import MediaModal from '@/components/MediaModal';
@@ -94,6 +96,11 @@ export default function ManageBlogPosts() {
     const [statusFilter, setStatusFilter] = useState<string>('');
     const [searchQuery, setSearchQuery] = useState('');
 
+    // Pagination
+    const [page, setPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
+    const limit = 20;
+
     // Form state
     const [showForm, setShowForm] = useState(false);
     const [editingPost, setEditingPost] = useState<Post | null>(null);
@@ -115,7 +122,7 @@ export default function ManageBlogPosts() {
     useEffect(() => {
         fetchPosts();
         fetchCategories();
-    }, [statusFilter, searchQuery]);
+    }, [statusFilter, searchQuery, page]);
 
     const fetchCategories = async () => {
         try {
@@ -140,6 +147,8 @@ export default function ManageBlogPosts() {
         setSelectedPosts(new Set()); // Clear selection when reloading
         try {
             const params = new URLSearchParams();
+            params.set('limit', limit.toString());
+            params.set('offset', ((page - 1) * limit).toString());
             if (statusFilter) params.set('status', statusFilter);
             if (searchQuery) params.set('search', searchQuery);
 
@@ -156,6 +165,7 @@ export default function ManageBlogPosts() {
             if (res.ok) {
                 setPosts(data.posts || []);
                 setTotal(data.total || 0);
+                setTotalPages(Math.ceil((data.total || 0) / limit));
             }
         } catch (error) {
             console.error('Error fetching posts:', error);
@@ -674,7 +684,7 @@ export default function ManageBlogPosts() {
                         <input
                             type="text"
                             value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
+                            onChange={(e) => { setSearchQuery(e.target.value); setPage(1); }}
                             placeholder="Search posts..."
                             className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                         />
@@ -683,7 +693,7 @@ export default function ManageBlogPosts() {
                     {/* Status Filter */}
                     <select
                         value={statusFilter}
-                        onChange={(e) => setStatusFilter(e.target.value)}
+                        onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
                         className="border border-slate-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                     >
                         <option value="">All Status</option>
@@ -862,6 +872,29 @@ export default function ManageBlogPosts() {
                             ))}
                         </tbody>
                     </table>
+                </div>
+            )}
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+                <div className="flex items-center justify-center gap-2">
+                    <button
+                        onClick={() => setPage(p => Math.max(1, p - 1))}
+                        disabled={page === 1}
+                        className="p-2 border border-slate-200 rounded-lg hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        <ChevronLeft size={20} />
+                    </button>
+                    <span className="px-4 py-2 font-bold text-sm">
+                        Page {page} of {totalPages}
+                    </span>
+                    <button
+                        onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                        disabled={page === totalPages}
+                        className="p-2 border border-slate-200 rounded-lg hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        <ChevronRight size={20} />
+                    </button>
                 </div>
             )}
         </div>

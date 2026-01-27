@@ -103,44 +103,9 @@ export async function POST(request: NextRequest) {
 }
 
 /**
- * GET handler for health checks
- * Returns current expiration statistics without performing cleanup
+ * GET handler - Vercel Cron triggers GET requests
+ * Runs the full cleanup (same as POST)
  */
 export async function GET(request: NextRequest) {
-  try {
-    // Verify cron secret for security
-    const authHeader = request.headers.get('authorization');
-    const cronSecret = process.env.CRON_SECRET;
-
-    if (!cronSecret) {
-      return NextResponse.json(
-        { error: 'Server configuration error' },
-        { status: 500 }
-      );
-    }
-
-    if (authHeader !== `Bearer ${cronSecret}`) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
-
-    const stats = await cleanupService.getExpirationStats();
-
-    return NextResponse.json({
-      success: true,
-      stats,
-      message: 'Cleanup cron endpoint is healthy',
-    });
-  } catch (error) {
-    return NextResponse.json(
-      {
-        success: false,
-        error: 'Health check failed',
-        details: error instanceof Error ? error.message : 'Unknown error',
-      },
-      { status: 500 }
-    );
-  }
+  return POST(request);
 }
