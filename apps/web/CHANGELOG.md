@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.0-alpha.35] - 2026-01-28
+
+### Added
+- **Password Recovery System**: Complete "Forgot Password" flow in the authentication page
+  - "Forgot your password?" link in the Sign In form
+  - Dedicated password reset request form (`/auth?mode=forgot`)
+  - New password form when user clicks the email recovery link
+  - Automatic detection of recovery token in URL hash
+  - Password validation (minimum 6 characters, confirmation match)
+  - Success/error messages with appropriate visual styling
+  - "Back to Sign In" navigation button
+
+### Changed
+- `apps/web/app/auth/AuthForm.tsx`: Updated component to support three modes (signin, signup, forgot) plus recovery mode
+
+## [1.0.0-alpha.34] - 2026-01-27
+
+### Changed
+- Enabled Vercel Cron for feed processing
+- Added blog pagination
+
 ## [1.0.0-alpha.33] - 2026-01-26
 
 ### Added
