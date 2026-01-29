@@ -74,7 +74,7 @@ export const AD_LAYOUTS: Record<OpportunityCategory, AdLayoutConfig> = {
 
     // Content ads
     belowTitle: true,              // High impact, above the fold
-    inContent: false,              // Content is short, skip in-content
+    inContent: true,               // In-content ad for monetization
     endOfPost: true,               // Standard end placement
     afterCTA: false,               // Skip, user redirects quickly
 
@@ -104,7 +104,7 @@ export const AD_LAYOUTS: Record<OpportunityCategory, AdLayoutConfig> = {
     stickySidebar: true,
 
     // Content ads
-    belowTitle: false,             // Don't interrupt above the fold
+    belowTitle: true,              // Below title ad
     inContent: true,               // Native ad between sections
     endOfPost: true,               // Recommended content style
     afterCTA: false,
@@ -135,7 +135,7 @@ export const AD_LAYOUTS: Record<OpportunityCategory, AdLayoutConfig> = {
     stickySidebar: false,
 
     // Content ads
-    belowTitle: false,
+    belowTitle: true,              // Below title ad
     inContent: true,               // Native grid style
     endOfPost: true,
     afterCTA: true,                // High CTR after copy code button
@@ -160,8 +160,8 @@ export const AD_LAYOUTS: Record<OpportunityCategory, AdLayoutConfig> = {
     stickyAnchor: false,
     stickySidebar: false,
 
-    belowTitle: false,
-    inContent: true,
+    belowTitle: true,              // Below title ad
+    inContent: true,               // In-content ad
     endOfPost: true,
     afterCTA: false,
 
