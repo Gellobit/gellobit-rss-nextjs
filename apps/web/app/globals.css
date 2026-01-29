@@ -116,3 +116,140 @@ body {
 .animate-slide-down {
   animation: slide-down 0.3s ease-out forwards;
 }
+
+/* ============================================
+   TABLE STYLES - For Blog Posts & Content
+   ============================================ */
+
+/* Base table styles for prose content */
+.prose table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1.5rem 0;
+  font-size: 0.875rem;
+  overflow: hidden;
+  border-radius: 0.75rem;
+  border: 1px solid #e2e8f0;
+}
+
+.prose thead {
+  background: linear-gradient(to bottom, #f8fafc, #f1f5f9);
+}
+
+.prose th {
+  padding: 0.875rem 1rem;
+  text-align: left;
+  font-weight: 700;
+  color: #1e293b;
+  border-bottom: 2px solid #e2e8f0;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
+}
+
+.prose td {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid #e2e8f0;
+  color: #475569;
+}
+
+.prose tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* Alternating row colors (zebra stripes) */
+.prose tbody tr:nth-child(even) {
+  background-color: #f8fafc;
+}
+
+.prose tbody tr:hover {
+  background-color: #fef9c3;
+  transition: background-color 0.15s ease;
+}
+
+/* Responsive table wrapper for mobile */
+.table-wrapper {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  margin: 1.5rem 0;
+}
+
+/* Mobile-friendly table adjustments */
+@media (max-width: 640px) {
+  .prose table {
+    font-size: 0.8rem;
+  }
+
+  .prose th,
+  .prose td {
+    padding: 0.5rem 0.75rem;
+  }
+
+  .prose th {
+    font-size: 0.7rem;
+  }
+}
+
+/* TipTap Editor Table Styles */
+.tiptap table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1rem 0;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.5rem;
+  overflow: hidden;
+}
+
+.tiptap th,
+.tiptap td {
+  border: 1px solid #e2e8f0;
+  padding: 0.5rem 0.75rem;
+  min-width: 80px;
+  vertical-align: top;
+  position: relative;
+}
+
+.tiptap th {
+  background-color: #f1f5f9;
+  font-weight: 600;
+  text-align: left;
+}
+
+.tiptap td {
+  background-color: #ffffff;
+}
+
+/* Selected cell highlight in editor */
+.tiptap .selectedCell {
+  background-color: #fef3c7 !important;
+}
+
+.tiptap .selectedCell::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 222, 89, 0.2);
+  pointer-events: none;
+}
+
+/* Column resize handle */
+.tiptap .column-resize-handle {
+  position: absolute;
+  right: -2px;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background-color: #FFDE59;
+  cursor: col-resize;
+}
+
+/* Table grip (for selecting rows/columns) */
+.tiptap .tableWrapper {
+  margin: 1rem 0;
+  overflow-x: auto;
+}
+
+.tiptap table p {
+  margin: 0;
+}

@@ -6,6 +6,10 @@ import Link from '@tiptap/extension-link';
 import Image from '@tiptap/extension-image';
 import Placeholder from '@tiptap/extension-placeholder';
 import Underline from '@tiptap/extension-underline';
+import Table from '@tiptap/extension-table';
+import TableRow from '@tiptap/extension-table-row';
+import TableCell from '@tiptap/extension-table-cell';
+import TableHeader from '@tiptap/extension-table-header';
 import {
     Bold,
     Italic,
@@ -29,6 +33,9 @@ import {
     Globe,
     Loader2,
     Code2,
+    Table as TableIcon,
+    Plus,
+    Trash2,
 } from 'lucide-react';
 import { useCallback, useEffect, useState, useRef } from 'react';
 
@@ -483,6 +490,15 @@ export default function WysiwygEditor({ value, onChange, placeholder = 'Start wr
             Placeholder.configure({
                 placeholder,
             }),
+            Table.configure({
+                resizable: true,
+                HTMLAttributes: {
+                    class: 'border-collapse border border-slate-200',
+                },
+            }),
+            TableRow,
+            TableHeader,
+            TableCell,
         ],
         content: value,
         immediatelyRender: false,
@@ -712,6 +728,39 @@ export default function WysiwygEditor({ value, onChange, placeholder = 'Start wr
                     >
                         <ImageIcon size={18} />
                     </ToolbarButton>
+
+                    <ToolbarDivider />
+
+                    {/* Table Controls */}
+                    <ToolbarButton
+                        onClick={() => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}
+                        isActive={editor.isActive('table')}
+                        title="Insert Table (3x3)"
+                    >
+                        <TableIcon size={18} />
+                    </ToolbarButton>
+                    {editor.isActive('table') && (
+                        <>
+                            <ToolbarButton
+                                onClick={() => editor.chain().focus().addColumnAfter().run()}
+                                title="Add Column"
+                            >
+                                <Plus size={14} />
+                            </ToolbarButton>
+                            <ToolbarButton
+                                onClick={() => editor.chain().focus().addRowAfter().run()}
+                                title="Add Row"
+                            >
+                                <Plus size={14} className="rotate-90" />
+                            </ToolbarButton>
+                            <ToolbarButton
+                                onClick={() => editor.chain().focus().deleteTable().run()}
+                                title="Delete Table"
+                            >
+                                <Trash2 size={16} className="text-red-500" />
+                            </ToolbarButton>
+                        </>
+                    )}
 
                     <ToolbarDivider />
 

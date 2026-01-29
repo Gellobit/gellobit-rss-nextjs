@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.0-alpha.39] - 2026-01-29
+
+### Added
+- **Table Support in Blog Posts and Editor**
+  - Custom CSS styles for tables: zebra stripes, hover effects, rounded corners
+  - Mobile-responsive table styles with horizontal scroll
+  - TipTap table extensions for WYSIWYG editor (create, paste, edit tables)
+  - Toolbar buttons: Insert Table, Add Column, Add Row, Delete Table
+  - Tables can now be pasted from Claude AI, Word, or any source
+
+### Changed
+- **WysiwygEditor**: Added `@tiptap/extension-table` family for full table support
+- **globals.css**: Added comprehensive table styles for both `prose` content and TipTap editor
+
 ## [1.0.0-alpha.38] - 2026-01-29
 
 ### Fixed
