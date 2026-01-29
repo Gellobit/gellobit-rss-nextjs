@@ -58,7 +58,7 @@ export default function ManageUsers() {
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [totalCount, setTotalCount] = useState(0);
-    const limit = 20;
+    const [limit, setLimit] = useState(20);
 
     // Edit modal
     const [editingUser, setEditingUser] = useState<User | null>(null);
@@ -80,13 +80,27 @@ export default function ManageUsers() {
         premium: 0
     });
 
+    // Fetch pagination settings on mount
     useEffect(() => {
-        fetchUsers();
+        const fetchSettings = async () => {
+            try {
+                const res = await fetch('/api/admin/settings/general');
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.settings?.admin_items_per_page) {
+                        setLimit(data.settings.admin_items_per_page);
+                    }
+                }
+            } catch (error) {
+                console.error('Error fetching settings:', error);
+            }
+        };
+        fetchSettings();
     }, []);
 
     useEffect(() => {
         fetchUsers();
-    }, [page, roleFilter, statusFilter, membershipFilter]);
+    }, [page, roleFilter, statusFilter, membershipFilter, limit]);
 
     const fetchUsers = async () => {
         setRefreshing(true);

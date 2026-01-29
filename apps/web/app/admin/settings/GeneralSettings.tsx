@@ -9,6 +9,7 @@ interface GeneralConfig {
     auto_publish: boolean;
     quality_threshold: number;
     max_posts_per_run: number;
+    admin_items_per_page: number;
 }
 
 export default function GeneralSettings() {
@@ -18,6 +19,7 @@ export default function GeneralSettings() {
         auto_publish: false,
         quality_threshold: 0.7,
         max_posts_per_run: 10,
+        admin_items_per_page: 20,
     });
     const [loading, setLoading] = useState(false);
     const [saving, setSaving] = useState(false);
@@ -282,6 +284,26 @@ export default function GeneralSettings() {
                 />
                 <p className="text-xs text-slate-500">
                     Limit how many posts can be processed in a single run (prevents API rate limits)
+                </p>
+            </div>
+
+            {/* Admin Items Per Page */}
+            <div className="space-y-2">
+                <label className="block text-sm font-bold text-slate-900">
+                    Items Per Page (Admin Tables)
+                </label>
+                <select
+                    value={config.admin_items_per_page}
+                    onChange={(e) => setConfig({ ...config, admin_items_per_page: Number(e.target.value) })}
+                    className="w-full border border-slate-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                    <option value={10}>10 items per page</option>
+                    <option value={20}>20 items per page (default)</option>
+                    <option value={50}>50 items per page</option>
+                    <option value={100}>100 items per page</option>
+                </select>
+                <p className="text-xs text-slate-500">
+                    Number of items shown per page in admin tables (Opportunities, Blog Posts, Users, etc.)
                 </p>
             </div>
 

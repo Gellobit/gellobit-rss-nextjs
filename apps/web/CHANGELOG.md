@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.0-alpha.42] - 2026-01-29
+
+### Added
+- **Configurable Items Per Page in Admin Tables**: New setting in General Settings to configure how many items are shown per page
+  - Options: 10, 20 (default), 50, or 100 items per page
+  - Applies to: Blog Posts, Opportunities, and Users admin tables
+  - Setting persists across sessions (stored in system_settings)
+
+### Changed
+- **ManageBlogPosts.tsx**: Now fetches `admin_items_per_page` setting on mount
+- **ManagePosts.tsx** (Opportunities): Now fetches `admin_items_per_page` setting on mount
+- **ManageUsers.tsx**: Now fetches `admin_items_per_page` setting on mount
+
 ## [1.0.0-alpha.41] - 2026-01-29
 
 ### Added

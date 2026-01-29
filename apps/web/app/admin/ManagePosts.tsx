@@ -138,7 +138,7 @@ export default function ManagePosts() {
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [totalCount, setTotalCount] = useState(0);
-    const limit = 20;
+    const [limit, setLimit] = useState(20);
 
     // Edit/Create modal
     const [editingPost, setEditingPost] = useState<Opportunity | null>(null);
@@ -157,14 +157,28 @@ export default function ManagePosts() {
     const [dateFrom, setDateFrom] = useState<string>('');
     const [dateTo, setDateTo] = useState<string>('');
 
+    // Fetch pagination settings on mount
     useEffect(() => {
+        const fetchSettings = async () => {
+            try {
+                const res = await fetch('/api/admin/settings/general');
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.settings?.admin_items_per_page) {
+                        setLimit(data.settings.admin_items_per_page);
+                    }
+                }
+            } catch (error) {
+                console.error('Error fetching settings:', error);
+            }
+        };
+        fetchSettings();
         fetchFeeds();
-        fetchOpportunities();
     }, []);
 
     useEffect(() => {
         fetchOpportunities();
-    }, [page, statusFilter, typeFilter, feedFilter, dateFrom, dateTo]);
+    }, [page, statusFilter, typeFilter, feedFilter, dateFrom, dateTo, limit]);
 
     const fetchFeeds = async () => {
         try {

@@ -107,7 +107,7 @@ export default function ManageBlogPosts() {
     // Pagination
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
-    const limit = 20;
+    const [limit, setLimit] = useState(20);
 
     // Form state
     const [showForm, setShowForm] = useState(false);
@@ -167,10 +167,28 @@ export default function ManageBlogPosts() {
         }
     }, [searchParams, loadPostForEdit]);
 
+    // Fetch pagination settings on mount
+    useEffect(() => {
+        const fetchSettings = async () => {
+            try {
+                const res = await fetch('/api/admin/settings/general');
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.settings?.admin_items_per_page) {
+                        setLimit(data.settings.admin_items_per_page);
+                    }
+                }
+            } catch (error) {
+                console.error('Error fetching settings:', error);
+            }
+        };
+        fetchSettings();
+    }, []);
+
     useEffect(() => {
         fetchPosts();
         fetchCategories();
-    }, [statusFilter, searchQuery, page, sortBy, sortOrder]);
+    }, [statusFilter, searchQuery, page, sortBy, sortOrder, limit]);
 
     const fetchCategories = async () => {
         try {
