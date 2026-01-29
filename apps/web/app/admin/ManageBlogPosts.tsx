@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
 import {
     Plus,
     Edit2,
@@ -125,6 +126,46 @@ export default function ManageBlogPosts() {
     const [bulkDeleting, setBulkDeleting] = useState(false);
 
     const editorRef = useRef<HTMLDivElement>(null);
+
+    const searchParams = useSearchParams();
+    const router = useRouter();
+
+    // Handle edit query parameter for "Open in new tab" functionality
+    const loadPostForEdit = useCallback(async (postId: string) => {
+        try {
+            const res = await fetch(`/api/admin/posts/${postId}`);
+            if (res.ok) {
+                const data = await res.json();
+                if (data.post) {
+                    setEditingPost(data.post);
+                    setFormData({
+                        title: data.post.title,
+                        slug: data.post.slug,
+                        excerpt: data.post.excerpt || '',
+                        content: data.post.content,
+                        featured_image_url: data.post.featured_image_url || '',
+                        meta_title: data.post.meta_title || '',
+                        meta_description: data.post.meta_description || '',
+                        status: data.post.status,
+                        category_id: data.post.category_id || '',
+                        published_at: data.post.published_at || '',
+                        created_at: data.post.created_at || '',
+                    });
+                    setShowForm(true);
+                }
+            }
+        } catch (error) {
+            console.error('Error loading post for edit:', error);
+        }
+    }, []);
+
+    // Check for edit parameter on mount
+    useEffect(() => {
+        const editId = searchParams.get('edit');
+        if (editId) {
+            loadPostForEdit(editId);
+        }
+    }, [searchParams, loadPostForEdit]);
 
     useEffect(() => {
         fetchPosts();
@@ -402,6 +443,10 @@ export default function ManageBlogPosts() {
                                 setShowForm(false);
                                 setEditingPost(null);
                                 setFormData(initialFormData);
+                                // Clear edit parameter from URL if present
+                                if (searchParams.get('edit')) {
+                                    router.replace('/admin?section=blog', { scroll: false });
+                                }
                             }}
                             className="text-slate-500 hover:text-slate-700"
                         >
@@ -904,13 +949,17 @@ export default function ManageBlogPosts() {
                                                     <ExternalLink size={16} />
                                                 </a>
                                             )}
-                                            <button
-                                                onClick={() => handleEdit(post)}
-                                                className="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                            <a
+                                                href={`/admin?section=blog&edit=${post.id}`}
+                                                onClick={(e) => {
+                                                    e.preventDefault();
+                                                    handleEdit(post);
+                                                }}
+                                                className="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors inline-flex"
                                                 title="Edit"
                                             >
                                                 <Edit2 size={16} />
-                                            </button>
+                                            </a>
                                             <button
                                                 onClick={() => handleDelete(post)}
                                                 className="p-2 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"

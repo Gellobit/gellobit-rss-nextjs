@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
 import {
     Plus,
     Edit2,
@@ -119,6 +120,48 @@ export default function ManagePages() {
     const [opportunityTypes, setOpportunityTypes] = useState<OpportunityTypeOption[]>([
         { value: '', label: 'None (Regular Page)' }
     ]);
+
+    const searchParams = useSearchParams();
+    const router = useRouter();
+
+    // Handle edit query parameter for "Open in new tab" functionality
+    const loadPageForEdit = useCallback(async (pageId: string) => {
+        try {
+            const res = await fetch(`/api/admin/pages/${pageId}`);
+            if (res.ok) {
+                const data = await res.json();
+                if (data.page) {
+                    setEditingPage(data.page);
+                    setFormData({
+                        title: data.page.title,
+                        slug: data.page.slug,
+                        content: data.page.content,
+                        featured_image_url: data.page.featured_image_url || '',
+                        meta_title: data.page.meta_title || '',
+                        meta_description: data.page.meta_description || '',
+                        status: data.page.status,
+                        show_in_footer: data.page.show_in_footer,
+                        show_in_menu: data.page.show_in_menu,
+                        sort_order: data.page.sort_order,
+                        linked_opportunity_type: data.page.linked_opportunity_type || '',
+                        published_at: data.page.published_at || '',
+                        created_at: data.page.created_at || '',
+                    });
+                    setShowForm(true);
+                }
+            }
+        } catch (error) {
+            console.error('Error loading page for edit:', error);
+        }
+    }, []);
+
+    // Check for edit parameter on mount
+    useEffect(() => {
+        const editId = searchParams.get('edit');
+        if (editId) {
+            loadPageForEdit(editId);
+        }
+    }, [searchParams, loadPageForEdit]);
 
     useEffect(() => {
         fetchOpportunityTypes();
@@ -354,6 +397,10 @@ export default function ManagePages() {
                                 setShowForm(false);
                                 setEditingPage(null);
                                 setFormData(initialFormData);
+                                // Clear edit parameter from URL if present
+                                if (searchParams.get('edit')) {
+                                    router.replace('/admin?section=pages', { scroll: false });
+                                }
                             }}
                             className="text-slate-500 hover:text-slate-700"
                         >
@@ -861,13 +908,17 @@ export default function ManagePages() {
                                                     <ExternalLink size={16} />
                                                 </a>
                                             )}
-                                            <button
-                                                onClick={() => handleEdit(page)}
-                                                className="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                            <a
+                                                href={`/admin?section=pages&edit=${page.id}`}
+                                                onClick={(e) => {
+                                                    e.preventDefault();
+                                                    handleEdit(page);
+                                                }}
+                                                className="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors inline-flex"
                                                 title="Edit"
                                             >
                                                 <Edit2 size={16} />
-                                            </button>
+                                            </a>
                                             <button
                                                 onClick={() => handleDelete(page)}
                                                 className="p-2 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"

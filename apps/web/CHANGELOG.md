@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.0-alpha.40] - 2026-01-29
+
+### Added
+- **Right-click "Open in New Tab" for Edit Buttons**: Edit buttons in Blog Posts and Pages admin tables now support right-click context menu to open in a new tab
+  - Edit links use `<a>` tags with href instead of buttons
+  - Normal click works as before (same tab, instant)
+  - Right-click allows "Open in New Tab" option
+  - URL format: `/admin?section=blog&edit={postId}` or `/admin?section=pages&edit={pageId}`
+  - Auto-loads post/page when opening via URL parameter
+  - Closes editor and clears URL parameter when exiting
+
 ## [1.0.0-alpha.39] - 2026-01-29
 
 ### Added
