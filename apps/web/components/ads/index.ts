@@ -12,3 +12,6 @@ export { default as LazyAdUnit } from '../LazyAdUnit';
 
 // AdMob Components (Native apps only)
 export { AdMobBanner, AdMobInterstitial, AdMobInitializer, useAdMobBanner, useAdMobInterstitial, useAdMobAvailable } from './admob';
+
+// AdSense Provider (Global script loader)
+export { AdSenseProvider, useAdSense, useAdSenseReady } from './AdSenseProvider';

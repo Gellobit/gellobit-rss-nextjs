@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useShowAds } from '@/context/UserContext';
-import Script from 'next/script';
+import { useAdSense } from '@/components/ads/AdSenseProvider';
 import Link from 'next/link';
 
 interface AdUnitProps {
@@ -11,27 +11,39 @@ interface AdUnitProps {
     className?: string;
 }
 
-interface AdConfig {
-    // AdSense
-    clientId: string | null;
+interface SlotConfig {
     slotId: string | null;
-    // Manual Banner
     manualBannerEnabled: boolean;
     manualBannerImageUrl: string | null;
     manualBannerTargetUrl: string | null;
 }
 
+/**
+ * Normalizes the AdSense client ID to ensure it has the correct format
+ */
+function normalizeClientId(clientId: string | null): string | null {
+    if (!clientId) return null;
+    const trimmed = clientId.trim();
+    if (!trimmed) return null;
+    if (trimmed.startsWith('ca-pub-')) return trimmed;
+    if (trimmed.startsWith('pub-')) return `ca-${trimmed}`;
+    if (/^\d+$/.test(trimmed)) return `ca-pub-${trimmed}`;
+    return trimmed;
+}
+
 export const AdUnit: React.FC<AdUnitProps> = ({ slotId, format = 'horizontal', className = '' }) => {
     const { shouldShowAds, loading: membershipLoading } = useShowAds();
-    const [adConfig, setAdConfig] = useState<AdConfig>({
-        clientId: null,
+    const { isLoaded: adsenseLoaded, clientId: globalClientId, initializeAd } = useAdSense();
+
+    const [slotConfig, setSlotConfig] = useState<SlotConfig>({
         slotId: null,
         manualBannerEnabled: false,
         manualBannerImageUrl: null,
         manualBannerTargetUrl: null,
     });
-    const [loaded, setLoaded] = useState(false);
     const [configLoaded, setConfigLoaded] = useState(false);
+    const [adInitialized, setAdInitialized] = useState(false);
+    const adRef = useRef<HTMLModElement>(null);
 
     useEffect(() => {
         // Only fetch config if we should show ads
@@ -43,8 +55,7 @@ export const AdUnit: React.FC<AdUnitProps> = ({ slotId, format = 'horizontal', c
                 const res = await fetch('/api/analytics');
                 if (res.ok) {
                     const data = await res.json();
-                    setAdConfig({
-                        clientId: data.adsense_client_id || null,
+                    setSlotConfig({
                         slotId: slotId || data.adsense_slot_id || null,
                         manualBannerEnabled: data.manual_banner_enabled === true,
                         manualBannerImageUrl: data.manual_banner_image_url || null,
@@ -60,17 +71,26 @@ export const AdUnit: React.FC<AdUnitProps> = ({ slotId, format = 'horizontal', c
         fetchAdConfig();
     }, [slotId, shouldShowAds, membershipLoading]);
 
+    // Initialize AdSense ad when everything is ready
     useEffect(() => {
-        // Initialize AdSense ads when config is loaded (only if not using manual banner)
-        if (!adConfig.manualBannerEnabled && adConfig.clientId && adConfig.slotId && loaded && typeof window !== 'undefined') {
-            try {
-                // @ts-ignore
-                (window.adsbygoogle = window.adsbygoogle || []).push({});
-            } catch (e) {
-                console.error('AdSense error:', e);
-            }
+        if (
+            !slotConfig.manualBannerEnabled &&
+            globalClientId &&
+            slotConfig.slotId &&
+            adsenseLoaded &&
+            configLoaded &&
+            !adInitialized &&
+            adRef.current
+        ) {
+            // Small delay to ensure DOM is ready
+            const timer = setTimeout(() => {
+                initializeAd(adRef.current);
+                setAdInitialized(true);
+            }, 100);
+
+            return () => clearTimeout(timer);
         }
-    }, [adConfig, loaded]);
+    }, [slotConfig, globalClientId, adsenseLoaded, configLoaded, adInitialized, initializeAd]);
 
     // Don't render anything for premium users or while loading
     if (!shouldShowAds || membershipLoading) {
@@ -83,17 +103,17 @@ export const AdUnit: React.FC<AdUnitProps> = ({ slotId, format = 'horizontal', c
     }
 
     // Render manual banner if enabled
-    if (adConfig.manualBannerEnabled && adConfig.manualBannerImageUrl) {
+    if (slotConfig.manualBannerEnabled && slotConfig.manualBannerImageUrl) {
         return (
             <div className={`my-6 ${className}`}>
                 <a
-                    href={adConfig.manualBannerTargetUrl || '#'}
+                    href={slotConfig.manualBannerTargetUrl || '#'}
                     target="_blank"
                     rel="noopener sponsored"
                     className="block"
                 >
                     <img
-                        src={adConfig.manualBannerImageUrl}
+                        src={slotConfig.manualBannerImageUrl}
                         alt="Advertisement"
                         className="w-full h-auto rounded-xl hover:opacity-90 transition-opacity"
                     />
@@ -107,10 +127,11 @@ export const AdUnit: React.FC<AdUnitProps> = ({ slotId, format = 'horizontal', c
         );
     }
 
-    const effectiveSlotId = slotId || adConfig.slotId;
+    const effectiveSlotId = slotId || slotConfig.slotId;
+    const effectiveClientId = normalizeClientId(globalClientId);
 
     // If no AdSense config, show placeholder
-    if (!adConfig.clientId || !effectiveSlotId) {
+    if (!effectiveClientId || !effectiveSlotId) {
         const baseStyles = "bg-gray-100 border border-gray-200 flex items-center justify-center text-gray-400 text-xs uppercase tracking-widest rounded-xl";
         const dimStyles = format === 'horizontal' ? 'w-full h-24' : format === 'rectangle' ? 'w-[300px] h-[250px]' : 'w-full min-h-[100px]';
 
@@ -155,20 +176,12 @@ export const AdUnit: React.FC<AdUnitProps> = ({ slotId, format = 'horizontal', c
 
     return (
         <div className={`my-6 ${className}`}>
-            {/* Load AdSense script once */}
-            <Script
-                async
-                src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${adConfig.clientId}`}
-                crossOrigin="anonymous"
-                strategy="lazyOnload"
-                onLoad={() => setLoaded(true)}
-            />
-
-            {/* Ad container */}
+            {/* AdSense ad container - script is loaded globally by AdSenseProvider */}
             <ins
+                ref={adRef}
                 className="adsbygoogle"
                 style={getAdStyle()}
-                data-ad-client={adConfig.clientId}
+                data-ad-client={effectiveClientId}
                 data-ad-slot={effectiveSlotId}
                 data-ad-format={getDataAdFormat()}
                 data-full-width-responsive={format === 'auto' ? 'true' : 'false'}

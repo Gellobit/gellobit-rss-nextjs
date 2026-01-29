@@ -2,9 +2,9 @@
 
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useShowAds } from '@/context/UserContext';
-import Script from 'next/script';
+import { useAdSense } from '@/components/ads/AdSenseProvider';
 import Link from 'next/link';
-import { isNativeApp, getAdProvider } from '@/lib/utils/platform';
+import { isNativeApp } from '@/lib/utils/platform';
 
 interface LazyAdUnitProps {
     slotId?: string;
@@ -17,12 +17,24 @@ interface LazyAdUnitProps {
     showUpgradeLink?: boolean;
 }
 
-interface AdConfig {
-    clientId: string | null;
+interface SlotConfig {
     slotId: string | null;
     manualBannerEnabled: boolean;
     manualBannerImageUrl: string | null;
     manualBannerTargetUrl: string | null;
+}
+
+/**
+ * Normalizes the AdSense client ID to ensure it has the correct format
+ */
+function normalizeClientId(clientId: string | null): string | null {
+    if (!clientId) return null;
+    const trimmed = clientId.trim();
+    if (!trimmed) return null;
+    if (trimmed.startsWith('ca-pub-')) return trimmed;
+    if (trimmed.startsWith('pub-')) return `ca-${trimmed}`;
+    if (/^\d+$/.test(trimmed)) return `ca-pub-${trimmed}`;
+    return trimmed;
 }
 
 export default function LazyAdUnit({
@@ -36,17 +48,17 @@ export default function LazyAdUnit({
     showUpgradeLink = true,
 }: LazyAdUnitProps) {
     const { shouldShowAds, loading: membershipLoading } = useShowAds();
+    const { isLoaded: adsenseLoaded, clientId: globalClientId, initializeAd } = useAdSense();
+
     const [isVisible, setIsVisible] = useState(false);
     const [isNative, setIsNative] = useState(false);
-    const [adConfig, setAdConfig] = useState<AdConfig>({
-        clientId: null,
+    const [slotConfig, setSlotConfig] = useState<SlotConfig>({
         slotId: null,
         manualBannerEnabled: false,
         manualBannerImageUrl: null,
         manualBannerTargetUrl: null,
     });
     const [configLoaded, setConfigLoaded] = useState(false);
-    const [scriptLoaded, setScriptLoaded] = useState(false);
     const [adInitialized, setAdInitialized] = useState(false);
     const [admobLoaded, setAdmobLoaded] = useState(false);
     const containerRef = useRef<HTMLDivElement>(null);
@@ -83,7 +95,7 @@ export default function LazyAdUnit({
         return () => observer.disconnect();
     }, [shouldShowAds, membershipLoading, rootMargin]);
 
-    // Fetch ad configuration only when visible
+    // Fetch slot configuration only when visible
     useEffect(() => {
         if (!isVisible || !shouldShowAds || membershipLoading) return;
 
@@ -118,8 +130,8 @@ export default function LazyAdUnit({
             return;
         }
 
-        // For web, fetch AdSense configuration
-        const fetchAdConfig = async () => {
+        // For web, fetch slot configuration
+        const fetchSlotConfig = async () => {
             try {
                 const res = await fetch('/api/analytics');
                 if (res.ok) {
@@ -130,19 +142,33 @@ export default function LazyAdUnit({
                         // If slotId prop is provided, use it directly
                         if (slotId) return slotId;
 
-                        // Map position to slot key
+                        // Map position to slot key - includes all variations
                         const positionToSlotMap: Record<string, string> = {
+                            // Sticky/Anchor positions
                             'sticky_anchor': data.adsense_slot_sticky,
                             'sticky': data.adsense_slot_sticky,
+                            'anchor': data.adsense_slot_sticky,
+                            // Sidebar positions
                             'sidebar': data.adsense_slot_sidebar,
                             'sticky_sidebar': data.adsense_slot_sidebar,
+                            // Below title positions
                             'below_title': data.adsense_slot_below_title,
+                            // In-content positions
                             'in_content': data.adsense_slot_in_content,
                             'native_in_content': data.adsense_slot_in_content,
+                            'post_after_first': data.adsense_slot_in_content,
+                            'post_middle': data.adsense_slot_in_content,
+                            // End of post positions
                             'end_of_post': data.adsense_slot_end_of_post,
                             'post_bottom': data.adsense_slot_end_of_post,
+                            // After CTA positions
                             'after_cta': data.adsense_slot_after_cta,
                         };
+
+                        // First try exact match
+                        if (positionToSlotMap[pos]) {
+                            return positionToSlotMap[pos];
+                        }
 
                         // Check for partial position matches (e.g., "sweepstakes_below_title" -> "below_title")
                         for (const [key, value] of Object.entries(positionToSlotMap)) {
@@ -155,8 +181,7 @@ export default function LazyAdUnit({
                         return data.adsense_slot_id || null;
                     };
 
-                    setAdConfig({
-                        clientId: data.adsense_client_id || null,
+                    setSlotConfig({
                         slotId: getSlotForPosition(position),
                         manualBannerEnabled: data.manual_banner_enabled === true,
                         manualBannerImageUrl: data.manual_banner_image_url || null,
@@ -164,39 +189,35 @@ export default function LazyAdUnit({
                     });
                 }
             } catch (error) {
-                console.error('Error fetching ad config:', error);
+                console.error('Error fetching ad slot config:', error);
             } finally {
                 setConfigLoaded(true);
             }
         };
 
-        fetchAdConfig();
+        fetchSlotConfig();
     }, [isVisible, slotId, shouldShowAds, membershipLoading, isNative, admobUnitId, admobSize, format, position]);
 
-    // Initialize AdSense ad after script loads
-    const initializeAd = useCallback(() => {
-        if (
-            !adConfig.manualBannerEnabled &&
-            adConfig.clientId &&
-            adConfig.slotId &&
-            scriptLoaded &&
-            !adInitialized &&
-            adRef.current &&
-            typeof window !== 'undefined'
-        ) {
-            try {
-                // @ts-ignore
-                (window.adsbygoogle = window.adsbygoogle || []).push({});
-                setAdInitialized(true);
-            } catch (e) {
-                console.error('AdSense initialization error:', e);
-            }
-        }
-    }, [adConfig, scriptLoaded, adInitialized]);
-
+    // Initialize AdSense ad when everything is ready
     useEffect(() => {
-        initializeAd();
-    }, [initializeAd]);
+        if (
+            !slotConfig.manualBannerEnabled &&
+            globalClientId &&
+            slotConfig.slotId &&
+            adsenseLoaded &&
+            configLoaded &&
+            !adInitialized &&
+            adRef.current
+        ) {
+            // Small delay to ensure DOM is ready
+            const timer = setTimeout(() => {
+                initializeAd(adRef.current);
+                setAdInitialized(true);
+            }, 100);
+
+            return () => clearTimeout(timer);
+        }
+    }, [slotConfig, globalClientId, adsenseLoaded, configLoaded, adInitialized, initializeAd]);
 
     // Don't render anything for premium users
     if (!shouldShowAds || membershipLoading) {
@@ -231,8 +252,6 @@ export default function LazyAdUnit({
 
     // Native app with AdMob - the banner is rendered natively, not in React
     if (isNative && admobLoaded) {
-        // AdMob banners are rendered by the native SDK, not in the React tree
-        // Return a placeholder to maintain layout spacing
         return (
             <div
                 ref={containerRef}
@@ -246,7 +265,7 @@ export default function LazyAdUnit({
     }
 
     // Manual banner override
-    if (adConfig.manualBannerEnabled && adConfig.manualBannerImageUrl) {
+    if (slotConfig.manualBannerEnabled && slotConfig.manualBannerImageUrl) {
         return (
             <div
                 ref={containerRef}
@@ -254,13 +273,13 @@ export default function LazyAdUnit({
                 data-ad-position={position}
             >
                 <a
-                    href={adConfig.manualBannerTargetUrl || '#'}
+                    href={slotConfig.manualBannerTargetUrl || '#'}
                     target="_blank"
                     rel="noopener sponsored"
                     className="block"
                 >
                     <img
-                        src={adConfig.manualBannerImageUrl}
+                        src={slotConfig.manualBannerImageUrl}
                         alt="Advertisement"
                         className="w-full h-auto rounded-xl hover:opacity-90 transition-opacity"
                         loading="lazy"
@@ -277,10 +296,11 @@ export default function LazyAdUnit({
         );
     }
 
-    const effectiveSlotId = slotId || adConfig.slotId;
+    const effectiveSlotId = slotId || slotConfig.slotId;
+    const effectiveClientId = normalizeClientId(globalClientId);
 
     // No AdSense config - show placeholder
-    if (!adConfig.clientId || !effectiveSlotId) {
+    if (!effectiveClientId || !effectiveSlotId) {
         return (
             <div
                 ref={containerRef}
@@ -301,28 +321,19 @@ export default function LazyAdUnit({
         );
     }
 
-    // Render AdSense ad
+    // Render AdSense ad (script is loaded globally by AdSenseProvider)
     return (
         <div
             ref={containerRef}
             className={`my-6 ${className}`}
             data-ad-position={position}
         >
-            {/* Load AdSense script */}
-            <Script
-                async
-                src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${adConfig.clientId}`}
-                crossOrigin="anonymous"
-                strategy="lazyOnload"
-                onLoad={() => setScriptLoaded(true)}
-            />
-
             {/* AdSense ad container */}
             <ins
                 ref={adRef}
                 className="adsbygoogle"
                 style={getAdStyle(format)}
-                data-ad-client={adConfig.clientId}
+                data-ad-client={effectiveClientId}
                 data-ad-slot={effectiveSlotId}
                 data-ad-format={getDataAdFormat(format)}
                 data-full-width-responsive={format === 'auto' ? 'true' : 'false'}

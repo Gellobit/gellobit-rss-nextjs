@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.0-alpha.38] - 2026-01-29
+
+### Fixed
+- **AdSense In-Content Ads Not Displaying**: Resolved issue where AdSense ads were only showing in the sidebar but not in other positions (below title, in-content, end of post)
+
+### Added
+- **Global AdSense Provider** (`components/ads/AdSenseProvider.tsx`)
+  - Loads AdSense script once globally instead of per-component
+  - Prevents race conditions from multiple script loads
+  - Automatic client ID normalization (`pub-XXX` → `ca-pub-XXX`)
+  - Shared loading state across all ad components
+
+### Changed
+- **LazyAdUnit Component**: Now uses global AdSense provider instead of loading its own script
+  - Added missing position mappings: `post_after_first`, `post_middle` → `in_content` slot
+  - Improved ad initialization timing with DOM readiness check
+- **AdUnit Component**: Updated to use global AdSense provider
+- **Root Layout**: Added `AdSenseProvider` wrapper to enable global script loading
+
 ## [1.0.0-alpha.35] - 2026-01-28
 
 ### Added
