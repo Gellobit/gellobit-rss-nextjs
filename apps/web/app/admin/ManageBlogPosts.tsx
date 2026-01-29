@@ -19,6 +19,9 @@ import {
     Tag,
     ChevronLeft,
     ChevronRight,
+    ArrowUpDown,
+    ArrowUp,
+    ArrowDown,
 } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import MediaModal from '@/components/MediaModal';
@@ -96,6 +99,10 @@ export default function ManageBlogPosts() {
     const [statusFilter, setStatusFilter] = useState<string>('');
     const [searchQuery, setSearchQuery] = useState('');
 
+    // Sorting
+    const [sortBy, setSortBy] = useState<string>('created_at');
+    const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+
     // Pagination
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
@@ -122,7 +129,7 @@ export default function ManageBlogPosts() {
     useEffect(() => {
         fetchPosts();
         fetchCategories();
-    }, [statusFilter, searchQuery, page]);
+    }, [statusFilter, searchQuery, page, sortBy, sortOrder]);
 
     const fetchCategories = async () => {
         try {
@@ -151,6 +158,8 @@ export default function ManageBlogPosts() {
             params.set('offset', ((page - 1) * limit).toString());
             if (statusFilter) params.set('status', statusFilter);
             if (searchQuery) params.set('search', searchQuery);
+            params.set('sortBy', sortBy);
+            params.set('sortOrder', sortOrder);
 
             const res = await fetch(`/api/admin/posts?${params.toString()}`);
 
@@ -346,6 +355,25 @@ export default function ManageBlogPosts() {
             default:
                 return null;
         }
+    };
+
+    const handleSort = (field: string) => {
+        if (sortBy === field) {
+            setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+        } else {
+            setSortBy(field);
+            setSortOrder(field === 'title' ? 'asc' : 'desc');
+        }
+        setPage(1);
+    };
+
+    const SortIcon = ({ field }: { field: string }) => {
+        if (sortBy !== field) {
+            return <ArrowUpDown size={14} className="text-slate-300" />;
+        }
+        return sortOrder === 'asc'
+            ? <ArrowUp size={14} className="text-blue-600" />
+            : <ArrowDown size={14} className="text-blue-600" />;
     };
 
     if (showForm) {
@@ -764,10 +792,34 @@ export default function ManageBlogPosts() {
                                         className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
                                     />
                                 </th>
-                                <th className="text-left px-6 py-3 text-xs font-bold text-slate-500 uppercase">Post</th>
+                                <th
+                                    className="text-left px-6 py-3 text-xs font-bold text-slate-500 uppercase cursor-pointer hover:bg-slate-100 transition-colors select-none"
+                                    onClick={() => handleSort('title')}
+                                >
+                                    <div className="flex items-center gap-1">
+                                        Post
+                                        <SortIcon field="title" />
+                                    </div>
+                                </th>
                                 <th className="text-left px-6 py-3 text-xs font-bold text-slate-500 uppercase">Category</th>
-                                <th className="text-left px-6 py-3 text-xs font-bold text-slate-500 uppercase">Status</th>
-                                <th className="text-left px-6 py-3 text-xs font-bold text-slate-500 uppercase">Date</th>
+                                <th
+                                    className="text-left px-6 py-3 text-xs font-bold text-slate-500 uppercase cursor-pointer hover:bg-slate-100 transition-colors select-none"
+                                    onClick={() => handleSort('status')}
+                                >
+                                    <div className="flex items-center gap-1">
+                                        Status
+                                        <SortIcon field="status" />
+                                    </div>
+                                </th>
+                                <th
+                                    className="text-left px-6 py-3 text-xs font-bold text-slate-500 uppercase cursor-pointer hover:bg-slate-100 transition-colors select-none"
+                                    onClick={() => handleSort('created_at')}
+                                >
+                                    <div className="flex items-center gap-1">
+                                        Date
+                                        <SortIcon field="created_at" />
+                                    </div>
+                                </th>
                                 <th className="text-right px-6 py-3 text-xs font-bold text-slate-500 uppercase">Actions</th>
                             </tr>
                         </thead>

@@ -30,12 +30,19 @@ export async function GET(request: NextRequest) {
         const offset = parseInt(searchParams.get('offset') || '0');
         const status = searchParams.get('status');
         const search = searchParams.get('search');
+        const sortBy = searchParams.get('sortBy') || 'created_at';
+        const sortOrder = searchParams.get('sortOrder') || 'desc';
+
+        // Validate sortBy to prevent SQL injection
+        const allowedSortFields = ['title', 'created_at', 'published_at', 'status'];
+        const safeSortBy = allowedSortFields.includes(sortBy) ? sortBy : 'created_at';
+        const ascending = sortOrder === 'asc';
 
         // Build query
         let query = adminSupabase
             .from('posts')
             .select('*', { count: 'exact' })
-            .order('created_at', { ascending: false })
+            .order(safeSortBy, { ascending })
             .range(offset, offset + limit - 1);
 
         if (status) {

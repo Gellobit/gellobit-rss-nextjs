@@ -18,6 +18,9 @@ import {
     FolderOpen,
     Eye,
     Sparkles,
+    ArrowUpDown,
+    ArrowUp,
+    ArrowDown,
 } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import MediaModal from '@/components/MediaModal';
@@ -99,6 +102,10 @@ export default function ManagePages() {
     const [statusFilter, setStatusFilter] = useState<string>('');
     const [searchQuery, setSearchQuery] = useState('');
 
+    // Sorting
+    const [sortBy, setSortBy] = useState<string>('sort_order');
+    const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+
     // Form state
     const [showForm, setShowForm] = useState(false);
     const [editingPage, setEditingPage] = useState<Page | null>(null);
@@ -119,7 +126,7 @@ export default function ManagePages() {
 
     useEffect(() => {
         fetchPages();
-    }, [statusFilter, searchQuery]);
+    }, [statusFilter, searchQuery, sortBy, sortOrder]);
 
     const fetchOpportunityTypes = async () => {
         try {
@@ -144,6 +151,8 @@ export default function ManagePages() {
             const params = new URLSearchParams();
             if (statusFilter) params.set('status', statusFilter);
             if (searchQuery) params.set('search', searchQuery);
+            params.set('sortBy', sortBy);
+            params.set('sortOrder', sortOrder);
 
             const res = await fetch(`/api/admin/pages?${params.toString()}`);
 
@@ -275,6 +284,24 @@ export default function ManagePages() {
         setFormData(initialFormData);
         setShowForm(true);
         setMessage(null);
+    };
+
+    const handleSort = (field: string) => {
+        if (sortBy === field) {
+            setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+        } else {
+            setSortBy(field);
+            setSortOrder(field === 'title' ? 'asc' : 'desc');
+        }
+    };
+
+    const SortIcon = ({ field }: { field: string }) => {
+        if (sortBy !== field) {
+            return <ArrowUpDown size={14} className="text-slate-300" />;
+        }
+        return sortOrder === 'asc'
+            ? <ArrowUp size={14} className="text-blue-600" />
+            : <ArrowDown size={14} className="text-blue-600" />;
     };
 
     const getStatusBadge = (status: string) => {
@@ -720,11 +747,43 @@ export default function ManagePages() {
                     <table className="w-full">
                         <thead className="bg-slate-50 border-b border-slate-200">
                             <tr>
-                                <th className="text-left px-6 py-3 text-xs font-bold text-slate-500 uppercase">Order</th>
-                                <th className="text-left px-6 py-3 text-xs font-bold text-slate-500 uppercase">Page</th>
-                                <th className="text-left px-6 py-3 text-xs font-bold text-slate-500 uppercase">Status</th>
+                                <th
+                                    className="text-left px-6 py-3 text-xs font-bold text-slate-500 uppercase cursor-pointer hover:bg-slate-100 transition-colors select-none"
+                                    onClick={() => handleSort('sort_order')}
+                                >
+                                    <div className="flex items-center gap-1">
+                                        Order
+                                        <SortIcon field="sort_order" />
+                                    </div>
+                                </th>
+                                <th
+                                    className="text-left px-6 py-3 text-xs font-bold text-slate-500 uppercase cursor-pointer hover:bg-slate-100 transition-colors select-none"
+                                    onClick={() => handleSort('title')}
+                                >
+                                    <div className="flex items-center gap-1">
+                                        Page
+                                        <SortIcon field="title" />
+                                    </div>
+                                </th>
+                                <th
+                                    className="text-left px-6 py-3 text-xs font-bold text-slate-500 uppercase cursor-pointer hover:bg-slate-100 transition-colors select-none"
+                                    onClick={() => handleSort('status')}
+                                >
+                                    <div className="flex items-center gap-1">
+                                        Status
+                                        <SortIcon field="status" />
+                                    </div>
+                                </th>
                                 <th className="text-left px-6 py-3 text-xs font-bold text-slate-500 uppercase">Display</th>
-                                <th className="text-left px-6 py-3 text-xs font-bold text-slate-500 uppercase">Date</th>
+                                <th
+                                    className="text-left px-6 py-3 text-xs font-bold text-slate-500 uppercase cursor-pointer hover:bg-slate-100 transition-colors select-none"
+                                    onClick={() => handleSort('created_at')}
+                                >
+                                    <div className="flex items-center gap-1">
+                                        Date
+                                        <SortIcon field="created_at" />
+                                    </div>
+                                </th>
                                 <th className="text-right px-6 py-3 text-xs font-bold text-slate-500 uppercase">Actions</th>
                             </tr>
                         </thead>

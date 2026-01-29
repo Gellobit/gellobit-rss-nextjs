@@ -30,13 +30,19 @@ export async function GET(request: NextRequest) {
         const offset = parseInt(searchParams.get('offset') || '0');
         const status = searchParams.get('status');
         const search = searchParams.get('search');
+        const sortBy = searchParams.get('sortBy') || 'sort_order';
+        const sortOrder = searchParams.get('sortOrder') || 'asc';
+
+        // Validate sortBy to prevent SQL injection
+        const allowedSortFields = ['title', 'created_at', 'published_at', 'status', 'sort_order'];
+        const safeSortBy = allowedSortFields.includes(sortBy) ? sortBy : 'sort_order';
+        const ascending = sortOrder === 'asc';
 
         // Build query
         let query = adminSupabase
             .from('pages')
             .select('*', { count: 'exact' })
-            .order('sort_order', { ascending: true })
-            .order('created_at', { ascending: false })
+            .order(safeSortBy, { ascending })
             .range(offset, offset + limit - 1);
 
         if (status) {
