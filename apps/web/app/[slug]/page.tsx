@@ -2,9 +2,10 @@ import React from 'react';
 import { notFound } from 'next/navigation';
 import { unstable_cache } from 'next/cache';
 import { Metadata } from 'next';
-import { Calendar, Share2, ArrowLeft, Tag } from 'lucide-react';
+import { Calendar, Share2, ArrowLeft, Tag, Edit2 } from 'lucide-react';
 import Link from 'next/link';
 import { createAdminClient } from '@/lib/utils/supabase-admin';
+import { createServerClient } from '@/lib/utils/supabase-server';
 import MobileNavBar from '@/components/MobileNavBar';
 import UserNav from '@/components/UserNav';
 import ShareButton from '@/components/ShareButton';
@@ -233,6 +234,26 @@ const getRelatedPosts = unstable_cache(
     ['related-posts'],
     { revalidate: 300, tags: ['posts'] }
 );
+
+// Check if current user is admin (not cached - user-specific)
+async function checkIsAdmin(): Promise<boolean> {
+    try {
+        const supabase = await createServerClient();
+        const { data: { user } } = await supabase.auth.getUser();
+
+        if (!user) return false;
+
+        const { data: profile } = await supabase
+            .from('profiles')
+            .select('role')
+            .eq('id', user.id)
+            .single();
+
+        return profile?.role === 'admin';
+    } catch {
+        return false;
+    }
+}
 
 // Calculate reading time from content
 function calculateReadingTime(content: string): string {
@@ -559,7 +580,10 @@ export default async function ContentPage({ params }: { params: Promise<{ slug: 
 
     // For pages and posts
     // Fetch related posts only for blog posts
-    const relatedPosts = isPost ? await getRelatedPosts(slug) : [];
+    const [relatedPosts, isAdmin] = await Promise.all([
+        isPost ? getRelatedPosts(slug) : Promise.resolve([]),
+        checkIsAdmin()
+    ]);
     const readingTime = isPost ? calculateReadingTime(content.content) : undefined;
 
     // Check if this is a pillar page (page with linked opportunity type)
@@ -707,8 +731,20 @@ export default async function ContentPage({ params }: { params: Promise<{ slug: 
                                             )}
                                         </div>
 
-                                        {/* Share Button */}
-                                        <ShareButton title={content.title} />
+                                        <div className="flex items-center gap-1">
+                                            {/* Admin Edit Button */}
+                                            {isAdmin && (
+                                                <a
+                                                    href={`/admin?section=blog&edit=${content.id}`}
+                                                    className="p-2 rounded-full hover:bg-slate-100 text-slate-400 hover:text-blue-600 transition-colors"
+                                                    title="Edit Post"
+                                                >
+                                                    <Edit2 size={18} />
+                                                </a>
+                                            )}
+                                            {/* Share Button */}
+                                            <ShareButton title={content.title} />
+                                        </div>
                                     </div>
                                 )}
 

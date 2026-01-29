@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.0-alpha.41] - 2026-01-29
+
+### Added
+- **Admin Edit Button on Frontend Blog Posts**: Admin users can now see an edit button (pencil icon) next to the share button when viewing blog posts
+  - Only visible to logged-in users with admin role
+  - Located in the post header, next to the share button
+  - Links directly to the admin editor: `/admin?section=blog&edit={postId}`
+  - Allows quick editing without navigating through the admin panel
+
 ## [1.0.0-alpha.40] - 2026-01-29
 
 ### Added
