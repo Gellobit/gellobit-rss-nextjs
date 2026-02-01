@@ -27,6 +27,24 @@ export interface CreateOpportunityData {
 }
 
 /**
+ * Default prize_value text by opportunity type when AI cannot extract a value
+ */
+const DEFAULT_PRIZE_VALUES: Record<string, string> = {
+  giveaway: 'See prize details',
+  contest: 'See prize details',
+  sweepstakes: 'See prize details',
+  instant_win: 'See prize details',
+  scholarship: 'Varies by scholarship',
+  dream_job: 'Salary not disclosed',
+  get_paid_to: 'Compensation varies',
+  job_fair: 'Multiple opportunities',
+  volunteer: 'Volunteer opportunity',
+  free_training: 'Free training',
+  promo: 'See offer details',
+  evergreen: 'See details',
+};
+
+/**
  * Opportunity Service - CRUD operations for opportunities
  */
 export class OpportunityService {
@@ -72,6 +90,9 @@ export class OpportunityService {
     try {
       const slug = this.generateSlug(aiContent.title);
 
+      // Use AI-provided prize_value, or fall back to default based on opportunity type
+      const prizeValue = aiContent.prize_value || DEFAULT_PRIZE_VALUES[opportunityType] || 'See details';
+
       const opportunityData: CreateOpportunityData = {
         title: aiContent.title,
         slug,
@@ -81,7 +102,7 @@ export class OpportunityService {
         source_url: sourceUrl,
         source_feed_id: sourceFeedId,
         deadline: aiContent.deadline || null,
-        prize_value: aiContent.prize_value || null,
+        prize_value: prizeValue,
         requirements: aiContent.requirements || null,
         location: aiContent.location || null,
         confidence_score: aiContent.confidence_score || null,

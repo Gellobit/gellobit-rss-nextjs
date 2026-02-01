@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.0-alpha.46] - 2026-02-01
+
+### Added
+- **Default prize_value for opportunities**: When AI cannot extract a prize value, a default text is now used based on opportunity type:
+  - Giveaways/Contests/Sweepstakes/Instant Wins: "See prize details"
+  - Scholarships: "Varies by scholarship"
+  - Dream Jobs: "Salary not disclosed"
+  - Get Paid To: "Compensation varies"
+  - Job Fairs: "Multiple opportunities"
+  - Volunteer: "Volunteer opportunity"
+  - Free Training: "Free training"
+  - Promos: "See offer details"
+
+### Fixed
+- Updated 152 existing opportunities with null prize_value to use appropriate defaults
+
 ## [1.0.0-alpha.45] - 2026-02-01
 
 ### Fixed
