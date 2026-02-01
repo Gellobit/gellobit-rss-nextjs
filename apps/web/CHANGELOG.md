@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.0-alpha.44] - 2026-02-01
+
+### Changed
+- **Auto-populate display_name from email**: When a new user registers, their display_name is automatically set to the username part of their email (before the @)
+- **Email username fallback for display_name**: Throughout the app, when a user has no display_name set, the username portion of their email is shown instead of "No name" or "Guest"
+  - Affects: Admin Users list, User navigation dropdown, Account page
+  - Existing users without display_name will see their email username as their display name
+
+### Fixed
+- Users no longer appear as "No name" in the admin panel when they haven't set a display name
+
 ## [1.0.0-alpha.43] - 2026-02-01
 
 ### Changed

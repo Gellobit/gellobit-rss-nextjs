@@ -132,7 +132,7 @@ export default function UserNav({ hideOpportunities = false }: UserNavProps) {
                     </div>
                 )}
                 <span className="text-sm font-bold text-slate-700 hidden sm:inline">
-                    {user.display_name || 'My Account'}
+                    {user.display_name || user.email?.split('@')[0] || 'My Account'}
                 </span>
                 <ChevronDown size={16} className={`text-slate-400 transition-transform ${menuOpen ? 'rotate-180' : ''}`} />
             </button>
@@ -142,7 +142,7 @@ export default function UserNav({ hideOpportunities = false }: UserNavProps) {
                     {/* User Info */}
                     <div className="p-4 border-b border-slate-100 bg-slate-50">
                         <p className="font-bold text-slate-900 truncate">
-                            {user.display_name || 'User'}
+                            {user.display_name || user.email?.split('@')[0] || 'User'}
                         </p>
                         <p className="text-sm text-slate-500 truncate">{user.email}</p>
                     </div>

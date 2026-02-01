@@ -272,6 +272,13 @@ export default function ManageUsers() {
         );
     };
 
+    // Get display name with email fallback
+    const getDisplayName = (user: User) => {
+        if (user.display_name) return user.display_name;
+        if (user.email) return user.email.split('@')[0];
+        return 'Unknown';
+    };
+
     const getMembershipBadge = (type: string | null) => {
         const badges: Record<string, { bg: string; text: string; label: string }> = {
             free: { bg: 'bg-slate-100', text: 'text-slate-600', label: 'Free' },
@@ -470,7 +477,7 @@ export default function ManageUsers() {
                                                 )}
                                                 <div>
                                                     <div className="font-bold text-slate-900">
-                                                        {user.display_name || 'No name'}
+                                                        {getDisplayName(user)}
                                                     </div>
                                                     <div className="text-sm text-slate-500">
                                                         {user.email || 'No email'}
@@ -606,7 +613,7 @@ export default function ManageUsers() {
                                 )}
                                 <div>
                                     <div className="font-bold text-slate-900">
-                                        {editingUser.display_name || 'No name'}
+                                        {getDisplayName(editingUser)}
                                     </div>
                                     <div className="text-sm text-slate-500">
                                         {editingUser.email || 'No email'}

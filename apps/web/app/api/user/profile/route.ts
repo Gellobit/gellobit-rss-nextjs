@@ -23,11 +23,15 @@ export async function GET(request: NextRequest) {
 
         // If profile doesn't exist, create it
         if (error && error.code === 'PGRST116') {
+            // Extract username from email (part before @) as default display name
+            const defaultDisplayName = user.email ? user.email.split('@')[0] : null;
+
             const { data: newProfile, error: createError } = await adminSupabase
                 .from('profiles')
                 .insert({
                     id: user.id,
                     email: user.email,
+                    display_name: defaultDisplayName,
                     role: 'user',
                     membership_type: 'free',
                 })

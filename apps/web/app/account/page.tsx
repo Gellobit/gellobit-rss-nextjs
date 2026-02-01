@@ -261,7 +261,7 @@ export default function AccountPage() {
                             </div>
                         )}
                         <div className="flex-1">
-                            <p className="font-bold text-slate-900">{profile?.display_name || 'Guest'}</p>
+                            <p className="font-bold text-slate-900">{profile?.display_name || profile?.email?.split('@')[0] || 'Guest'}</p>
                             <p className="text-sm text-slate-500">{profile?.email}</p>
                             <span className={`inline-block mt-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${getMembershipColor(profile?.membership_type || 'free')}`}>
                                 {getMembershipLabel(profile?.membership_type || 'free')}
@@ -515,7 +515,7 @@ export default function AccountPage() {
                             />
                         </div>
                         <div>
-                            <p className="font-bold text-slate-900">{profile?.display_name || 'No name set'}</p>
+                            <p className="font-bold text-slate-900">{profile?.display_name || profile?.email?.split('@')[0] || 'No name set'}</p>
                             <p className="text-sm text-slate-500">{profile?.email}</p>
                             {profile?.avatar_url && (
                                 <button
