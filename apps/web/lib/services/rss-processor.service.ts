@@ -311,6 +311,10 @@ export class RSSProcessorService {
         }
       }
 
+      // Track URLs processed in this run to prevent duplicates within same batch
+      // This is needed because the same URL may appear multiple times in a feed (common with Google Alerts)
+      const processedUrlsInRun = new Set<string>();
+
       // Process each item
       for (const item of itemsToProcess) {
         try {
@@ -323,6 +327,19 @@ export class RSSProcessorService {
             });
             continue;
           }
+
+          // Check if we've already processed this URL in this run (in-memory dedup)
+          if (processedUrlsInRun.has(item.link)) {
+            result.duplicatesSkipped++;
+            await logger.debug('Skipping duplicate URL within same run', {
+              feed_id: feedId,
+              item_url: item.link,
+            });
+            continue;
+          }
+
+          // Mark as being processed in this run
+          processedUrlsInRun.add(item.link);
 
           // For URL list, we use the link as the identifier
           const normalized = {
