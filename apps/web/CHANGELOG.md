@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.0-alpha.43] - 2026-02-01
+
+### Changed
+- **Dynamic Sidebar CTA on Blog Posts**: The "Never Miss an Opportunity" CTA in the blog sidebar now adapts based on user authentication state
+  - **Logged out users**: Shows "Never Miss an Opportunity" with "Get Started" button linking to `/auth`
+  - **Logged in (free) users**: Shows "Discover Opportunities" with "Browse Now" button linking to `/opportunities`
+  - **Premium/Lifetime members**: Shows personalized "Premium Member" message with purple gradient styling and "Explore Opportunities" button
+
+### Added
+- **DynamicSidebarCTA Component** (`components/DynamicSidebarCTA.tsx`): New client component that uses UserContext to render different CTAs based on user state
+
 ## [1.0.0-alpha.42] - 2026-01-29
 
 ### Added

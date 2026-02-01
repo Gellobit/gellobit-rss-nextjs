@@ -9,7 +9,8 @@ import { createServerClient } from '@/lib/utils/supabase-server';
 import MobileNavBar from '@/components/MobileNavBar';
 import UserNav from '@/components/UserNav';
 import ShareButton from '@/components/ShareButton';
-import Sidebar, { SidebarCTA } from '@/components/Sidebar';
+import Sidebar from '@/components/Sidebar';
+import DynamicSidebarCTA from '@/components/DynamicSidebarCTA';
 import ContentWithAds from '@/components/ContentWithAds';
 import AdContainer from '@/components/AdContainer';
 import OpportunityPreviewGrid from '@/components/OpportunityPreviewGrid';
@@ -820,14 +821,8 @@ export default async function ContentPage({ params }: { params: Promise<{ slug: 
                             relatedItems={relatedPosts}
                             relatedTitle="More Posts"
                         >
-                            {/* CTA Widget */}
-                            <SidebarCTA
-                                title="Never Miss an Opportunity"
-                                description="Get the latest contests, giveaways, and more delivered to your inbox."
-                                buttonText="Get Started"
-                                buttonLink="/auth"
-                                variant="primary"
-                            />
+                            {/* Dynamic CTA Widget - changes based on user auth state */}
+                            <DynamicSidebarCTA />
                         </Sidebar>
                     )}
                 </div>
