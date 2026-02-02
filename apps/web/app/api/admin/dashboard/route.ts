@@ -71,6 +71,21 @@ export async function GET(request: NextRequest) {
       .order('last_fetched', { ascending: false, nullsFirst: false })
       .limit(6);
 
+    // All opportunity types (must show all, even with 0 count)
+    const allOpportunityTypes = [
+      'contest',
+      'giveaway',
+      'sweepstakes',
+      'dream_job',
+      'get_paid_to',
+      'instant_win',
+      'job_fair',
+      'scholarship',
+      'volunteer',
+      'free_training',
+      'promo',
+    ];
+
     // Get published opportunities count by type
     const { data: opportunitiesByType } = await adminSupabase
       .from('opportunities')
@@ -79,9 +94,16 @@ export async function GET(request: NextRequest) {
 
     // Group and count by opportunity_type
     const typeCounts: Record<string, number> = {};
+    // Initialize all types with 0
+    allOpportunityTypes.forEach((type) => {
+      typeCounts[type] = 0;
+    });
+    // Count actual published opportunities
     opportunitiesByType?.forEach((opp) => {
       const type = opp.opportunity_type || 'unknown';
-      typeCounts[type] = (typeCounts[type] || 0) + 1;
+      if (typeCounts[type] !== undefined) {
+        typeCounts[type] = typeCounts[type] + 1;
+      }
     });
 
     // Convert to array format sorted by count descending
