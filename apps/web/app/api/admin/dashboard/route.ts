@@ -71,6 +71,24 @@ export async function GET(request: NextRequest) {
       .order('last_fetched', { ascending: false, nullsFirst: false })
       .limit(6);
 
+    // Get published opportunities count by type
+    const { data: opportunitiesByType } = await adminSupabase
+      .from('opportunities')
+      .select('opportunity_type')
+      .eq('status', 'published');
+
+    // Group and count by opportunity_type
+    const typeCounts: Record<string, number> = {};
+    opportunitiesByType?.forEach((opp) => {
+      const type = opp.opportunity_type || 'unknown';
+      typeCounts[type] = (typeCounts[type] || 0) + 1;
+    });
+
+    // Convert to array format sorted by count descending
+    const opportunityTypeStats = Object.entries(typeCounts)
+      .map(([type, count]) => ({ type, count }))
+      .sort((a, b) => b.count - a.count);
+
     // Get recent activity from processing logs
     const { data: recentLogs } = await adminSupabase
       .from('processing_logs')
@@ -138,6 +156,7 @@ export async function GET(request: NextRequest) {
         total: totalProcessed,
         logLimit: logMaxEntries,
       },
+      opportunityTypeStats,
       feeds: feedDetails || [],
       recentActivity,
     };

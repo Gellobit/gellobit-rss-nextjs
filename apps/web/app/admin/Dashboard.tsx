@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { RefreshCw, Settings, Rss, Play, Clock, CheckCircle, AlertCircle, TrendingUp, Target, XCircle, FileEdit } from 'lucide-react';
+import { RefreshCw, Settings, Rss, Play, Clock, CheckCircle, AlertCircle, TrendingUp, Target, XCircle, FileEdit, BarChart3 } from 'lucide-react';
 import Link from 'next/link';
 
 interface DashboardStats {
@@ -24,6 +24,10 @@ interface DashboardStats {
         total: number;
         logLimit: number;
     };
+    opportunityTypeStats: Array<{
+        type: string;
+        count: number;
+    }>;
     feeds: Array<{
         id: string;
         name: string;
@@ -38,6 +42,33 @@ interface DashboardStats {
         type: 'success' | 'warning' | 'error' | 'info';
     }>;
 }
+
+// Helper to format opportunity type names
+const formatTypeName = (type: string): string => {
+    return type
+        .split('_')
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ');
+};
+
+// Color mapping for opportunity types
+const typeColors: Record<string, { bg: string; text: string; border: string }> = {
+    contest: { bg: 'bg-purple-50', text: 'text-purple-700', border: 'border-purple-200' },
+    giveaway: { bg: 'bg-blue-50', text: 'text-blue-700', border: 'border-blue-200' },
+    sweepstakes: { bg: 'bg-indigo-50', text: 'text-indigo-700', border: 'border-indigo-200' },
+    dream_job: { bg: 'bg-pink-50', text: 'text-pink-700', border: 'border-pink-200' },
+    get_paid_to: { bg: 'bg-green-50', text: 'text-green-700', border: 'border-green-200' },
+    instant_win: { bg: 'bg-amber-50', text: 'text-amber-700', border: 'border-amber-200' },
+    job_fair: { bg: 'bg-cyan-50', text: 'text-cyan-700', border: 'border-cyan-200' },
+    scholarship: { bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200' },
+    volunteer: { bg: 'bg-teal-50', text: 'text-teal-700', border: 'border-teal-200' },
+    free_training: { bg: 'bg-orange-50', text: 'text-orange-700', border: 'border-orange-200' },
+    promo: { bg: 'bg-rose-50', text: 'text-rose-700', border: 'border-rose-200' },
+};
+
+const getTypeColor = (type: string) => {
+    return typeColors[type] || { bg: 'bg-slate-50', text: 'text-slate-700', border: 'border-slate-200' };
+};
 
 export default function Dashboard() {
     const [stats, setStats] = useState<DashboardStats | null>(null);
@@ -257,6 +288,44 @@ export default function Dashboard() {
                 <div className="mt-3 text-xs text-slate-500 text-center">
                     Based on the last {stats.processing?.logLimit || 100} log entries. Adjust in Advanced Settings.
                 </div>
+            </div>
+
+            {/* Published Opportunities by Type */}
+            <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+                        <BarChart3 size={20} className="text-blue-600" />
+                        Published Opportunities by Type
+                    </h3>
+                    <Link href="/admin?section=opportunities" className="text-sm text-blue-600 hover:text-blue-700 font-bold">
+                        View All
+                    </Link>
+                </div>
+
+                {stats.opportunityTypeStats && stats.opportunityTypeStats.length > 0 ? (
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3">
+                        {stats.opportunityTypeStats.map((item) => {
+                            const colors = getTypeColor(item.type);
+                            return (
+                                <div
+                                    key={item.type}
+                                    className={`text-center p-4 rounded-xl border ${colors.bg} ${colors.border}`}
+                                >
+                                    <div className={`text-2xl font-black mb-1 ${colors.text}`}>
+                                        {item.count}
+                                    </div>
+                                    <div className="text-xs font-bold text-slate-600 truncate" title={formatTypeName(item.type)}>
+                                        {formatTypeName(item.type)}
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                ) : (
+                    <div className="text-center text-slate-400 py-8">
+                        No published opportunities yet.
+                    </div>
+                )}
             </div>
 
             {/* Quick Actions */}
