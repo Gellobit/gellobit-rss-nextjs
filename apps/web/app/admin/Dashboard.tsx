@@ -15,6 +15,7 @@ interface DashboardStats {
         today: number;
         thisWeek: number;
         total: number;
+        totalPublished: number;
     };
     processing: {
         successRate: number;
@@ -185,7 +186,7 @@ export default function Dashboard() {
             </div>
 
             {/* Stats Cards Row */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
                 {/* System Status */}
                 <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
                     <h3 className="text-sm font-bold text-slate-600 mb-3">System Status</h3>
@@ -203,6 +204,13 @@ export default function Dashboard() {
                         <div>Last Processing: {stats.system.lastProcessing ? new Date(stats.system.lastProcessing).toLocaleString() : 'Never'}</div>
                         <div>Active Feeds: {stats.system.activeFeeds}/{stats.system.totalFeeds}</div>
                     </div>
+                </div>
+
+                {/* Currently Published - Highlighted */}
+                <div className="bg-gradient-to-br from-green-50 to-emerald-100 p-6 rounded-xl shadow-sm border border-green-200">
+                    <h3 className="text-sm font-bold text-green-700 mb-3">Currently Published</h3>
+                    <div className="text-4xl font-black text-green-600 mb-2">{stats.posts.totalPublished}</div>
+                    <div className="text-xs text-green-600">Active Opportunities</div>
                 </div>
 
                 {/* Today's Activity */}
@@ -223,7 +231,7 @@ export default function Dashboard() {
                 <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
                     <h3 className="text-sm font-bold text-slate-600 mb-3">Total Posts</h3>
                     <div className="text-4xl font-black text-blue-600 mb-2">{stats.posts.total}</div>
-                    <div className="text-xs text-slate-500">All Time</div>
+                    <div className="text-xs text-slate-500">All Time (All Statuses)</div>
                 </div>
             </div>
 

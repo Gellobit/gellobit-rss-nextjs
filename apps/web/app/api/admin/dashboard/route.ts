@@ -64,6 +64,12 @@ export async function GET(request: NextRequest) {
       .select('*', { count: 'exact', head: true })
       .gte('created_at', weekStart.toISOString());
 
+    // Get total currently published opportunities
+    const { count: totalPublished } = await adminSupabase
+      .from('opportunities')
+      .select('*', { count: 'exact', head: true })
+      .eq('status', 'published');
+
     // Get feed details for display
     const { data: feedDetails } = await adminSupabase
       .from('rss_feeds')
@@ -169,6 +175,7 @@ export async function GET(request: NextRequest) {
         today: postsToday || 0,
         thisWeek: postsThisWeek || 0,
         total: totalPosts || 0,
+        totalPublished: totalPublished || 0,
       },
       processing: {
         successRate,
